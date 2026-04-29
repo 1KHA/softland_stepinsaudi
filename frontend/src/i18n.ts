@@ -109,7 +109,7 @@ const resources = {
         },
         contact: 'Contact us',
         address: 'Riyadh, Saudi Arabia',
-        rights: 'All rights reserved © {{year}} Soft Landing',
+        rights: 'All rights reserved ©️ {{year}} Soft Landing',
         privacy: 'Privacy policy',
         terms: 'Terms & conditions'
       },
@@ -158,7 +158,36 @@ const resources = {
         terms: 'Terms & Conditions',
         and: 'and',
         privacy: 'Privacy Policy'
-      }
+      },
+      dashboard: {
+  dashboard: 'Dashboard',
+  profile: 'My Profile',
+  progress: 'Progress Tracking',
+  notifications: 'Notifications',
+  welcome: 'Welcome back',
+  title: 'Company Dashboard',
+  editProfile: 'Edit Profile',
+  uploadDocuments: 'Upload Documents',
+  currentStage: 'Current Stage',
+  licensing: 'Licensing',
+  registration: 'Registration',
+  compliance: 'Compliance',
+  finalApproval: 'Final Approval',
+  inProgress: 'In Progress',
+  follow: 'Follow',
+  underReview: 'Under Review',
+  view: 'View',
+  tasks: {
+    commercialRegister: {
+      title: 'Submit Commercial Registration Request',
+      due: 'Before April 25'
+    },
+    documents: {
+      title: 'Upload Certified Company Documents',
+      status: 'Submitted'
+    }
+  }
+}
     }
   },
   ar: {
@@ -268,7 +297,7 @@ const resources = {
         },
         contact: 'تواصل معنا',
         address: 'الرياض، المملكة العربية السعودية',
-        rights: 'جميع الحقوق محفوظة © {{year}} سوفت لاندينج',
+        rights: 'جميع الحقوق محفوظة ©️ {{year}} سوفت لاندينج',
         privacy: 'سياسة الخصوصية',
         terms: 'الشروط والأحكام'
       },
@@ -317,7 +346,36 @@ const resources = {
         terms: 'الشروط والأحكام',
         and: 'و',
         privacy: 'سياسة الخصوصية'
-      }
+      },
+      dashboard: {
+dashboard: 'لوحة التحكم',
+profile: 'ملفي الشخصي',
+progress: 'تتبع التقدم',
+notifications: 'الإشعارات',
+  welcome: 'أهلاً بعودتك',
+  title: 'لوحة تحكم الشركة',
+  editProfile: 'تعديل الملف',
+  uploadDocuments: 'رفع مستندات',
+  currentStage: 'المرحلة الحالية',
+  licensing: 'التراخيص',
+  registration: 'التسجيل',
+  compliance: 'الامتثال',
+  finalApproval: 'القبول النهائي',
+  inProgress: 'قيد التنفيذ',
+  follow: 'متابعة',
+  underReview: 'تحت المراجعة',
+  view: 'عرض',
+  tasks: {
+    commercialRegister: {
+      title: 'تقديم طلب السجل التجاري',
+      due: 'قبل 25 أبريل'
+    },
+    documents: {
+      title: 'رفع مستندات الشركة الموثقة',
+      status: 'تم الإرسال'
+    }
+  }
+}
     }
   }
 };
@@ -326,7 +384,15 @@ i18n.use(initReactI18next).init({
   resources,
   lng: 'en',
   fallbackLng: 'en',
-  interpolation: { escapeValue: false }
+  interpolation: {
+    escapeValue: false
+  }
+});
+
+document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+
+i18n.on('languageChanged', (lng) => {
+  document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
 });
 
 export default i18n;

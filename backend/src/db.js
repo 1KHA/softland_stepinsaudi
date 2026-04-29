@@ -12,17 +12,6 @@ const db = new sqlite3.Database('./database.db', (err) => {
 // إنشاء الجداول
 db.serialize(() => {
 
-  // 🏢 companies
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companies (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      company_name TEXT,
-      industry TEXT,
-      phone TEXT,
-      description TEXT
-    )
-  `);
-
   // 👤 users
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
@@ -36,6 +25,41 @@ db.serialize(() => {
       FOREIGN KEY (company_id) REFERENCES companies(id)
     )
   `);
+
+  db.run(`
+  CREATE TABLE IF NOT EXISTS companies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    manager_name TEXT NOT NULL,
+    country TEXT NOT NULL,
+    sector_id INTEGER NOT NULL,
+    description TEXT,
+    logo_url TEXT,
+    branches_count INTEGER,
+    phone TEXT,
+    email TEXT,
+    assigned_employee_id INTEGER,
+    status TEXT DEFAULT 'PENDING',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS founders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER,
+    full_name TEXT NOT NULL,
+    FOREIGN KEY (company_id) REFERENCES companies(id)
+  )
+`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS sectors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name_en TEXT,
+    name_ar TEXT
+  )
+`);
 
 });
 

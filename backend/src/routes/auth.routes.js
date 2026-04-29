@@ -105,17 +105,27 @@ router.post('/register-with-company', async (req, res) => {
 
                 return sendError(res, 500, "Error creating user");
               }
+const token = jwt.sign(
+  {
+    id: this.lastID,
+    role: 'CLIENT',
+    company_id: companyId
+  },
+  'secret_key',
+  { expiresIn: '1d' }
+);
 
-              sendSuccess(res, 'User & Company created ✅', {
-                message: 'User & Company created ✅',
-                user: {
-                  id: this.lastID,
-                  name,
-                  email,
-                  role: 'CLIENT',
-                  company_id: companyId
-                }
-              });
+sendSuccess(res, 'User & Company created ✅', {
+  message: 'User & Company created ✅',
+  token,
+  user: {
+    id: this.lastID,
+    name,
+    email,
+    role: 'CLIENT',
+    company_id: companyId
+  }
+});
 
             }
           );
