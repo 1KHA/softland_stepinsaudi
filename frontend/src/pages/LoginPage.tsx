@@ -150,41 +150,54 @@ if (isLogin) {
   return;
 }
 
-  // إنشاء حساب
-  try {
-    const res = await fetch('http://localhost:3000/auth/register-with-company', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        password,
-        company_name: companyName,
-        industry: sector,
-        phone: contactNumber,
-        description: companyDescription
-      })
-    });
+ // إنشاء حساب
+try {
 
-    const data = await res.json();
-    
-    console.log("RESPONSE:", data);
+  const res = await fetch('http://localhost:3000/auth/register-with-company', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
 
-if (res.ok) {
-  navigate('/company-dashboard'); // ✅ أهم سطر
+body: JSON.stringify({
+  name,
+  email,
+  password,
+  company_name: companyName,
+  industry: sector,
+  phone: contactNumber,
+  description: companyDescription
+})
 
+  });
 
+  const data = await res.json();
+
+  console.log("RESPONSE:", data);
+
+  if (res.ok) {
+
+  // حفظ التوكن
+  localStorage.setItem("token", data.token);
+
+  // حفظ بيانات المستخدم
+  localStorage.setItem("user", JSON.stringify(data.user));
+
+  // تحويل للداشبورد
+  navigate('/company-dashboard');
 
 } else {
+
   alert(data.message || 'صار خطأ');
+
 }
 
-  } catch (err) {
-    console.error("ERROR:", err);
-    alert('خطأ في الاتصال بالسيرفر');
-  }
+} catch (err) {
+
+  console.error("ERROR:", err);
+  alert('خطأ في الاتصال بالسيرفر');
+
+}
 };
   return (
     <div className="min-h-screen bg-brand-cream flex flex-col">
@@ -484,6 +497,6 @@ if (res.ok) {
           </p>
         </motion.div>
       </div>
-    </div>);
-
-}
+    </div>
+    );
+  }
