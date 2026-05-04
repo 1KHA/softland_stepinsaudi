@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
-
+const checkOwnership = require("../middleware/ownership");
 const {
   createCompany,
   getCompanyById,
@@ -24,6 +24,8 @@ router.post(
 // GET BY ID
 router.get(
   "/companies/:id",
+  authMiddleware,
+  checkOwnership,
   getCompanyById
 );
 
@@ -38,6 +40,7 @@ router.put(
 router.post(
   "/companies/:id/submit",
   authMiddleware,
+  checkOwnership,
   submitCompany
 );
 

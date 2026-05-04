@@ -27,21 +27,21 @@ db.serialize(() => {
   `);
 
   db.run(`
-  CREATE TABLE IF NOT EXISTS companies (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    manager_name TEXT NOT NULL,
-    country TEXT NOT NULL,
-    sector_id INTEGER NOT NULL,
-    description TEXT,
-    logo_url TEXT,
-    branches_count INTEGER,
-    phone TEXT,
-    email TEXT,
-    assigned_employee_id INTEGER,
-    status TEXT DEFAULT 'PENDING',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
+CREATE TABLE IF NOT EXISTS companies (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_name TEXT NOT NULL,
+  manager_name TEXT NOT NULL,
+  country TEXT NOT NULL,
+  sector_id INTEGER NOT NULL,
+  description TEXT,
+  logo_url TEXT,
+  branches_count INTEGER,
+  phone TEXT,
+  email TEXT,
+  assigned_employee_id INTEGER,
+  status TEXT NOT NULL DEFAULT 'UNDER_REVIEW',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
 `);
 
 db.run(`
@@ -59,6 +59,15 @@ db.run(`
     name_en TEXT,
     name_ar TEXT
   )
+`);
+
+db.run(`
+  INSERT OR IGNORE INTO sectors (id, name_en, name_ar)
+  VALUES
+  (1, 'Commercial', 'تجاري'),
+  (2, 'Industrial', 'صناعي'),
+  (3, 'Real Estate', 'عقاري'),
+  (4, 'Entrepreneurial', 'ريادي')
 `);
 
 });

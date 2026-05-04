@@ -6,6 +6,12 @@ import { useTranslation } from '../../node_modules/react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 export function LoginPage() {
+        const sectors = [
+  { id: 1, name: 'Commercial' },
+  { id: 2, name: 'Industrial' },
+  { id: 3, name: 'Real Estate' },
+  { id: 4, name: 'Entrepreneurial' }
+];
   const { t, i18n } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -39,6 +45,7 @@ const handleLogin = async () => {
         password
       })
     });
+
 
     const data = await res.json();
 
@@ -164,10 +171,14 @@ body: JSON.stringify({
   email,
   password,
   company_name: companyName,
-  industry: sector,
+  sector_id: Number(sector),
   phone: contactNumber,
-  description: companyDescription
-})
+  description: companyDescription,
+  country,
+founders: founders
+  .split(',')
+  .map((f) => f.trim())
+  .filter((f) => f.length > 0)})
 
   });
 
@@ -299,22 +310,41 @@ body: JSON.stringify({
                       icon: <UserCog className="h-5 w-5" />,
                       required: true
                     })}
-                    {renderInput({
-                      label: t('login.country'),
-                      placeholder: t('login.countryPlaceholder'),
-                      value: country,
-                      onChange: setCountry,
-                      icon: <Globe2 className="h-5 w-5" />,
-                      required: true
-                    })}
-                    {renderInput({
-                      label: t('login.sector'),
-                      placeholder: t('login.sectorPlaceholder'),
-                      value: sector,
-                      onChange: setSector,
-                      icon: <BriefcaseBusiness className="h-5 w-5" />,
-                      required: true
-                    })}
+<div className="space-y-2">
+  <label>{t('login.country')}</label>
+
+  <select
+    value={country}
+    onChange={(e) => setCountry(e.target.value)}
+    className="w-full p-3 border rounded"
+  >
+    <option value="">Select country</option>
+
+    <option value="Saudi Arabia">Saudi Arabia</option>
+    <option value="United Arab Emirates">United Arab Emirates</option>
+    <option value="Kuwait">Kuwait</option>
+    <option value="Qatar">Qatar</option>
+    <option value="Bahrain">Bahrain</option>
+    <option value="Oman">Oman</option>
+  </select>
+</div>
+<div className="space-y-2">
+  <label>{t('login.sector')}</label>
+
+  <select
+    value={sector}
+    onChange={(e) => setSector(e.target.value)}
+    className="w-full p-3 border rounded"
+  >
+    <option value="">Select sector</option>
+
+    {sectors.map((s) => (
+      <option key={s.id} value={s.id}>
+        {s.name}
+      </option>
+    ))}
+  </select>
+</div>
                     {renderInput({
                       label: t('login.founders'),
                       placeholder: t('login.foundersPlaceholder'),

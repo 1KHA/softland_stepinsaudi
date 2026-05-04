@@ -49,7 +49,7 @@ const cleanFounders =
         `
         INSERT INTO companies
 (
-        company_name,
+        name,
          manager_name,
          country,
          sector_id,
@@ -78,7 +78,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             console.log(err);
 
             return res.status(500).json({
-              message: "Error creating company"
+              message: err.message
             });
           }
 
@@ -188,16 +188,18 @@ exports.updateCompany = (req, res) => {
 
   const companyId = req.params.id;
 
-  const {
-    name,
-    manager_name,
-    country,
-    sector_id,
-    founders,
-    description,
-    phone,
-    email
-  } = req.body;
+const {
+  name,
+  manager_name,
+  country,
+  sector_id,
+  founders,
+  description,
+  phone,
+  email,
+  branches_count,
+  logo_url
+} = req.body;
 
   // ownership validation
   if (req.user.company_id != companyId) {
@@ -247,27 +249,31 @@ exports.updateCompany = (req, res) => {
 
       db.run(
         `
-        UPDATE companies
-        SET
-          company_name = ?,
-          manager_name = ?,
-          country = ?,
-          sector_id = ?,
-          description = ?,
-          phone = ?,
-          email = ?
-        WHERE id = ?
+UPDATE companies
+SET
+  name = ?,
+  manager_name = ?,
+  country = ?,
+  sector_id = ?,
+  description = ?,
+  phone = ?,
+  email = ?,
+  branches_count = ?,
+  logo_url = ?
+WHERE id = ?
         `,
-        [
-          name,
-          manager_name,
-          country,
-          Number(sector_id),
-          description,
-          phone,
-          email,
-          companyId
-        ],
+[
+  name,
+  manager_name,
+  country,
+  Number(sector_id),
+  description,
+  phone,
+  email,
+  branches_count,
+  logo_url,
+  companyId
+],
 
         function (err) {
 
@@ -398,7 +404,7 @@ db.get(
 
     // validation before submit
     if (
-      !company.company_name ||
+      !company.name ||
       !company.manager_name ||
       !company.country ||
       !company.description ||
@@ -465,7 +471,7 @@ exports.getAllCompanies = (req, res) => {
     `
     SELECT
       id,
-      company_name,
+      name,
       manager_name,
       country,
       status

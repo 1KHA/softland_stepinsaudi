@@ -17,13 +17,13 @@ export default function CompanyProfile() {
     const [companyData, setCompanyData] = useState(
         {
 
-            companyName: user?.company_name || '',
+            companyName: user?.name || '',
             managerName: '',
             country: 'Saudi Arabia',
             sector: 'Commercial',
             description: '',
             founders: ['Founder 1'],
-            branches: '',
+            branches_count: '',
             phone: '',
             email: user?.email || '',
             logo: null as any
@@ -43,52 +43,49 @@ export default function CompanyProfile() {
 
                 if (!companyId) return;
 
-                const response = await axios.get(
-                    `http://localhost:3000/companies/${companyId}`
-                );
+const token = localStorage.getItem("token");
+
+const response = await axios.get(
+`http://localhost:3000/companies/${companyId}`,
+{
+    headers: {
+        Authorization: `Bearer ${token}`
+    }
+}
+);
 
                 const company = response.data;
+                console.log(company)
+setCompanyData({
 
-                setCompanyData({
+    companyName: company.name || '',
 
-                    companyName:
-                        company.company_name || '',
+    managerName: company.manager_name || '',
 
-                    managerName:
-                        company.manager_name || '',
+    country: company.country || '',
 
-                    country:
-                        company.country || '',
+    sector: company.sector_id || '',
 
-                    sector:
-                        company.sector_id || '',
+    description: company.description || '',
 
-                    description:
-                        company.description || '',
+    founders:
+        company.founders?.map((f: any) =>
+            typeof f === 'string'
+                ? f
+                : f.full_name
+        ) || [],
 
-                    founders:
-                        company.founders?.map(
-                            (f: any) =>
-                                typeof f === 'string'
-                                    ? f
-                                    : f.full_name
-                        ) || [],
+    branches_count: company.branches_count || '',
 
-                    branches:
-                        company.branches || '',
+    phone: company.phone || '',
 
-                    phone:
-                        company.phone || '',
+    email: company.email || '',
 
-                    email:
-                        company.email || '',
+    logo: company.logo_url || null
 
-                    logo: null
-
-                });
-
+});
                 setOriginalData({
-    companyName: company.company_name || '',
+    companyName: company.name || '',
     managerName: company.manager_name || '',
     country: company.country || '',
     sector: company.sector_id || '',
@@ -99,7 +96,7 @@ export default function CompanyProfile() {
                 ? f
                 : f.full_name
         ) || [],
-    branches: company.branches || '',
+    branches_count: company.branches_count || '',
     phone: company.phone || '',
     email: company.email || '',
     logo: null
@@ -203,16 +200,18 @@ console.log(user);
 console.log(user.company_id);
 await axios.put(
   `http://localhost:3000/companies/${user.company_id}`,
-                {
-                    name: companyData.companyName,
-                    manager_name: companyData.managerName,
-                    country: companyData.country,
-                    sector_id: companyData.sector,
-                    founders: companyData.founders,
-                    description: companyData.description,
-                    phone: companyData.phone,
-                    email: companyData.email
-                },
+{
+  name: companyData.companyName,
+  manager_name: companyData.managerName,
+  country: companyData.country,
+  sector_id: companyData.sector,
+  founders: companyData.founders,
+  description: companyData.description,
+  phone: companyData.phone,
+  email: companyData.email,
+  branches_count: companyData.branches_count,
+  logo_url: companyData.logo
+},
 
                 {
                     headers: {
@@ -541,8 +540,8 @@ Authorization: `Bearer ${localStorage.getItem("token")}`                    }
 
                             <input
                                 type="number"
-                                name="branches"
-                                value={companyData.branches}
+                                name="branches_count"
+                                value={companyData.branches_count}
                                 disabled={!isEditing}
                                 onChange={handleChange}
                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"

@@ -43,150 +43,236 @@ function findUserByEmail(email, callback) {
 // ✅ REGISTER WITH COMPANY
 router.post('/register-with-company', async (req, res) => {
   try {
-    const {
-      name,
-      email,
-      password,
-      company_name,
-      industry,
-      phone,
-      description
-    } = req.body;
+
+const {
+  name,
+  email,
+  password,
+  company_name,
+  manager_name,
+  sector_id,
+  country,
+  phone,
+  description,
+  founders
+} = req.body;
 
     if (!email || !password || !company_name) {
-      return sendError(res, 400, 'Missing required fields');
+
+      return sendError(
+        res,
+        400,
+        'Missing required fields'
+      );
+
     }
 
     if (phone && !isValidPhone(phone)) {
-      return sendError(res, 400, 'Phone must be exactly 10 digits');
+
+      return sendError(
+        res,
+        400,
+        'Phone must be exactly 10 digits'
+      );
+
     }
 
-    // 🔍 تحقق من الايميل
-    findUserByEmail(email, async (err, existingUser) => {
+    // 🔍 check email
+    findUserByEmail(
+      email,
+      async (err, existingUser) => {
 
-      if (err) {
-        console.error("DB ERROR:", err);
-        return sendError(res, 500, "Database error");
-      }
+        if (err) {
 
-      if (existingUser) {
-        return sendError(res, 400, 'Email already exists');
-      }
+          console.error(
+            "DB ERROR:",
+            err
+          );
 
-      // 🔐 تشفير الباسورد
-      const hashedPassword = await bcrypt.hash(password, 10);
+          return sendError(
+            res,
+            500,
+            "Database error"
+          );
 
-      // 🏢 إنشاء الشركة
-      db.run(
-        `INSERT INTO companies (company_name, industry, phone, description)
-         VALUES (?, ?, ?, ?)`,
-        [company_name, industry, phone, description],
-        function (err) {
+        }
 
-          if (err) {
-            console.error("Company insert error:", err);
-            return sendError(res, 500, "Error creating company");
-          }
+        if (existingUser) {
 
-          const companyId = this.lastID;
+          return sendError(
+            res,
+            400,
+            'Email already exists'
+          );
 
-          // 👤 إنشاء المستخدم
-          db.run(
-            `INSERT INTO users (name, email, password, role, company_id)
-             VALUES (?, ?, ?, ?, ?)`,
-            [name, email, hashedPassword, 'CLIENT', companyId],
-            function (err) {
+        }
 
-              if (err) {
-                console.error("User insert error:", err);
-                if (isDuplicateEmailError(err)) {
-                  return sendError(res, 400, "Email already exists");
-                }
+        // 🔐 hash password
+        const hashedPassword =
+          await bcrypt.hash(password, 10);
 
-                return sendError(res, 500, "Error creating user");
-              }
-const token = jwt.sign(
-  {
-    id: this.lastID,
-    role: 'CLIENT',
-    company_id: companyId
-  },
-  'secret_key',
-  { expiresIn: '1d' }
-);
+        // 🏢 create company
+        db.run(
+          `
+          INSERT INTO companies
+          (
+            name,
+            manager_name,
+            country,
+            sector_id,
+            description,
+            phone,
+            email,
+            status
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+          [
+            company_name,
+            name,
+            country,
+            sector_id,
+            description || "",
+            phone || "",
+            email,
+            "UNDER_REVIEW"
+          ],
 
-sendSuccess(res, 'User & Company created ✅', {
-  message: 'User & Company created ✅',
-  token,
-  user: {
-    id: this.lastID,
-    name,
-    email,
-    role: 'CLIENT',
-    company_id: companyId
-  }
-});
+          function (err) {
+
+            if (err) {
+
+              console.error(
+                "Company insert error:",
+                err
+              );
+
+              return sendError(
+                res,
+                500,
+                "Error creating company"
+              );
 
             }
-          );
-        }
-      );
 
-    });
+            const companyId =
+              this.lastID;
+
+              if (founders && Array.isArray(founders)) {
+  founders.forEach((founderName) => {
+    db.run(
+      `INSERT INTO founders (company_id, full_name)
+       VALUES (?, ?)`,
+      [companyId, founderName]
+    );
+  });
+}
+
+            // 👤 create user
+            db.run(
+              `
+              INSERT INTO users
+              (
+                name,
+                email,
+                password,
+                role,
+                company_id
+              )
+              VALUES (?, ?, ?, ?, ?)
+              `,
+              [
+                name,
+                email,
+                hashedPassword,
+                'CLIENT',
+                companyId
+              ],
+
+              function (err) {
+
+                if (err) {
+
+                  console.error(
+                    "User insert error:",
+                    err
+                  );
+
+                  if (
+                    isDuplicateEmailError(err)
+                  ) {
+
+                    return sendError(
+                      res,
+                      400,
+                      "Email already exists"
+                    );
+
+                  }
+
+                  return sendError(
+                    res,
+                    500,
+                    "Error creating user"
+                  );
+
+                }
+
+                const token =
+                  jwt.sign(
+                    {
+                      id: this.lastID,
+                      role: 'CLIENT',
+                      company_id:
+                        companyId
+                    },
+                    'secret_key',
+                    {
+                      expiresIn: '1d'
+                    }
+                  );
+
+                sendSuccess(
+                  res,
+                  'User & Company created ✅',
+                  {
+                    message:
+                      'User & Company created ✅',
+
+                    token,
+
+                    user: {
+                      id: this.lastID,
+                      name,
+                      email,
+                      role: 'CLIENT',
+                      company_id:
+                        companyId
+                    }
+                  }
+                );
+
+              }
+            );
+
+          }
+        );
+
+      }
+    );
 
   } catch (err) {
+
     console.error(err);
-    sendError(res, 500, 'Server error');
+
+    sendError(
+      res,
+      500,
+      'Server error'
+    );
+
   }
 });
-
-
-// 🔐 LOGIN
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    findUserByEmail(email, async (err, user) => {
-
-      if (err) {
-        console.error("DB ERROR:", err);
-        return sendError(res, 500, "Database error");
-      }
-
-      if (!user) {
-        return sendError(res, 400, 'المستخدم غير موجود');
-      }
-
-      const isMatch = await bcrypt.compare(password, user.password);
-
-      if (!isMatch) {
-        return sendError(res, 400, 'كلمة المرور غلط');
-      }
-
-      const token = jwt.sign(
-        {
-          id: user.id,
-          role: user.role,
-          company_id: user.company_id
-        },
-        'secret_key',
-        { expiresIn: '1d' }
-      );
-
-      sendSuccess(res, 'تم تسجيل الدخول 🎉', {
-        message: 'تم تسجيل الدخول 🎉',
-        token,
-        user
-      });
-
-    });
-
-  } catch (err) {
-    console.error(err);
-    sendError(res, 500, 'خطأ في السيرفر');
-  }
-});
-
 
 // 🔒 ownership route
 router.get(
@@ -414,4 +500,75 @@ router.post(
     }
   }
 );
+
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
+    findUserByEmail(email, async (err, user) => {
+      if (err) {
+        console.error(err);
+
+        return res.status(500).json({
+          success: false,
+          message: 'Database error'
+        });
+      }
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid credentials'
+        });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid credentials'
+        });
+      }
+
+      const token = jwt.sign(
+        {
+          id: user.id,
+          role: user.role,
+          company_id: user.company_id
+        },
+        process.env.JWT_SECRET || 'secret_key',
+        { expiresIn: '7d' }
+      );
+
+      res.json({
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          company_id: user.company_id
+        }
+      });
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
 module.exports = router;

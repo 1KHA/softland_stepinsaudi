@@ -1,7 +1,6 @@
 function checkOwnership(req, res, next) {
   const user = req.user;
-  const companyIdFromParams = parseInt(req.params.companyId);
-
+const companyIdFromParams = parseInt(req.params.id);
   // 🔒 تحقق من وجود المستخدم
   if (!user) {
     return res.status(401).json({
