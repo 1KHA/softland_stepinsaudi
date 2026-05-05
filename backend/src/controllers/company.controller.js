@@ -1,4 +1,7 @@
 const db = require("../db");
+const {
+    generateWorkflow
+} = require('../services/workflow.service');
 
 // CREATE COMPANY
 exports.createCompany = (req, res) => {
@@ -83,6 +86,18 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           }
 
           const companyId = this.lastID;
+
+          generateWorkflow(companyId, sector_id)
+    .then(() => {
+        console.log('Workflow generated ✅');
+    })
+    .catch((err) => {
+        console.error(
+            'Workflow generation failed ❌',
+            err
+        );
+    });
+
 // link company to current user
 if (req.user) {
 
@@ -109,15 +124,13 @@ if (req.user) {
                 `,
                 [companyId, founder]
               );
-
             });
 
-          }
-
-          res.status(201).json({
+                      res.status(201).json({
             message: "Company created successfully ✅",
             company_id: companyId
           });
+          }
 
         }
       );
@@ -294,6 +307,43 @@ WHERE id = ?
             });
 
           }
+// delete old company tasks
+      db.run(
+        `
+        DELETE FROM company_tasks
+        WHERE company_id = ?
+        `,
+        [companyId],
+        (err) => {
+
+          if (err) {
+            console.log(err);
+            return;
+          }
+
+         db.run(
+  `
+  DELETE FROM company_stages
+  WHERE company_id = ?
+  `,
+  [companyId],
+  async (err) => {
+
+    if (err) {
+      console.log(err);
+      return;
+    }
+
+    await generateWorkflow(
+      companyId,
+      Number(sector_id)
+    );
+
+  }
+);
+
+        }
+      );
 
           // delete old founders
           db.run(

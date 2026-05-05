@@ -204,7 +204,7 @@ await axios.put(
   name: companyData.companyName,
   manager_name: companyData.managerName,
   country: companyData.country,
-  sector_id: companyData.sector,
+  sector_id: Number(companyData.sector),
   founders: companyData.founders,
   description: companyData.description,
   phone: companyData.phone,

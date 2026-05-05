@@ -3,13 +3,16 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+
 const authMiddleware = require('../middleware/authMiddleware');
 const checkOwnership = require('../middleware/ownership');
-
-
 const checkRole = require("../middleware/checkRole");
 
+const { generateWorkflow } = require('../services/workflow.service');
+
 const PHONE_REGEX = /^\d{10}$/;
+
+// ================= HELPERS =================
 
 function sendSuccess(res, message, data = {}, status = 200) {
   return res.status(status).json({
@@ -36,26 +39,31 @@ function isValidPhone(phone) {
 }
 
 function findUserByEmail(email, callback) {
-  db.get(`SELECT * FROM users WHERE email = ?`, [email], callback);
+  db.get(
+    `SELECT * FROM users WHERE email = ?`,
+    [email],
+    callback
+  );
 }
 
+// ================= REGISTER WITH COMPANY =================
 
-// ✅ REGISTER WITH COMPANY
 router.post('/register-with-company', async (req, res) => {
+
   try {
 
-const {
-  name,
-  email,
-  password,
-  company_name,
-  manager_name,
-  sector_id,
-  country,
-  phone,
-  description,
-  founders
-} = req.body;
+    const {
+      name,
+      email,
+      password,
+      company_name,
+      manager_name,
+      sector_id,
+      country,
+      phone,
+      description,
+      founders
+    } = req.body;
 
     if (!email || !password || !company_name) {
 
@@ -77,17 +85,14 @@ const {
 
     }
 
-    // 🔍 check email
+    // check existing email
     findUserByEmail(
       email,
       async (err, existingUser) => {
 
         if (err) {
 
-          console.error(
-            "DB ERROR:",
-            err
-          );
+          console.error("DB ERROR:", err);
 
           return sendError(
             res,
@@ -107,11 +112,11 @@ const {
 
         }
 
-        // 🔐 hash password
+        // hash password
         const hashedPassword =
           await bcrypt.hash(password, 10);
 
-        // 🏢 create company
+        // create company
         db.run(
           `
           INSERT INTO companies
@@ -129,7 +134,7 @@ const {
           `,
           [
             company_name,
-            name,
+            manager_name || name,
             country,
             sector_id,
             description || "",
@@ -155,20 +160,42 @@ const {
 
             }
 
-            const companyId =
-              this.lastID;
+            const companyId = this.lastID;
 
-              if (founders && Array.isArray(founders)) {
-  founders.forEach((founderName) => {
-    db.run(
-      `INSERT INTO founders (company_id, full_name)
-       VALUES (?, ?)`,
-      [companyId, founderName]
-    );
-  });
-}
+            // generate workflow
+            generateWorkflow(companyId, sector_id)
+              .then(() => {
+                console.log("Workflow generated ✅");
+              })
+              .catch((err) => {
+                console.error(
+                  "Workflow generation failed ❌",
+                  err
+                );
+              });
 
-            // 👤 create user
+            // founders
+            if (
+              founders &&
+              Array.isArray(founders)
+            ) {
+
+              founders.forEach((founderName) => {
+
+                db.run(
+                  `
+                  INSERT INTO founders
+                  (company_id, full_name)
+                  VALUES (?, ?)
+                  `,
+                  [companyId, founderName]
+                );
+
+              });
+
+            }
+
+            // create user
             db.run(
               `
               INSERT INTO users
@@ -218,27 +245,22 @@ const {
 
                 }
 
-                const token =
-                  jwt.sign(
-                    {
-                      id: this.lastID,
-                      role: 'CLIENT',
-                      company_id:
-                        companyId
-                    },
-                    'secret_key',
-                    {
-                      expiresIn: '1d'
-                    }
-                  );
+                const token = jwt.sign(
+                  {
+                    id: this.lastID,
+                    role: 'CLIENT',
+                    company_id: companyId
+                  },
+                  process.env.JWT_SECRET || 'secret_key',
+                  {
+                    expiresIn: '7d'
+                  }
+                );
 
                 sendSuccess(
                   res,
                   'User & Company created ✅',
                   {
-                    message:
-                      'User & Company created ✅',
-
                     token,
 
                     user: {
@@ -246,8 +268,7 @@ const {
                       name,
                       email,
                       role: 'CLIENT',
-                      company_id:
-                        companyId
+                      company_id: companyId
                     }
                   }
                 );
@@ -272,303 +293,507 @@ const {
     );
 
   }
+
 });
 
-// 🔒 ownership route
+// ================= LOGIN =================
+
+router.post('/login', async (req, res) => {
+
+  try {
+
+    const {
+      email,
+      password
+    } = req.body;
+
+    if (!email || !password) {
+
+      return sendError(
+        res,
+        400,
+        'Email and password are required'
+      );
+
+    }
+
+    findUserByEmail(
+      email,
+      async (err, user) => {
+
+        if (err) {
+
+          console.error(err);
+
+          return sendError(
+            res,
+            500,
+            'Database error'
+          );
+
+        }
+
+        if (!user) {
+
+          return sendError(
+            res,
+            401,
+            'Invalid credentials'
+          );
+
+        }
+
+        const isMatch =
+          await bcrypt.compare(
+            password,
+            user.password
+          );
+
+        if (!isMatch) {
+
+          return sendError(
+            res,
+            401,
+            'Invalid credentials'
+          );
+
+        }
+
+        const token = jwt.sign(
+          {
+            id: user.id,
+            role: user.role,
+            company_id: user.company_id
+          },
+          process.env.JWT_SECRET || 'secret_key',
+          {
+            expiresIn: '7d'
+          }
+        );
+
+        sendSuccess(
+          res,
+          'Login successful ✅',
+          {
+            token,
+
+            user: {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              company_id: user.company_id
+            }
+          }
+        );
+
+      }
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    sendError(
+      res,
+      500,
+      'Server error'
+    );
+
+  }
+
+});
+
+// ================= CURRENT USER =================
+
+router.get(
+  '/me',
+  authMiddleware,
+  (req, res) => {
+
+    res.json({
+      message: 'Current user',
+      user: req.user
+    });
+
+  }
+);
+
+// ================= OWNERSHIP TEST =================
+
 router.get(
   "/company/:companyId",
   authMiddleware,
   checkOwnership,
   (req, res) => {
-    res.json({ message: "هذا بيانات شركتك فقط ✅" });
+
+    res.json({
+      message: "هذا بيانات شركتك فقط ✅"
+    });
+
   }
 );
 
-
-// 👤 current user
-router.get('/me', authMiddleware, (req, res) => {
-  res.json({
-    message: 'بيانات المستخدم الحالي',
-    user: req.user
-  });
-});
+// ================= ADMIN TEST =================
 
 router.get(
   "/admin-only",
   authMiddleware,
   checkRole("ADMIN"),
   (req, res) => {
-    res.json({ message: "Welcome Admin 🔥" });
+
+    res.json({
+      message: "Welcome Admin 🔥"
+    });
+
   }
 );
+
+// ================= CREATE ADMIN =================
+
+router.post(
+  "/create-admin",
+  async (req, res) => {
+
+    try {
+
+      const {
+        name,
+        email,
+        password
+      } = req.body;
+
+      findUserByEmail(
+        email,
+        async (err, user) => {
+
+          if (err) {
+
+            console.error(
+              "DB ERROR:",
+              err
+            );
+
+            return sendError(
+              res,
+              500,
+              "Database error"
+            );
+
+          }
+
+          if (user) {
+
+            return sendError(
+              res,
+              400,
+              "Email already exists"
+            );
+
+          }
+
+          const hashedPassword =
+            await bcrypt.hash(password, 10);
+
+          db.run(
+            `
+            INSERT INTO users
+            (
+              name,
+              email,
+              password,
+              role,
+              company_id
+            )
+            VALUES (?, ?, ?, ?, ?)
+            `,
+            [
+              name,
+              email,
+              hashedPassword,
+              "ADMIN",
+              null
+            ],
+
+            function (err) {
+
+              if (err) {
+
+                if (
+                  isDuplicateEmailError(err)
+                ) {
+
+                  return sendError(
+                    res,
+                    400,
+                    "Email already exists"
+                  );
+
+                }
+
+                console.error(
+                  "Admin insert error:",
+                  err
+                );
+
+                return sendError(
+                  res,
+                  500,
+                  "Error creating admin"
+                );
+
+              }
+
+              sendSuccess(
+                res,
+                "Admin created successfully 🔥",
+                {
+                  admin_id: this.lastID
+                }
+              );
+
+            }
+          );
+
+        }
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+      sendError(
+        res,
+        500,
+        "Server error"
+      );
+
+    }
+
+  }
+);
+
+// ================= CREATE EMPLOYEE =================
 
 router.post(
   "/users/employee",
   authMiddleware,
-  checkRole("ADMIN"), // أو ADMIN
+  checkRole(["ADMIN", "CLIENT"]),
   async (req, res) => {
-    try {
-      const { name, email, password } = req.body;
 
-      const companyId = req.user.company_id;
+    try {
+
+      const {
+        name,
+        email,
+        password,
+        company_id
+      } = req.body;
+
+      const companyId =
+        req.user.role === "ADMIN"
+          ? company_id
+          : req.user.company_id;
 
       if (!companyId) {
-        return sendError(res, 400, "Company is required for this action");
+
+        return sendError(
+          res,
+          400,
+          "Company is required"
+        );
+
       }
 
-      findUserByEmail(email, async (findErr, existingUser) => {
-        if (findErr) {
-          console.error("DB ERROR:", findErr);
-          return sendError(res, 500, "Database error");
-        }
+      findUserByEmail(
+        email,
+        async (findErr, existingUser) => {
 
-        if (existingUser) {
-          return sendError(res, 400, "Email already exists");
-        }
+          if (findErr) {
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+            console.error(
+              "DB ERROR:",
+              findErr
+            );
 
-        db.run(
-          `INSERT INTO users (name, email, password, role, company_id)
-           VALUES (?, ?, ?, ?, ?)`,
-          [name, email, hashedPassword, "EMPLOYEE", companyId],
-          function (err) {   // 👈 هنا مكانها الصحيح
-
-            if (err) {
-              if (isDuplicateEmailError(err)) {
-                return sendError(res, 400, "Email already exists");
-              }
-
-              console.error("User insert error:", err);
-              return sendError(res, 500, "Error creating employee");
-            }
-
-            sendSuccess(res, "Employee created ✅", {
-              message: "Employee created ✅",
-              employee_id: this.lastID
-            });
+            return sendError(
+              res,
+              500,
+              "Database error"
+            );
 
           }
-        );
-      });
+
+          if (existingUser) {
+
+            return sendError(
+              res,
+              400,
+              "Email already exists"
+            );
+
+          }
+
+          const hashedPassword =
+            await bcrypt.hash(password, 10);
+
+          db.run(
+            `
+            INSERT INTO users
+            (
+              name,
+              email,
+              password,
+              role,
+              company_id
+            )
+            VALUES (?, ?, ?, ?, ?)
+            `,
+            [
+              name,
+              email,
+              hashedPassword,
+              "EMPLOYEE",
+              companyId
+            ],
+
+            function (err) {
+
+              if (err) {
+
+                if (
+                  isDuplicateEmailError(err)
+                ) {
+
+                  return sendError(
+                    res,
+                    400,
+                    "Email already exists"
+                  );
+
+                }
+
+                console.error(
+                  "User insert error:",
+                  err
+                );
+
+                return sendError(
+                  res,
+                  500,
+                  "Error creating employee"
+                );
+
+              }
+
+              sendSuccess(
+                res,
+                "Employee created ✅",
+                {
+                  employee_id: this.lastID
+                }
+              );
+
+            }
+          );
+
+        }
+      );
 
     } catch (err) {
+
       console.error(err);
-      sendError(res, 500, "Server error");
+
+      sendError(
+        res,
+        500,
+        "Server error"
+      );
+
     }
+
   }
 );
 
-router.post("/create-admin", async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-
-    // تحقق هل الايميل موجود
-    findUserByEmail(email, async (err, user) => {
-      if (err) {
-        console.error("DB ERROR:", err);
-        return sendError(res, 500, "Database error");
-      }
-
-      if (user) {
-        return sendError(res, 400, "Email already exists");
-      }
-
-      // تشفير الباسورد
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // إدخال الأدمن
-      db.run(
-        `INSERT INTO users (name, email, password, role, company_id)
-         VALUES (?, ?, ?, ?, ?)`,
-        [name, email, hashedPassword, "ADMIN", null],
-        function (err) {
-          if (err) {
-            if (isDuplicateEmailError(err)) {
-              return sendError(res, 400, "Email already exists");
-            }
-
-            console.error("Admin insert error:", err);
-            return sendError(res, 500, "Error creating admin");
-          }
-
-          sendSuccess(res, "Admin created successfully 🔥", {
-            message: "Admin created successfully 🔥",
-            admin_id: this.lastID,
-          });
-        }
-      );
-    });
-
-  } catch (err) {
-    console.error(err);
-    sendError(res, 500, "Server error");
-  }
-});
+// ================= GET EMPLOYEES =================
 
 router.get(
   "/users/employees",
   authMiddleware,
-  checkRole("ADMIN"),
+  checkRole(["ADMIN", "CLIENT"]),
   (req, res) => {
-    const companyId = req.user.company_id;
 
-    db.all(
-      "SELECT id, name, email, role FROM users WHERE company_id = ? AND role = 'EMPLOYEE'",
-      [companyId],
-      (err, rows) => {
-        if (err) {
-          console.error("Employees fetch error:", err);
-          return sendError(res, 500, "Error fetching employees");
-        }
+    const companyId =
+      req.user.role === "ADMIN"
+        ? req.query.company_id
+        : req.user.company_id;
 
-        sendSuccess(res, "Employees fetched successfully", {
-          employees: rows
-        });
-      }
-    );
-  }
-);
+    if (!companyId) {
 
-router.post("/logout", (req, res) => {
-  res.json({
-    message: "Logged out successfully 👋"
-  });
-});
-
-// invite emp..
-router.post(
-  "/users/invite",
-  authMiddleware,
-  checkRole("CLIENT"), // فقط الكلاينت يقدر يدعو
-  async (req, res) => {
-    try {
-      const { email } = req.body;
-
-      const companyId = req.user.company_id;
-
-      if (!companyId) {
-        return sendError(res, 400, "Company is required for this action");
-      }
-
-      if (!email) {
-        return sendError(res, 400, "Email is required");
-      }
-
-      // 🔍 تحقق من وجود المستخدم
-      findUserByEmail(email, async (err, user) => {
-        if (err) {
-          console.error("DB ERROR:", err);
-          return sendError(res, 500, "Database error");
-        }
-
-        if (user) {
-          return sendError(res, 400, "Email already exists");
-        }
-
-        // 🔐 باسورد مؤقت
-        const tempPassword = "123456";
-        const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
-        // 👤 إنشاء موظف
-        db.run(
-          `INSERT INTO users (name, email, password, role, company_id)
-           VALUES (?, ?, ?, ?, ?)`,
-          ["Invited User", email, hashedPassword, "EMPLOYEE", companyId],
-          function (err) {
-            if (err) {
-              if (isDuplicateEmailError(err)) {
-                return sendError(res, 400, "Email already exists");
-              }
-
-              console.error("Invite insert error:", err);
-              return sendError(res, 500, "Error inviting employee");
-            }
-
-            sendSuccess(res, "Employee invited ✅", {
-              message: "Employee invited ✅",
-              employee_id: this.lastID,
-              temp_password: tempPassword // للتجربة فقط
-            });
-          }
-        );
-      });
-
-    } catch (err) {
-      console.error(err);
-      sendError(res, 500, "Server error");
-    }
-  }
-);
-
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required'
-      });
-    }
-
-    findUserByEmail(email, async (err, user) => {
-      if (err) {
-        console.error(err);
-
-        return res.status(500).json({
-          success: false,
-          message: 'Database error'
-        });
-      }
-
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid credentials'
-        });
-      }
-
-      const isMatch = await bcrypt.compare(password, user.password);
-
-      if (!isMatch) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid credentials'
-        });
-      }
-
-      const token = jwt.sign(
-        {
-          id: user.id,
-          role: user.role,
-          company_id: user.company_id
-        },
-        process.env.JWT_SECRET || 'secret_key',
-        { expiresIn: '7d' }
+      return sendError(
+        res,
+        400,
+        "Company ID is required"
       );
 
-      res.json({
-        success: true,
-        token,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          company_id: user.company_id
+    }
+
+    db.all(
+      `
+      SELECT
+        id,
+        name,
+        email,
+        role
+      FROM users
+      WHERE company_id = ?
+      AND role = 'EMPLOYEE'
+      `,
+      [companyId],
+
+      (err, rows) => {
+
+        if (err) {
+
+          console.error(
+            "Employees fetch error:",
+            err
+          );
+
+          return sendError(
+            res,
+            500,
+            "Error fetching employees"
+          );
+
         }
-      });
-    });
 
-  } catch (error) {
-    console.error(error);
+        sendSuccess(
+          res,
+          "Employees fetched successfully",
+          {
+            employees: rows
+          }
+        );
 
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+      }
+    );
+
   }
-});
+);
+
+
+// ================= LOGOUT =================
+
+router.post(
+  "/logout",
+  (req, res) => {
+
+    res.json({
+      message: "Logged out successfully 👋"
+    });
+
+  }
+);
 
 module.exports = router;

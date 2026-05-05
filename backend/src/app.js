@@ -4,12 +4,12 @@ const app = express();
 require('./db');
 app.use(express.json());
 app.use(cors());
+app.use('/uploads', express.static('uploads'));
 const authRoutes = require('./routes/auth.routes');
 app.use('/auth', authRoutes);
 
 const companyRoutes = require('./routes/company.routes');
-app.use('/', companyRoutes);
-
+app.use('/companies', companyRoutes);
 app.get('/', (req, res) => {
   res.send('API is running 🚀');
 });
