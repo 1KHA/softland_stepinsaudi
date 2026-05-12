@@ -263,7 +263,7 @@ console.log(companyTasks);
       new FormData();
 
     formData.append(
-      "file",
+      "files",
       file
     );
 

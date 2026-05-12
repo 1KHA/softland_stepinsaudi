@@ -12,6 +12,12 @@ import CompanyDashboard from './pages/CompanyDashboard';
 import CompanyProfile from './pages/CompanyProfile';
 import TaskDetails from './pages/TaskDetails';
 
+import EmployeeDashboard from './pages/employee/EmployeeDashboard';
+import EmployeeRequests from './pages/employee/EmployeeRequests';
+import RequestDetails from './pages/employee/RequestDetails';
+import DocumentsReview from './pages/employee/DocumentsReview';
+import EmployeeNotifications from './pages/employee/EmployeeNotifications';
+
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function AppContent() {
@@ -24,7 +30,8 @@ function AppContent() {
     location.pathname === '/login' ||
     location.pathname === '/company-dashboard' ||
     location.pathname === '/company-profile' ||
-    location.pathname.includes('/company-task');
+    location.pathname.includes('/company-task') ||
+    location.pathname.startsWith('/employee');
 
   const currentLanguage =
     i18n.language.startsWith('ar') ? 'ar' : 'en';
@@ -99,6 +106,48 @@ function AppContent() {
             }
           />
 
+          {/* ── EMPLOYEE MODULE ─────────────────────── */}
+          <Route
+            path="/employee-dashboard"
+            element={
+              <ProtectedRoute allowedRole={["EMPLOYEE", "ADMIN"]}>
+                <EmployeeDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employee-requests"
+            element={
+              <ProtectedRoute allowedRole={["EMPLOYEE", "ADMIN"]}>
+                <EmployeeRequests />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employee-requests/:id"
+            element={
+              <ProtectedRoute allowedRole={["EMPLOYEE", "ADMIN"]}>
+                <RequestDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employee-documents"
+            element={
+              <ProtectedRoute allowedRole={["EMPLOYEE", "ADMIN"]}>
+                <DocumentsReview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employee-notifications"
+            element={
+              <ProtectedRoute allowedRole={["EMPLOYEE", "ADMIN"]}>
+                <EmployeeNotifications />
+              </ProtectedRoute>
+            }
+          />
+
         </Routes>
 
       </main>
@@ -107,6 +156,7 @@ function AppContent() {
       {
         location.pathname !== '/login' &&
         !location.pathname.includes('/company-task') &&
+        !location.pathname.startsWith('/employee') &&
         <Footer />
       }
 

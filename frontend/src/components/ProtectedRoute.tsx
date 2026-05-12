@@ -11,9 +11,12 @@ const ProtectedRoute = ({ children, allowedRole }: any) => {
   // 🔓 نفك التوكن
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
-  // ❌ role غلط
-  if (allowedRole && user.role !== allowedRole) {
-    return <Navigate to="/login" />;
+  // Support single role or array of roles
+  if (allowedRole) {
+    const allowed = Array.isArray(allowedRole) ? allowedRole : [allowedRole];
+    if (!allowed.includes(user.role)) {
+      return <Navigate to="/login" />;
+    }
   }
 
   return children;

@@ -111,7 +111,7 @@ if (req.user) {
   );
 
 }
-          // founders
+          // founders — fire-and-forget inserts; response always sent below
           if (cleanFounders.length > 0) {
 
             cleanFounders.forEach((founder) => {
@@ -126,11 +126,15 @@ if (req.user) {
               );
             });
 
-                      res.status(201).json({
+          }
+
+          // C-06 fix: response is unconditional — fires whether founders were
+          // provided or not. Previously it was inside the if-block above,
+          // causing the request to hang when cleanFounders.length === 0.
+          res.status(201).json({
             message: "Company created successfully ✅",
             company_id: companyId
           });
-          }
 
         }
       );

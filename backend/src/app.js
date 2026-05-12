@@ -10,6 +10,10 @@ app.use('/auth', authRoutes);
 
 const companyRoutes = require('./routes/company.routes');
 app.use('/companies', companyRoutes);
+
+const employeeRoutes = require('./routes/employee.routes');
+app.use('/employee', employeeRoutes);
+
 app.get('/', (req, res) => {
   res.send('API is running 🚀');
 });

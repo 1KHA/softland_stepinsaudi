@@ -31,6 +31,45 @@ router.get(
   getCompanyById
 );
 
+router.put('/assign/:id', authMiddleware, (req, res) => {
+
+  // L-02: only ADMIN may reassign companies to employees
+  if (req.user.role !== 'ADMIN') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied'
+    });
+  }
+
+  const { id } = req.params;
+  const { assigned_employee_id } = req.body;
+
+  db.run(
+    `
+    UPDATE companies
+    SET assigned_employee_id = ?
+    WHERE id = ?
+    `,
+    [assigned_employee_id, id],
+    function(err) {
+
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          error: err.message
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Employee assigned'
+      });
+
+    }
+  );
+
+});
+
 // UPDATE COMPANY
 router.put(
   "/:id",
@@ -611,6 +650,7 @@ router.post(
 
 router.put(
   "/tasks/:id/status",
+  authMiddleware,
   (req, res) => {
 
     const taskId = req.params.id;

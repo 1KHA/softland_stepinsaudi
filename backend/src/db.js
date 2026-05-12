@@ -29,7 +29,7 @@ db.serialize(() => {
   db.run(`
 CREATE TABLE IF NOT EXISTS companies (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  company_name TEXT NOT NULL,
+  name TEXT NOT NULL,
   manager_name TEXT NOT NULL,
   country TEXT NOT NULL,
   sector_id INTEGER NOT NULL,
@@ -270,6 +270,21 @@ CREATE TABLE IF NOT EXISTS task_documents (
   FOREIGN KEY (reviewed_by)
   REFERENCES users(id)
 
+)
+`);
+
+// ─── NOTIFICATIONS TABLE ───────────────────────────────
+db.run(`
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT DEFAULT 'INFO',
+  related_company_id INTEGER,
+  is_read INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (related_company_id) REFERENCES companies(id)
 )
 `);
 
