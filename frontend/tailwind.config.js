@@ -13,12 +13,31 @@ export default {content: [
     },
     extend: {
       colors: {
-        brand: {
-          navy: '#1E3A5F',
-          gold: '#C5A55A',
-          cream: '#F5F0E8',
-          white: '#FFFFFF'
-        },
+  brand: {
+    navy: '#1E3A5F',
+    gold: '#C5A55A',
+    cream: '#F5F0E8',
+    white: '#FFFFFF'
+  },
+
+  navy: {
+    DEFAULT: '#0F2A44',
+    light: '#1A3F63',
+    dark: '#0B1F33',
+    card: '#132D47',
+  },
+
+  gold: {
+    DEFAULT: '#C5A55A',
+    light: '#D4B872',
+    dark: '#A68A45',
+  },
+
+  cream: {
+    DEFAULT: '#F8F5EF',
+    dark: '#E8E2D6',
+  },
+
         background: 'var(--background)',
         foreground: 'var(--foreground)',
         card: 'var(--card)',

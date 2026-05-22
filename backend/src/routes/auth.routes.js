@@ -782,6 +782,330 @@ router.get(
   }
 );
 
+// ===== PUT USER =====
+router.put(
+  "/users/:id",
+  authMiddleware,
+  async (req, res) => {
+
+    try {
+
+      const { id } = req.params;
+
+      const {
+        name,
+        email,
+        status
+      } = req.body;
+
+      db.run(
+        `
+        UPDATE users
+        SET
+          name = ?,
+          email = ?,
+          status = ?
+        WHERE id = ?
+        `,
+        [name, email, status, id],
+
+        function (err) {
+
+          if (err) {
+
+            console.error(err);
+
+            return res.status(500).json({
+              success: false,
+              message: "Error updating user"
+            });
+
+          }
+
+          res.json({
+            success: true,
+            message: "User updated successfully"
+          });
+
+        }
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: "Server error"
+      });
+
+    }
+
+  }
+);
+
+
+// ====== DELETE USER =======
+router.delete(
+  "/users/:id",
+  authMiddleware,
+  async (req, res) => {
+
+    try {
+
+      const { id } = req.params;
+
+      db.run(
+        `
+        DELETE FROM users
+        WHERE id = ?
+        `,
+        [id],
+
+        function (err) {
+
+          if (err) {
+
+            console.error(err);
+
+            return res.status(500).json({
+              success: false,
+              message: "Error deleting user"
+            });
+
+          }
+
+          res.json({
+            success: true,
+            message: "User deleted successfully"
+          });
+
+        }
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: "Server error"
+      });
+
+    }
+
+  }
+);
+
+// ================= GET ALL USERS (ADMIN) =================
+router.get(
+  "/users",
+  authMiddleware,
+
+  async (req, res) => {
+
+    try {
+
+      db.all(
+        `
+        SELECT
+          id,
+          name,
+          email,
+          role,
+          company_id
+        FROM users
+        ORDER BY id DESC
+        `,
+
+        [],
+
+        (err, users) => {
+
+          if (err) {
+
+            console.error(err);
+
+            return res.status(500).json({
+              success: false,
+              message: "Error fetching users"
+            });
+
+          }
+
+          res.json({
+            success: true,
+            users
+          });
+
+        }
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: "Server error"
+      });
+
+    }
+
+  }
+);
+
+
+// ================ GET ALL COMPANIES ==================
+router.get(
+  "/companies",
+  authMiddleware,
+
+  async (req, res) => {
+
+    try {
+
+      db.all(
+        `
+        SELECT *
+        FROM companies
+        ORDER BY id DESC
+        `,
+        [],
+
+        (err, companies) => {
+
+          if (err) {
+
+            console.error(err);
+
+            return res.status(500).json({
+              success: false,
+              message: "Error fetching companies"
+            });
+
+          }
+
+          res.json({
+            success: true,
+            companies
+          });
+
+        }
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: "Server error"
+      });
+
+    }
+
+  }
+);
+
+
+
+// ==== EDIT PASSWORD ADMIN ====
+router.put(
+  "/change-password",
+  authMiddleware,
+
+  async (req, res) => {
+
+    try {
+
+      const userId = req.user.id;
+
+      const {
+        currentPassword,
+        newPassword
+      } = req.body;
+
+      db.get(
+        `
+        SELECT *
+        FROM users
+        WHERE id = ?
+        `,
+        [userId],
+
+        (err, user) => {
+
+          if (err) {
+
+            return res.status(500).json({
+              success: false,
+              message: "Server error"
+            });
+
+          }
+
+          if (!user) {
+
+            return res.status(404).json({
+              success: false,
+              message: "User not found"
+            });
+
+          }
+
+          if (user.password !== currentPassword) {
+
+            return res.status(400).json({
+              success: false,
+              message: "Current password is incorrect"
+            });
+
+          }
+
+          db.run(
+            `
+            UPDATE users
+            SET password = ?
+            WHERE id = ?
+            `,
+            [newPassword, userId],
+
+            function (updateErr) {
+
+              if (updateErr) {
+
+                return res.status(500).json({
+                  success: false,
+                  message: "Error updating password"
+                });
+
+              }
+
+              res.json({
+                success: true,
+                message: "Password updated successfully"
+              });
+
+            }
+          );
+
+        }
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: "Server error"
+      });
+
+    }
+
+  }
+);
 
 // ================= LOGOUT =================
 

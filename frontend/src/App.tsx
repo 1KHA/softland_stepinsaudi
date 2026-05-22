@@ -20,6 +20,20 @@ import EmployeeNotifications from './pages/employee/EmployeeNotifications';
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
+import { AppProvider } from './context/AppContext';
+
+{/* Admin Dashboard */}
+import { Dashboard } from './pages/Dashboard'
+import { Users } from './pages/Users'
+import { Companies } from './pages/Companies'
+import { Requests } from './pages/Requests'
+import { Stages } from './pages/Stages'
+import { Licenses } from './pages/Licenses'
+import { MarketRules } from './pages/MarketRules'
+import { Notifications } from './pages/Notifications'
+import { Settings } from './pages/Settings'
+import { Layout } from './components/Layout'
+
 function AppContent() {
 
   const { i18n } = useTranslation();
@@ -27,11 +41,12 @@ function AppContent() {
   const location = useLocation();
 
   const hideNavbar =
-    location.pathname === '/login' ||
-    location.pathname === '/company-dashboard' ||
-    location.pathname === '/company-profile' ||
-    location.pathname.includes('/company-task') ||
-    location.pathname.startsWith('/employee');
+  location.pathname === '/login' ||
+  location.pathname === '/company-dashboard' ||
+  location.pathname === '/company-profile' ||
+  location.pathname.includes('/company-task') ||
+  location.pathname.startsWith('/employee') ||
+  location.pathname.startsWith('/admin');
 
   const currentLanguage =
     i18n.language.startsWith('ar') ? 'ar' : 'en';
@@ -148,6 +163,19 @@ function AppContent() {
             }
           />
 
+            {/* ── ADMIN DASHBOARD ─── */}
+          <Route path="/admin" element={<Layout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="users" element={<Users />} />
+          <Route path="companies" element={<Companies />} />
+          <Route path="requests" element={<Requests />} />
+          <Route path="stages" element={<Stages />} />
+          <Route path="licenses" element={<Licenses />} />
+          <Route path="market-rules" element={<MarketRules />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="settings" element={<Settings />} />
+          </Route>
+
         </Routes>
 
       </main>
@@ -157,8 +185,9 @@ function AppContent() {
         location.pathname !== '/login' &&
         !location.pathname.includes('/company-task') &&
         !location.pathname.startsWith('/employee') &&
-        <Footer />
-      }
+        !location.pathname.startsWith('/admin') &&
+    <Footer />
+}
 
     </div>
 
@@ -168,9 +197,11 @@ function AppContent() {
 export function App() {
 
   return (
+    <AppProvider>
     <BrowserRouter>
       <AppContent />
     </BrowserRouter>
+    </AppProvider>
   );
 
 }

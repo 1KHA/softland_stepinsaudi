@@ -61,7 +61,7 @@ if (res.ok) {
   const role = data.user.role;
 // توجيه الصفحات حسب كل دور ***********************************************************
   if (role === "ADMIN") {
-    navigate("/admin-dashboard");
+    navigate("/admin");
   } else if (role === "CLIENT") {
     navigate("/company-dashboard");
   } else {
