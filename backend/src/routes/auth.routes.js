@@ -790,45 +790,53 @@ router.put(
 
     try {
 
-      const { id } = req.params;
+const { id } = req.params;
 
-      const {
-        name,
-        email,
-        status
-      } = req.body;
+const {
+  name,
+  email,
+  company_id,
+  status
+} = req.body;
 
-      db.run(
-        `
-        UPDATE users
-        SET
-          name = ?,
-          email = ?,
-          status = ?
-        WHERE id = ?
-        `,
-        [name, email, status, id],
+db.run(
+  `
+  UPDATE users
+  SET
+    name = ?,
+    email = ?,
+    company_id = ?,
+    status = ?
+  WHERE id = ?
+  `,
+  [
+    name,
+    email,
+    company_id,
+    status,
+    id
+  ],
 
-        function (err) {
+  function (err) {
 
-          if (err) {
+    if (err) {
 
-            console.error(err);
+      console.error(err);
 
-            return res.status(500).json({
-              success: false,
-              message: "Error updating user"
-            });
+      return res.status(500).json({
+        success: false,
+        message: "Error updating user"
+      });
 
-          }
+    }
 
-          res.json({
-            success: true,
-            message: "User updated successfully"
-          });
+    res.json({
+      success: true,
+      message: "User updated successfully"
+    });
 
-        }
-      );
+  }
+);
 
     } catch (error) {
 
@@ -897,6 +905,47 @@ router.delete(
   }
 );
 
+// ===== UPDATE USER STATUS =====
+router.put(
+  "/users/:id/status",
+  authMiddleware,
+  (req, res) => {
+
+    const { id } = req.params;
+    const { status } = req.body;
+
+    db.run(
+      `
+      UPDATE users
+      SET status = ?
+      WHERE id = ?
+      `,
+      [status, id],
+
+      function (err) {
+
+        if (err) {
+
+          console.error(err);
+
+          return res.status(500).json({
+            success: false,
+            message: "Error updating status"
+          });
+
+        }
+
+        res.json({
+          success: true,
+          message: "Status updated successfully"
+        });
+
+      }
+    );
+
+  }
+);
+
 // ================= GET ALL USERS (ADMIN) =================
 router.get(
   "/users",
@@ -908,14 +957,18 @@ router.get(
 
       db.all(
         `
-        SELECT
-          id,
-          name,
-          email,
-          role,
-          company_id
-        FROM users
-        ORDER BY id DESC
+SELECT
+  u.id,
+  u.name,
+  u.email,
+  u.role,
+  u.status,
+  u.company_id,
+  c.name AS company
+FROM users u
+LEFT JOIN companies c
+ON u.company_id = c.id
+ORDER BY u.id DESC
         `,
 
         [],
@@ -964,13 +1017,44 @@ router.get(
   async (req, res) => {
 
     try {
-
+      console.log("AUTH COMPANIES ROUTE");
+console.log("DB FILE=", db.filename);
       db.all(
-        `
-        SELECT *
-        FROM companies
-        ORDER BY id DESC
-        `,
+  `
+SELECT
+  c.*,
+  s.name_en,
+  s.name_ar,
+
+  (
+    SELECT COUNT(*)
+    FROM company_stages cs
+    WHERE cs.company_id = c.id
+    AND cs.status = 'COMPLETED'
+  ) AS completed_stages,
+
+  (
+    SELECT COUNT(*)
+    FROM company_stages cs
+    WHERE cs.company_id = c.id
+  ) AS total_stages,
+
+  (
+    SELECT st.name
+    FROM company_stages cs
+    JOIN stages st
+    ON cs.stage_id = st.id
+    WHERE cs.company_id = c.id
+    AND cs.status = 'IN_PROGRESS'
+    LIMIT 1
+  ) AS current_stage
+
+FROM companies c
+LEFT JOIN sectors s
+ON c.sector_id = s.id
+
+ORDER BY c.id DESC
+  `,
         [],
 
         (err, companies) => {
@@ -985,7 +1069,7 @@ router.get(
             });
 
           }
-
+console.log(companies[0]);
           res.json({
             success: true,
             companies

@@ -2,6 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 
 // إنشاء / فتح قاعدة البيانات
 const db = new sqlite3.Database('./database.db', (err) => {
+  console.log("DB PATH:", require('path').resolve('./database.db'));
   if (err) {
     console.error('❌ DB Error:', err.message);
   } else {
@@ -14,17 +15,22 @@ db.serialize(() => {
 
   // 👤 users
   db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT CHECK(role IN ('ADMIN', 'EMPLOYEE', 'CLIENT')) NOT NULL,
-      company_id INTEGER,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (company_id) REFERENCES companies(id)
-    )
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role TEXT CHECK(role IN ('ADMIN', 'EMPLOYEE', 'CLIENT')) NOT NULL,
+  company_id INTEGER,
+  status TEXT DEFAULT 'ACTIVE',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (company_id) REFERENCES companies(id)
+)
   `);
+  db.run(`
+ALTER TABLE users
+ADD COLUMN status TEXT DEFAULT 'ACTIVE'
+`, () => {});
 
   db.run(`
 CREATE TABLE IF NOT EXISTS companies (
@@ -79,6 +85,7 @@ CREATE TABLE IF NOT EXISTS stages (
   is_active INTEGER DEFAULT 1
 )
 `);
+
 
 db.run(`
 CREATE TABLE IF NOT EXISTS tasks (
@@ -173,6 +180,30 @@ VALUES
 (2, 'Compliance', 2, 35),
 (3, 'Licensing', 3, 40),
 (4, 'Final Approval', 4, 10)
+`);
+
+db.run(`
+UPDATE stages
+SET description = 'Initial company registration'
+WHERE id = 1
+`);
+
+db.run(`
+UPDATE stages
+SET description = 'Compliance and legal checks'
+WHERE id = 2
+`);
+
+db.run(`
+UPDATE stages
+SET description = 'Licensing and permits'
+WHERE id = 3
+`);
+
+db.run(`
+UPDATE stages
+SET description = 'Final review and approval'
+WHERE id = 4
 `);
 
 db.run(`

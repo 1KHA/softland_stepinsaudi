@@ -5,9 +5,19 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 // ─── MIDDLEWARE: employee or admin only ───────────────────────────────────────
 function employeeOrAdmin(req, res, next) {
-  if (req.user.role !== 'EMPLOYEE' && req.user.role !== 'ADMIN') {
-    return res.status(403).json({ success: false, message: 'Access denied' });
+
+  console.log('ROLE =', req.user.role);
+
+  if (
+    req.user.role !== 'EMPLOYEE' &&
+    req.user.role !== 'ADMIN'
+  ) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied'
+    });
   }
+
   next();
 }
 
@@ -15,7 +25,9 @@ function employeeOrAdmin(req, res, next) {
 // DASHBOARD STATS
 // Fix: was using c.name — actual column is c.company_name
 // ─────────────────────────────────────────────────────────────────────────────
+
 router.get('/dashboard/stats', authMiddleware, employeeOrAdmin, (req, res) => {
+  console.log('USER:', req.user);
   const employeeId = req.user.id;
   const isAdmin = req.user.role === 'ADMIN';
 
@@ -513,8 +525,14 @@ router.get('/notifications', authMiddleware, (req, res) => {
      LIMIT 50`,
     [req.user.id],
     (err, rows) => {
-      if (err) return res.status(500).json({ success: false, message: 'DB error' });
-      res.json({ success: true, notifications: rows });
+      console.log('NOTIFICATIONS:' , rows);
+      if (err) 
+        return res.status(500).json({
+       success: false, 
+       message: 'DB error' });
+      res.json({ 
+        success: true,
+         notifications: rows });
     }
   );
 });
@@ -531,6 +549,120 @@ router.put('/notifications/:id/read', authMiddleware, (req, res) => {
       res.json({ success: true });
     }
   );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANUAL OVERRIDE TASK STATUS (ADMIN ONLY)
+// ─────────────────────────────────────────────────────────────────────────────
+router.put('/tasks/:id/status', authMiddleware, (req, res) => {
+
+  if (req.user.role !== 'ADMIN') {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin only'
+    });
+  }
+
+  const { status } = req.body;
+
+  db.run(
+    `UPDATE company_tasks
+     SET status = ?
+     WHERE id = ?`,
+    [status, req.params.id],
+    function (err) {
+
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: 'DB error'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Task status updated'
+      });
+
+    }
+  );
+
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANUAL OVERRIDE COMPANY STATUS (ADMIN ONLY)
+// ─────────────────────────────────────────────────────────────────────────────
+router.put('/companies/:id/status', authMiddleware, (req, res) => {
+
+  if (req.user.role !== 'ADMIN') {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin only'
+    });
+  }
+
+  const { status } = req.body;
+
+  db.run(
+    `UPDATE companies
+     SET status = ?
+     WHERE id = ?`,
+    [status, req.params.id],
+    function (err) {
+
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: 'DB error'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Company status updated'
+      });
+
+    }
+  );
+
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANUAL OVERRIDE STAGE STATUS (ADMIN ONLY)
+// ─────────────────────────────────────────────────────────────────────────────
+router.put('/stages/:id/status', authMiddleware, (req, res) => {
+
+  if (req.user.role !== 'ADMIN') {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin only'
+    });
+  }
+
+  const { status } = req.body;
+
+  db.run(
+    `UPDATE company_stages
+     SET status = ?
+     WHERE id = ?`,
+    [status, req.params.id],
+    function (err) {
+
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: 'DB error'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Stage status updated'
+      });
+
+    }
+  );
+
 });
 
 module.exports = router;

@@ -11,6 +11,9 @@ app.use('/auth', authRoutes);
 const companyRoutes = require('./routes/company.routes');
 app.use('/companies', companyRoutes);
 
+const stageRoutes = require('./routes/stages.routes');
+app.use('/stages', stageRoutes);
+
 const employeeRoutes = require('./routes/employee.routes');
 app.use('/employee', employeeRoutes);
 

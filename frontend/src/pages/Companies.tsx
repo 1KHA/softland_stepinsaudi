@@ -19,7 +19,10 @@ interface Company {
   registrationDate: string;
   location: string;
   address: string;
+
   sector: string;
+  sector_id: number;
+
   email: string;
   representativeName: string;
   phoneNumber: string;
@@ -36,7 +39,8 @@ const initialFormState: Omit<Company, 'logo'> = {
   registrationDate: '',
   location: '',
   address: '',
-  sector: '',
+  sector: '1',
+  sector_id: 1,
   email: '',
   representativeName: '',
   phoneNumber: '',
@@ -85,6 +89,7 @@ export const Companies: React.FC = () => {
     try {
 
       const token = localStorage.getItem('token');
+console.log('TOKEN =', token);
 
       const response = await fetch(
         'http://localhost:3000/auth/companies',
@@ -104,7 +109,10 @@ export const Companies: React.FC = () => {
 
           name: company.name || '',
 
-          type: 'commercial',
+          type:
+  language === 'ar'
+    ? company.name_ar
+    : company.name_en,
 
           status:
             company.status === 'APPROVED'
@@ -121,8 +129,11 @@ export const Companies: React.FC = () => {
           location: company.country || '',
 
           address: company.country || '',
-
-          sector: String(company.sector_id || ''),
+sector_id: company.sector_id,
+sector:
+  language === 'ar'
+    ? company.name_ar
+    : company.name_en,
 
           email: company.email || '',
 
@@ -133,14 +144,20 @@ export const Companies: React.FC = () => {
 
           logo: company.logo_url || '',
 
-          currentStage: 'registration',
+currentStage:
+  company.current_stage?.toLowerCase().replace(
+    /\s+/g,
+    '_'
+  ) || 'registration',
 
-          progress:
-            company.status === 'APPROVED'
-              ? 100
-              : company.status === 'UNDER_REVIEW'
-              ? 50
-              : 25
+progress:
+  company.total_stages > 0
+    ? Math.round(
+        (company.completed_stages /
+          company.total_stages) *
+          100
+      )
+    : 0,
 
         }))
       );
@@ -173,12 +190,12 @@ export const Companies: React.FC = () => {
 
   };
 
-  const sectorOptions = [
-    { value: 'Real Estate', label: 'realEstate' },
-    { value: 'Industrial', label: 'industrial' },
-    { value: 'Startup', label: 'startup' },
-    { value: 'Commercial', label: 'commercial' }
-  ];
+const sectorOptions = [
+  { value: 1, label: 'Entrepreneurial' },      // Entrepreneurial
+  { value: 2, label: 'industrial' },   // Industrial
+  { value: 3, label: 'commercial' },   // Commercial
+  { value: 4, label: 'realEstate' }    // Real Estate
+];
 
   const statusOptions = [
     { value: 'all' as const, label: 'all' },
@@ -201,6 +218,13 @@ export const Companies: React.FC = () => {
 
   };
 
+const stagesList = [
+  'registration',
+  'compliance',
+  'licensing',
+  'final_approval'
+];
+
   const closeProfileModal = () => {
 
     setViewCompany(null);
@@ -213,8 +237,10 @@ export const Companies: React.FC = () => {
 
     setDropdownOpen(null);
 
-    setFormState({ ...company });
-
+setFormState({
+  ...company,
+  sector_id: company.sector_id
+});
     setFormErrors({});
 
   };
@@ -289,9 +315,9 @@ export const Companies: React.FC = () => {
   };
 
   const handleFormChange = (
-    field: keyof Omit<Company, 'logo'>,
-    value: string
-  ) => {
+  field: keyof Omit<Company, 'logo'>,
+  value: string | number
+) => {
 
     setFormState((prev) => ({
       ...prev,
@@ -336,11 +362,50 @@ export const Companies: React.FC = () => {
     if (!editCompany) return;
 
     try {
+      console.log('SAVE CLICKED');
+const token = localStorage.getItem('token');
+console.log("TOKEN =", token);
+const response = await fetch(
+  `http://localhost:3000/companies/${editCompany.id}`,
+  {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+body: JSON.stringify({
+  name: formState.name,
+  manager_name: formState.representativeName,
+  country: formState.address,
+  sector_id: formState.sector_id,
 
-      const updatedCompany = {
-        ...editCompany,
-        ...formState
-      };
+  status:
+    formState.status === 'active'
+      ? 'APPROVED'
+      : formState.status === 'pending'
+      ? 'UNDER_REVIEW'
+      : 'REJECTED',
+
+  phone: formState.phoneNumber,
+  email: formState.email,
+  founders: []
+})
+  }
+);
+const result = await response.json();
+console.log('STATUS =', response.status);
+console.log('RESULT =', result);
+      const selectedSector = sectorOptions.find(
+  s => s.value === formState.sector_id
+);
+
+const updatedCompany = {
+  ...editCompany,
+  ...formState,
+  sector: selectedSector
+    ? t(selectedSector.label as any)
+    : editCompany.sector
+};
 
       setCompanies((prev) =>
         prev.map((company) =>
@@ -454,7 +519,7 @@ export const Companies: React.FC = () => {
                 {company.name}
               </h3>
               <span className="inline-block px-2.5 py-1 bg-gray-100 dark:bg-navy-light/30 text-gray-600 dark:text-gray-300 rounded-md text-xs font-medium capitalize mb-3">
-                {t(company.type as any)}
+                {company.sector}
               </span>
 
               <div className="space-y-2">
@@ -651,17 +716,19 @@ export const Companies: React.FC = () => {
                   <span className="font-medium">{t('sector')}</span>
                   <select
                     name="sector"
-                    value={formState.sector}
-                    onChange={(event) => handleFormChange('sector', event.target.value)}
+                    value={formState.sector_id}
+onChange={(event) =>
+  handleFormChange(
+    'sector_id',
+    Number(event.target.value)
+  )
+}
                     className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-navy dark:border-navy-light dark:bg-navy-card dark:text-cream-dark outline-none transition-colors focus:border-gold focus:ring-2 focus:ring-gold/20">
                     {sectorOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {t(option.label as any)}
                       </option>
                     ))}
-                    {!sectorOptions.some((option) => option.value === formState.sector) && (
-                      <option value={formState.sector}>{formState.sector}</option>
-                    )}
                   </select>
                   {formErrors.sector && <p className="text-xs text-red-500">{formErrors.sector}</p>}
                 </label>
@@ -759,6 +826,7 @@ export const Companies: React.FC = () => {
                   </div>
                 </div>
               </div>
+              
               <div className="space-y-4">
                 <h4 className="text-lg font-semibold text-navy dark:text-cream-dark">
                   {t('onboardingProgress')}
@@ -767,7 +835,15 @@ export const Companies: React.FC = () => {
                   <div className="absolute top-1/2 left-0 w-full h-1.5 bg-gray-100 dark:bg-navy-light -translate-y-1/2 rounded-full z-0"></div>
                   <div
                     className={`absolute top-1/2 ${isRtl ? 'right-0' : 'left-0'} h-1.5 bg-gold -translate-y-1/2 rounded-full z-0 transition-all duration-1000`}
-                    style={{ width: `${viewProgress.progress}%` }}>
+style={{
+  width: `${(
+    stagesList.indexOf(
+      viewProgress.currentStage?.toLowerCase()
+    ) /
+    (stagesList.length - 1)
+  ) * 100}%`
+}}
+>
                   </div>
                   <div className="relative z-10 flex justify-between">
                     {[
@@ -776,24 +852,28 @@ export const Companies: React.FC = () => {
                       { id: 3, label: 'licensing' },
                       { id: 4, label: 'final_approval' }
                     ].map((stage) => {
+
                       const stageIndex = [
                         'registration',
                         'compliance',
                         'licensing',
                         'final_approval'
                       ].indexOf(viewProgress.currentStage);
+
                       const isCompleted = stage.id - 1 < stageIndex;
-                      const isCurrent = stage.id - 1 === stageIndex;
+const isCurrent = stage.id - 1 === stageIndex;
+
                       return (
                         <div key={stage.id} className="flex flex-col items-center gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center border-4 border-white dark:border-navy-card transition-colors duration-500 ${
-                              isCompleted
-                                ? 'bg-gold text-white'
-                                : isCurrent
-                                ? 'bg-gold/20 text-gold border-gold'
-                                : 'bg-gray-200 dark:bg-navy-light text-gray-400'
-                            }`}>
+<div
+  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-500 ${
+    isCompleted
+  ? 'bg-gold text-white'
+  : isCurrent
+  ? 'bg-gold/20 text-gold border-gold'
+  : 'bg-gray-200 dark:bg-navy-light text-gray-400'
+  }`}
+>
                             {isCompleted ? (
                               <CheckIcon size={16} className="font-bold" />
                             ) : (

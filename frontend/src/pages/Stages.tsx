@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import {
   PlusIcon,
@@ -20,33 +20,28 @@ export const Stages: React.FC = () => {
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [errors, setErrors] = useState<{ name?: string; description?: string }>({});
+  const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [stages, setStages] = useState<Stage[]>([
-  {
-    id: '1',
-    name: 'Registration',
-    description: 'Initial company registration and basic details collection.',
-    order: 1
-  },
-  {
-    id: '2',
-    name: 'Compliance',
-    description: 'Document verification and legal compliance checks.',
-    order: 2
-  },
-  {
-    id: '3',
-    name: 'Operations',
-    description: 'Setup of operational requirements and facility approvals.',
-    order: 3
-  },
-  {
-    id: '4',
-    name: 'Growth',
-    description: 'Post-setup support and expansion services.',
-    order: 4
-  }]
-  );
+  const [stages, setStages] = useState<Stage[]>([]);
+
+useEffect(() => {
+  fetch('http://localhost:3000/stages')
+    .then((res) => res.json())
+    .then((data) => {
+
+const mappedStages = data.stages.map((stage: any) => ({
+  id: String(stage.id),
+  name: stage.name,
+  description: stage.description || '',
+  order: stage.stage_order
+}));
+      setStages(mappedStages);
+    })
+    .catch((err) => {
+      console.error('Error loading stages:', err);
+    });
+}, []);
+
   const handleOpenModal = (stage?: Stage) => {
     if (stage) {
       setSelectedStage(stage);
@@ -78,36 +73,151 @@ export const Stages: React.FC = () => {
       return;
     }
 
-    if (selectedStage) {
-      // Edit
-      setStages((prev) =>
-        prev.map((s) =>
-          s.id === selectedStage.id
-            ? { ...s, name: formData.name, description: formData.description }
-            : s
-        )
-      );
-      setSuccessMessage(t('stageUpdatedSuccess'));
-    } else {
-      // Add
-      const newStage: Stage = {
-        id: `${Date.now()}`,
-        name: formData.name,
-        description: formData.description,
-        order: stages.length + 1
-      };
-      setStages((prev) => [...prev, newStage]);
-      setSuccessMessage(t('stageCreatedSuccess'));
+if (selectedStage) {
+
+  fetch(`http://localhost:3000/stages/${selectedStage.id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name: formData.name,
+      description: formData.description
+    })
+  })
+.then((res) => res.json())
+.then((data) => {
+
+  if (!data.success) {
+
+    setErrorMessage(data.message);
+
+    setTimeout(() => {
+      setErrorMessage('');
+    }, 4000);
+
+    throw new Error(data.message);
+  }
+
+  console.log('PUT RESPONSE', data);
+
+  return fetch('http://localhost:3000/stages');
+
+})
+.then((res) => res.json())
+.then((data) => {
+
+  const mappedStages = data.stages.map((stage: any) => ({
+    id: String(stage.id),
+    name: stage.name,
+    description: stage.description || '',
+    order: stage.stage_order
+  }));
+
+  setStages(mappedStages);
+
+  setSuccessMessage(t('stageUpdatedSuccess'));
+
+})
+.catch((err) => {
+  console.log('PUT ERROR', err);
+});
+
+} else {
+    fetch('http://localhost:3000/stages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: formData.name,
+    description: formData.description
+  })
+})
+.then((res) => res.json())
+.then((data) => {
+
+  if (!data.success) {
+
+    setErrorMessage(data.message);
+
+    setTimeout(() => {
+      setErrorMessage('');
+    }, 4000);
+
+    throw new Error(data.message);
+  }
+
+  return fetch('http://localhost:3000/stages');
+
+})
+  .then((res) => res.json())
+  .then((data) => {
+
+    const mappedStages = data.stages.map((stage: any) => ({
+      id: String(stage.id),
+      name: stage.name,
+      description: stage.description || '',
+      order: stage.stage_order
+    }));
+
+    setStages(mappedStages);
+
+    setSuccessMessage(t('stageCreatedSuccess'));
+  });
     }
     setIsModalOpen(false);
     setTimeout(() => setSuccessMessage(''), 4000);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm(t('deleteConfirmation'))) {
-      setStages(stages.filter((s) => s.id !== id));
-    }
-  };
+const handleDelete = (id: string) => {
+
+  if (!confirm(t('deleteConfirmation'))) {
+    return;
+  }
+
+  fetch(`http://localhost:3000/stages/${id}`, {
+    method: 'DELETE'
+  })
+   .then((res) => res.json())
+.then((data) => {
+
+  if (!data.success) {
+
+setErrorMessage(data.message);
+
+setTimeout(() => {
+  setErrorMessage('');
+}, 4000);
+
+throw new Error(data.message);  }
+
+  return fetch('http://localhost:3000/stages');
+
+})
+    .then((res) => res.json())
+    .then((data) => {
+
+      const mappedStages = data.stages.map((stage: any) => ({
+        id: String(stage.id),
+        name: stage.name,
+        description: stage.description || '',
+        order: stage.stage_order
+      }));
+
+      setStages(mappedStages);
+      setSuccessMessage('Stage deleted successfully');
+
+setTimeout(() => {
+  setSuccessMessage('');
+}, 3000);
+
+    })
+    .catch((err) => {
+      console.log('DELETE ERROR:', err);
+    });
+
+};
   return (
     <div className="space-y-8 pb-8 max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -119,11 +229,17 @@ export const Stages: React.FC = () => {
             Manage the onboarding pipeline and company progression stages.
           </p>
           {successMessage ? (
+            
             <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800/30 dark:bg-green-900/20 dark:text-green-200">
               {successMessage}
             </div>
           ) : null}
         </div>
+        {errorMessage ? (
+  <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    {errorMessage}
+  </div>
+) : null}
         <button
           onClick={() => handleOpenModal()}
           className="flex items-center gap-2 px-5 py-2.5 bg-gold hover:bg-gold-dark text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 font-medium">
@@ -142,7 +258,36 @@ export const Stages: React.FC = () => {
         <Reorder.Group
           axis="y"
           values={stages}
-          onReorder={setStages}
+onReorder={(newOrder) => {
+
+  setStages(newOrder);
+
+  fetch('http://localhost:3000/stages/reorder', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      stages: newOrder
+    })
+  })
+    .then((res) => res.json())
+    .then((data) => {
+
+  console.log('ORDER SAVED', data);
+
+  setSuccessMessage('Stage order saved successfully');
+
+  setTimeout(() => {
+    setSuccessMessage('');
+  }, 3000);
+
+})
+    .catch((err) => {
+      console.log('ORDER ERROR', err);
+    });
+
+}}
           className="space-y-4">
           
           {stages.map((stage, index) =>

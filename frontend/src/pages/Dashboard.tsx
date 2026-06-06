@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import {
@@ -8,7 +8,7 @@ import {
   CheckCircleIcon,
   ChevronRightIcon,
   ChevronLeftIcon,
-  BellIcon,
+  Bell,
   FileIcon,
   CheckIcon,
   XIcon } from
@@ -18,36 +18,151 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { t, language } = useAppContext();
   const isRtl = language === 'ar';
-  const stats = [
+
+  const [stats, setStats] = useState({
+  total: 0,
+  pending: 0,
+  approved: 0,
+  rejected: 0,
+  needsCompletion: 0
+});
+
+useEffect(() => {
+
+  fetchStats();
+  fetchRequests();
+  fetchNotifications();
+
+}, []);
+
+const fetchStats = async () => {
+
+  try {
+
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(
+      'http://localhost:3000/employee/dashboard/stats',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+
+      setStats(data.stats);
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+};
+
+const fetchRequests = async () => {
+
+  try {
+
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(
+      'http://localhost:3000/employee/requests',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+
+      setRecentRequests(
+        data.requests.slice(0, 5)
+      );
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+};
+
+const fetchNotifications = async () => {
+
+  try {
+
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(
+      'http://localhost:3000/employee/notifications',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+
+      setNotifications(
+        data.notifications.slice(0, 3)
+      );
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+};
+
+const dashboardStats = [
   {
     label: 'totalCompanies',
-    value: '150',
+    value: stats.total,
     icon: BuildingIcon,
     color: 'text-blue-500',
     bg: 'bg-blue-500/10'
   },
   {
-    label: 'totalRequests',
-    value: '89',
-    icon: FileTextIcon,
-    color: 'text-purple-500',
-    bg: 'bg-purple-500/10'
-  },
-  {
     label: 'pendingRequests',
-    value: '23',
+    value: stats.pending,
     icon: ClockIcon,
     color: 'text-yellow-500',
     bg: 'bg-yellow-500/10'
   },
   {
     label: 'approvedRequests',
-    value: '54',
+    value: stats.approved,
     icon: CheckCircleIcon,
     color: 'text-green-500',
     bg: 'bg-green-500/10'
-  }] as
-  const;
+  },
+  {
+    label: 'rejectedRequests',
+    value: stats.rejected,
+    icon: XIcon,
+    color: 'text-red-500',
+    bg: 'bg-red-500/10'
+  }
+];
+
   const stages = [
   {
     id: 1,
@@ -73,76 +188,11 @@ export const Dashboard: React.FC = () => {
 
   const completedStages = stages.filter(stage => stage.completed).length;
   const progress = (completedStages / stages.length) * 100;
-  const recentRequests = [
-  {
-    id: 'REQ-001',
-    company: 'TechNova Solutions',
-    stage: 'Registration',
-    employee: 'Ahmed Ali',
-    status: 'approved'
-  },
-  {
-    id: 'REQ-002',
-    company: 'Global Industries',
-    stage: 'Compliance',
-    employee: 'Sarah Smith',
-    status: 'underReview'
-  },
-  {
-    id: 'REQ-003',
-    company: 'Desert Startups',
-    stage: 'Operations',
-    employee: 'Mohammed K.',
-    status: 'submitted'
-  },
-  {
-    id: 'REQ-004',
-    company: 'Future Retail',
-    stage: 'Registration',
-    employee: 'Fatima N.',
-    status: 'rejected'
-  },
-  {
-    id: 'REQ-005',
-    company: 'Oasis Tech',
-    stage: 'Growth',
-    employee: 'Omar H.',
-    status: 'approved'
-  }];
+  const [recentRequests, setRecentRequests] =
+  useState<any[]>([]);
 
-  const notifications = [
-  {
-    id: 1,
-    title: 'Document uploaded',
-    desc: 'TechNova uploaded Trade License',
-    time: '2 hours ago',
-    icon: FileIcon,
-    type: 'info'
-  },
-  {
-    id: 2,
-    title: 'Request approved',
-    desc: 'REQ-001 has been approved',
-    time: '5 hours ago',
-    icon: CheckIcon,
-    type: 'success'
-  },
-  {
-    id: 3,
-    title: 'Missing information',
-    desc: 'Global Industries needs to update ID',
-    time: '1 day ago',
-    icon: XIcon,
-    type: 'error'
-  },
-  {
-    id: 4,
-    title: 'Stage update',
-    desc: 'Desert Startups moved to Operations',
-    time: '1 day ago',
-    icon: BellIcon,
-    type: 'info'
-  }];
+  const [notifications, setNotifications] =
+  useState<any[]>([]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -181,7 +231,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
+        {dashboardStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <motion.div
@@ -210,7 +260,7 @@ export const Dashboard: React.FC = () => {
                 {stat.value}
               </h3>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                {t(stat.label)}
+               {t(stat.label as any)} 
               </p>
             </motion.div>);
 
@@ -320,13 +370,13 @@ export const Dashboard: React.FC = () => {
                       {req.id}
                     </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                      {req.company}
+                      {req.company_name}
                     </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                      {req.stage}
+                      {req.current_stage_name}
                     </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                      {req.employee}
+                      {req.assigned_employee_name}
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -368,9 +418,9 @@ export const Dashboard: React.FC = () => {
             </button>
           </div>
           <div className="p-2 flex-1 overflow-y-auto">
-            {notifications.map((notif) => {
-              const Icon = notif.icon;
-              return (
+           {notifications.map((notif) => {
+  const Icon = Bell;
+  return (
                 <div
                   key={notif.id}
                   className="flex gap-4 p-4 hover:bg-gray-50 dark:hover:bg-navy-light/20 rounded-xl transition-colors cursor-pointer group">
@@ -382,13 +432,13 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-navy dark:text-cream-dark truncate">
-                      {notif.title}
+                      {notif.message}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                      {notif.desc}
+                      {notif.type}
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                      {notif.time}
+                      {notif.created_at}
                     </p>
                   </div>
                   <div className="flex items-center text-gray-300 dark:text-gray-600 group-hover:text-gold transition-colors">

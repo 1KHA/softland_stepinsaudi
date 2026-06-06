@@ -21,6 +21,11 @@ export default function RequestDetails() {
   const dir = isArabic ? 'rtl' : 'ltr';
 
   const token = localStorage.getItem('token');
+  const user = JSON.parse(
+  localStorage.getItem('user') || '{}'
+);
+
+const isAdmin = user.role === 'ADMIN';
   const headers = { Authorization: `Bearer ${token}` };
 
   const [data, setData] = useState<any>(null);
@@ -266,6 +271,7 @@ export default function RequestDetails() {
           </div>
 
           {/* Actions */}
+          {isAdmin && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold text-[#1E3A5F] mb-5">{t('employee.requestDetails.actions.title')}</h2>
             <div className="space-y-3">
@@ -286,8 +292,8 @@ export default function RequestDetails() {
               </button>
             </div>
           </div>
-        </div>
-
+)}
+</div>
         {/* ── RIGHT ── */}
         <div className="lg:col-span-2 space-y-6">
 
@@ -319,14 +325,37 @@ export default function RequestDetails() {
                     </div>
                     {stageTasks.length > 0 && (
                       <div className="divide-y divide-gray-50">
-                        {stageTasks.map((task: any) => (
-                          <div key={task.id} className="flex items-center justify-between px-4 py-2.5 bg-white">
-                            <span className="text-sm text-gray-600">{task.task_title}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusCls(task.status)}`}>
-                              {statusLabel(task.status)}
-                            </span>
-                          </div>
-                        ))}
+                       {stageTasks.map((task: any) => (
+  <div
+    key={task.id}
+    className="flex items-center justify-between px-4 py-2.5 bg-white"
+  >
+    <span className="text-sm text-gray-600">
+      {task.task_title}
+    </span>
+
+    <div className="flex items-center gap-2">
+
+      <span
+        className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusCls(task.status)}`}
+      >
+        {statusLabel(task.status)}
+      </span>
+
+      {isAdmin && (
+        <select
+          className="border rounded px-2 py-1 text-xs"
+        >
+          <option value="PENDING">Pending</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="COMPLETED">Completed</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      )}
+
+    </div>
+  </div>
+))}
                       </div>
                     )}
                   </div>

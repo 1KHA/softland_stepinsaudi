@@ -199,7 +199,6 @@ exports.getCompanyById = (req, res) => {
 };
 
 
-
 // UPDATE COMPANY
 exports.updateCompany = (req, res) => {
 
@@ -210,6 +209,7 @@ const {
   manager_name,
   country,
   sector_id,
+  status,
   founders,
   description,
   phone,
@@ -219,13 +219,14 @@ const {
 } = req.body;
 
   // ownership validation
-  if (req.user.company_id != companyId) {
-
-    return res.status(403).json({
-      message: "Unauthorized"
-    });
-
-  }
+ if (
+  req.user.role !== "ADMIN" &&
+  req.user.company_id != companyId
+) {
+  return res.status(403).json({
+    message: "Unauthorized"
+  });
+}
 
   // validation
   if (!name || !manager_name || !country || !sector_id) {
@@ -272,6 +273,7 @@ SET
   manager_name = ?,
   country = ?,
   sector_id = ?,
+  status = ?,
   description = ?,
   phone = ?,
   email = ?,
@@ -284,6 +286,7 @@ WHERE id = ?
   manager_name,
   country,
   Number(sector_id),
+  status,
   description,
   phone,
   email,

@@ -9,6 +9,7 @@ interface User {
   role: 'admin' | 'manager' | 'employee';
   status: 'active' | 'inactive';
   company?: string;
+  company_id?: string | number;
   avatar?: string;
   companyName?: string;
   companyAddress?: string;
@@ -25,6 +26,7 @@ interface UserForm {
   role: Role;
   status: 'active' | 'inactive';
   companyName: string;
+  companyId: string;
   companyAddress: string;
   sector: string;
   companyEmail: string;
@@ -39,6 +41,7 @@ const defaultFormState: UserForm = {
   role: 'admin',
   status: 'active',
   companyName: '',
+  companyId: '',
   companyAddress: '',
   sector: '',
   companyEmail: '',
@@ -95,6 +98,9 @@ const SelectField: React.FC<{
 
 export const Users: React.FC = () => {
   const { t } = useAppContext();
+  const currentUser = JSON.parse(
+  localStorage.getItem('user') || '{}'
+);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -102,10 +108,13 @@ export const Users: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof UserForm, string>>>({});
   const [successMessage, setSuccessMessage] = useState('');
   const [users, setUsers] = useState<User[]>([]); 
-
-  useEffect(() => {
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+useEffect(() => {
 
   fetchUsers();
+  fetchCompanies();
 
 }, []);
 
@@ -126,24 +135,52 @@ const fetchUsers = async () => {
 
     const data = await response.json();
 
+const mappedUsers = data.users.map((user: any) => ({
+  ...user,
 
-setUsers(
-  data.users.map((user: any) => ({
+  company_id: user.company_id,
 
-    ...user,
+  role:
+    user.role === 'ADMIN'
+      ? 'admin'
+      : user.role === 'CLIENT'
+      ? 'manager'
+      : 'employee',
 
-    role:
-      user.role === 'ADMIN'
-        ? 'admin'
-        : user.role === 'CLIENT'
-        ? 'manager'
-        : 'employee',
+  status:
+    String(user.status || 'ACTIVE').toLowerCase()
+}));
 
-    status:
-      user.status?.toLowerCase() || 'active'
+console.log('Mapped Users:', mappedUsers);
 
-  }))
-);
+setUsers(mappedUsers);
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+};
+const fetchCompanies = async () => {
+
+  try {
+
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(
+      'http://localhost:3000/auth/companies',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    setCompanies(data.companies || []);
+
   } catch (error) {
 
     console.error(error);
@@ -152,18 +189,42 @@ setUsers(
 
 };
 
-  const toggleStatus = (id: string) => {
-    setUsers(
-      users.map((u) =>
-      u.id === id ?
+const toggleStatus = async (
+  id: string,
+  currentStatus: string
+) => {
+  console.log(id, currentStatus);
+  try {
+    const token = localStorage.getItem('token');
+
+    const newStatus =
+      currentStatus === 'active'
+        ? 'INACTIVE'
+        : 'ACTIVE';
+
+    const response = await fetch(
+      `http://localhost:3000/auth/users/${id}/status`,
       {
-        ...u,
-        status: u.status === 'active' ? 'inactive' : 'active'
-      } :
-      u
-      )
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: newStatus
+        })
+      }
     );
-  };
+
+    if (!response.ok) {
+      throw new Error('Failed to update status');
+    }
+
+    await fetchUsers();
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const openAddUserModal = () => {
     setIsEditMode(false);
@@ -184,6 +245,7 @@ setUsers(
       role: user.role,
       status: user.status ?? 'active',
       companyName: user.companyName ?? user.company ?? '',
+      companyId: String(user.company_id ?? ''),
       companyAddress: user.companyAddress ?? '',
       sector: user.sector ?? '',
       companyEmail: user.companyEmail ?? '',
@@ -286,11 +348,12 @@ setUsers(
               'Content-Type': 'application/json',
               Authorization: `Bearer ${token}`
             },
-            body: JSON.stringify({
-              name: formState.name,
-              email: formState.email,
-              status: formState.status
-            })
+body: JSON.stringify({
+  name: formState.name,
+  email: formState.email,
+  company_id: Number(formState.companyId),
+  status: formState.status.toUpperCase()
+})
           }
         );
 
@@ -354,12 +417,12 @@ setUsers(
               'Content-Type': 'application/json',
               Authorization: `Bearer ${token}`
             },
-            body: JSON.stringify({
-              name: formState.name,
-              email: formState.email,
-              password: formState.password,
-              company_id: 1
-            })
+body: JSON.stringify({
+  name: formState.name,
+  email: formState.email,
+  password: formState.password,
+  company_id: Number(formState.companyId)
+})
           }
         );
 
@@ -452,6 +515,21 @@ setUsers(
         return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
     }
   };
+
+const filteredUsers = users.filter((user) => {
+
+  const matchesSearch =
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+  const matchesRole =
+    roleFilter === 'all' ||
+    user.role === roleFilter;
+
+  return matchesSearch && matchesRole;
+
+});
+
   return (
     <div className="space-y-8 pb-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -477,6 +555,68 @@ setUsers(
         </button>
       </div>
 
+<div className="mb-4">
+  <input
+    type="text"
+    placeholder="Search users..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="w-full rounded-xl border border-gray-200 px-4 py-3"
+  />
+</div>
+
+<div className="flex gap-3 mb-4">
+
+  <button
+    type="button"
+    onClick={() => setRoleFilter('all')}
+    className={`px-4 py-2 rounded-xl ${
+      roleFilter === 'all'
+        ? 'bg-navy text-white'
+        : 'bg-gray-100'
+    }`}
+  >
+    All
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setRoleFilter('admin')}
+    className={`px-4 py-2 rounded-xl ${
+      roleFilter === 'admin'
+        ? 'bg-navy text-white'
+        : 'bg-gray-100'
+    }`}
+  >
+    Admin
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setRoleFilter('manager')}
+    className={`px-4 py-2 rounded-xl ${
+      roleFilter === 'manager'
+        ? 'bg-navy text-white'
+        : 'bg-gray-100'
+    }`}
+  >
+    Managers
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setRoleFilter('employee')}
+    className={`px-4 py-2 rounded-xl ${
+      roleFilter === 'employee'
+        ? 'bg-navy text-white'
+        : 'bg-gray-100'
+    }`}
+  >
+    Employees
+  </button>
+
+</div>
+
       <div className="bg-white dark:bg-navy-card rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -492,10 +632,10 @@ setUsers(
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-navy-light text-sm">
-              {users.map((user) =>
+              {filteredUsers.map((user) =>
               <tr
                 key={user.id}
-                className={`hover:bg-gray-50/50 dark:hover:bg-navy-light/10 transition-colors ${user.status === 'inactive' ? 'opacity-60' : ''}`}>
+                className={`hover:bg-gray-50/50 dark:hover:bg-navy-light/10 transition-colors ${user.status?.toLowerCase() === 'inactive' ? 'opacity-60' : ''}`}>
                 
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -524,26 +664,41 @@ setUsers(
                   </td>
                   <td className="px-6 py-4">
                     <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${user.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${user.status?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                     
-                      {t(user.status as any)}
+                      {t(user.status?.toLowerCase() as any)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-3">
                       <label
                       className="relative inline-flex items-center cursor-pointer"
-                      title={
-                      user.status === 'active' ?
-                      t('disableUser') :
-                      t('enableUser')
-                      }>
+                 title={
+  user.status?.toLowerCase() === 'active'
+    ? t('disableUser')
+    : t('enableUser')
+}>
                       
                         <input
                         type="checkbox"
                         className="sr-only peer"
-                        checked={user.status === 'active'}
-                        onChange={() => toggleStatus(user.id)} />
+                        checked={
+  user.status?.toLowerCase() === 'active'
+}
+onChange={() => {
+
+  if (user.id === currentUser.id) {
+    alert("لا يمكنك تعطيل حسابك");
+    return;
+  }
+
+  toggleStatus(
+    user.id,
+    user.status
+  );
+
+}}
+/>
                       
                         <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-500"></div>
                       </label>
@@ -556,8 +711,14 @@ setUsers(
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-100 rounded-md transition-colors"
+onClick={() => {
+  if (user.id === currentUser.id) {
+    alert("لا يمكنك حذف حسابك");
+    return;
+  }
+
+  handleDeleteUser(user.id);
+}}                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-100 rounded-md transition-colors"
                         title="Delete User">
                         <Trash2Icon size={16} />
                       </button>
@@ -633,6 +794,19 @@ setUsers(
                   ]}
                   error={formErrors.role}
                 />
+                {formState.role === 'employee' && (
+<SelectField
+  label="Company"
+  value={formState.companyId}
+  onChange={(value) =>
+    handleFormChange('companyId', value)
+  }
+  options={companies.map((company) => ({
+    value: String(company.id),
+    label: company.name
+  }))}
+/>
+)}
                 <SelectField
                   label={t('status')}
                   value={formState.status}
