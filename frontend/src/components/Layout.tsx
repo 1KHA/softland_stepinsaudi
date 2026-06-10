@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { TranslationKey } from '../translations';
 import {
   LayoutDashboardIcon,
   UsersIcon,
@@ -14,6 +15,7 @@ import {
   SearchIcon,
   SunIcon,
   MoonIcon,
+  ClipboardListIcon,
   GlobeIcon } from
 'lucide-react';
 import { motion } from 'framer-motion';
@@ -55,15 +57,11 @@ export const Layout: React.FC = () => {
   label: 'stages'
 },
 {
-  path: '/admin/licenses',
-  icon: ShieldCheckIcon,
-  label: 'licenses'
+  path: '/admin/tasks-licenses',
+  icon: ClipboardListIcon,
+  label: 'tasksLicenses'
 },
-{
-  path: '/admin/market-rules',
-  icon: ScaleIcon,
-  label: 'marketRules'
-},
+
 {
   path: '/admin/notifications',
   icon: BellIcon,
@@ -97,7 +95,9 @@ export const Layout: React.FC = () => {
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive ? 'bg-navy-light dark:bg-navy text-gold' : 'text-gray-300 hover:bg-navy-light/50 dark:hover:bg-navy-light/30 hover:text-white'}`}>
                 
                 <Icon size={20} className={isActive ? 'text-gold' : ''} />
-                <span className="font-medium text-sm">{t(item.label)}</span>
+<span className="font-medium text-sm">
+  {t(item.label as TranslationKey)}
+</span>
                 {isActive &&
                 <motion.div
                   layoutId="sidebar-active"

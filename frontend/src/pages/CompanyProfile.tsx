@@ -132,23 +132,11 @@ setCompanyData({
     ];
 
     const sectors = [
-        {
-            id: 1,
-            name: 'Commercial'
-        },
-        {
-            id: 2,
-            name: 'Industrial'
-        },
-        {
-            id: 3,
-            name: 'Real Estate'
-        },
-        {
-            id: 4,
-            name: 'Entrepreneurial'
-        }
-    ];
+  { id: 1, name: 'Entrepreneurial' },
+  { id: 2, name: 'Industrial' },
+  { id: 3, name: 'Commercial' },
+  { id: 4, name: 'Real Estate' }
+];
 
     const handleChange = (
         e: React.ChangeEvent<

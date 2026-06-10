@@ -12,7 +12,11 @@ const companyRoutes = require('./routes/company.routes');
 app.use('/companies', companyRoutes);
 
 const stageRoutes = require('./routes/stages.routes');
+const taskRoutes = require('./routes/tasks.routes');
+const sectorsRoutes = require('./routes/sectors.routes');
 app.use('/stages', stageRoutes);
+app.use('/tasks', taskRoutes);
+app.use('/sectors', sectorsRoutes);
 
 const employeeRoutes = require('./routes/employee.routes');
 app.use('/employee', employeeRoutes);

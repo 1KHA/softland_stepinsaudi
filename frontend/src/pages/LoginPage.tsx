@@ -6,11 +6,11 @@ import { useTranslation } from '../../node_modules/react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 export function LoginPage() {
-        const sectors = [
-  { id: 1, name: 'Commercial' },
+const sectors = [
+  { id: 1, name: 'Entrepreneurial' },
   { id: 2, name: 'Industrial' },
-  { id: 3, name: 'Real Estate' },
-  { id: 4, name: 'Entrepreneurial' }
+  { id: 3, name: 'Commercial' },
+  { id: 4, name: 'Real Estate' }
 ];
   const { t, i18n } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);

@@ -22,6 +22,9 @@ interface Company {
 
   sector: string;
   sector_id: number;
+  branches_count: number;
+description: string;
+founders: string[];
 
   email: string;
   representativeName: string;
@@ -45,8 +48,11 @@ const initialFormState: Omit<Company, 'logo'> = {
   representativeName: '',
   phoneNumber: '',
   currentStage: 'registration',
-  progress: 25
-};
+progress: 25,
+
+branches_count: 0,
+description: '',
+founders: []};
 
 export const Companies: React.FC = () => {
 
@@ -127,7 +133,9 @@ console.log('TOKEN =', token);
             : '',
 
           location: company.country || '',
-
+branches_count: company.branches_count || 0,
+description: company.description || '',
+founders: company.founders || [],
           address: company.country || '',
 sector_id: company.sector_id,
 sector:
@@ -314,9 +322,9 @@ setFormState({
 
   };
 
-  const handleFormChange = (
+const handleFormChange = (
   field: keyof Omit<Company, 'logo'>,
-  value: string | number
+  value: any
 ) => {
 
     setFormState((prev) => ({
@@ -388,7 +396,10 @@ body: JSON.stringify({
 
   phone: formState.phoneNumber,
   email: formState.email,
-  founders: []
+
+  branches_count: formState.branches_count,
+  description: formState.description,
+  founders: formState.founders
 })
   }
 );
@@ -732,6 +743,56 @@ onChange={(event) =>
                   </select>
                   {formErrors.sector && <p className="text-xs text-red-500">{formErrors.sector}</p>}
                 </label>
+               <label className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+  <span className="font-medium">Number of Branches</span>
+
+  <input
+    type="number"
+    value={formState.branches_count}
+    onChange={(e) =>
+      handleFormChange(
+        "branches_count",
+        Number(e.target.value)
+      )
+    }
+    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm"
+  />
+</label>
+
+<label className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+  <span className="font-medium">Company Description</span>
+
+  <textarea
+    value={formState.description}
+    onChange={(e) =>
+      handleFormChange(
+        "description",
+        e.target.value
+      )
+    }
+    rows={4}
+    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm"
+  />
+</label>
+
+<label className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+  <span className="font-medium">Company Founders</span>
+
+  <input
+    type="text"
+    value={formState.founders.join(", ")}
+    onChange={(e) =>
+      handleFormChange(
+        "founders",
+        e.target.value
+          .split(",")
+          .map((x) => x.trim())
+      )
+    }
+    placeholder="Founder 1, Founder 2"
+    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm"
+  />
+</label>
                 <label className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                   <span className="font-medium">{t('representativeName')}</span>
                   <input

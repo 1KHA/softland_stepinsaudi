@@ -19,13 +19,15 @@ export const Dashboard: React.FC = () => {
   const { t, language } = useAppContext();
   const isRtl = language === 'ar';
 
-  const [stats, setStats] = useState({
+const [stats, setStats] = useState({
   total: 0,
   pending: 0,
   approved: 0,
   rejected: 0,
-  needsCompletion: 0
+  needsCompletion: 0,
+  activeCompanies: 0
 });
+const [stageStats, setStageStats] = useState<any[]>([]);
 
 useEffect(() => {
 
@@ -54,8 +56,9 @@ const fetchStats = async () => {
 
     if (data.success) {
 
-      setStats(data.stats);
+setStats(data.stats);
 
+setStageStats(data.stageStats || []);
     }
 
   } catch (error) {
@@ -163,31 +166,12 @@ const dashboardStats = [
   }
 ];
 
-  const stages = [
-  {
-    id: 1,
-    label: 'registration',
-    completed: true
-  },
-  {
-    id: 2,
-    label: 'compliance',
-    completed: true
-  },
-  {
-    id: 3,
-    label: 'licensing',
-    completed: false
-  },
-  {
-    id: 4,
-    label: 'final_approval',
-    completed: false
-  }] as
-  const;
+const stages = stageStats.map((stage) => ({
+  id: stage.id,
+  label: stage.name,
+  total: stage.total
+}));
 
-  const completedStages = stages.filter(stage => stage.completed).length;
-  const progress = (completedStages / stages.length) * 100;
   const [recentRequests, setRecentRequests] =
   useState<any[]>([]);
 
@@ -286,7 +270,9 @@ const dashboardStats = [
           <h2 className="text-xl font-semibold text-navy dark:text-cream-dark">
             {t('onboardingProgress')}
           </h2>
-          <span className="text-2xl font-bold text-gold">{Math.round(progress)}%</span>
+<span className="text-sm font-semibold text-gold">
+  Active Companies: {stats.activeCompanies}
+</span>
         </div>
 
         <div className="relative">
@@ -294,34 +280,25 @@ const dashboardStats = [
           <div className="absolute top-1/2 left-0 w-full h-1.5 bg-gray-100 dark:bg-navy-light -translate-y-1/2 rounded-full z-0"></div>
           {/* Active Progress Bar */}
           <div
-            className={`absolute top-1/2 ${isRtl ? 'right-0' : 'left-0'} h-1.5 bg-gold -translate-y-1/2 rounded-full z-0 transition-all duration-1000`}
-            style={{
-              width: `${progress}%`
-            }}>
+style={{
+  width: '100%'
+}}>
           </div>
 
-          <div className="relative z-10 flex justify-between">
-            {stages.map((stage) =>
-            <div key={stage.id} className="flex flex-col items-center gap-3">
-                <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center border-4 border-white dark:border-navy-card transition-colors duration-500 ${stage.completed ? 'bg-gold text-white' : 'bg-gray-200 dark:bg-navy-light text-gray-400'}`}>
-                
-                  {stage.completed ?
-                <CheckIcon size={16} className="font-bold" /> :
+<div className="relative z-10 flex justify-between">
+  {stages.map((stage) => (
+    <div key={stage.id} className="flex flex-col items-center gap-3">
+<div className="w-14 h-14 rounded-full bg-gold text-white flex items-center justify-center font-bold text-lg shadow-md">        {stage.total}
+      </div>
 
-                <span>{stage.id}</span>
-                }
-                </div>
-                <span
-                className={`text-sm font-medium ${stage.completed ? 'text-navy dark:text-cream-dark' : 'text-gray-400'}`}>
-                
-                  {t(stage.label)}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.div>
+      <span className="text-sm font-medium text-navy dark:text-cream-dark">
+        {stage.label}
+      </span>
+    </div>
+  ))}
+</div>
+</div>
+</motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Requests Table */}
@@ -363,8 +340,10 @@ const dashboardStats = [
               <tbody className="divide-y divide-gray-100 dark:divide-navy-light text-sm">
                 {recentRequests.map((req) =>
                 <tr
-                  key={req.id}
-                  className="hover:bg-gray-50/50 dark:hover:bg-navy-light/10 transition-colors">
+  key={req.id}
+  onClick={() => navigate(`/admin/requests/${req.id}`)}
+  className="hover:bg-gray-50/50 dark:hover:bg-navy-light/10 transition-colors cursor-pointer"
+>
                   
                     <td className="px-6 py-4 font-medium text-navy dark:text-cream-dark">
                       {req.id}

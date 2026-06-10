@@ -75,6 +75,12 @@ export default function CompanyDashboard() {
           tasksResponse.data.tasks
         );
 
+console.log(
+  "TASKS FROM API",
+  tasksResponse.data.tasks
+);
+
+
         // progress
 const progressResponse =
   await axios.get(
@@ -129,15 +135,26 @@ const activeStage =
       (stage: any) =>
         stage.status === "IN_PROGRESS"
     );
-
+console.log("ALL TASKS", companyTasks);
 const currentStageTasks =
   companyTasks.filter(
     (task: any) =>
 task.company_stage_id === activeStage?.id
     );
 
-  console.log(activeStage);
-console.log(companyTasks);
+  console.log("ACTIVE STAGE");
+console.log(activeStage);
+
+console.log("CURRENT STAGE TASKS");
+console.log(currentStageTasks);
+
+console.log(
+  companyTasks.map(t => ({
+    taskId: t.task_id,
+    title: t.title,
+    company_stage_id: t.company_stage_id
+  }))
+);
 
   return (
 
@@ -437,6 +454,7 @@ console.log(companyTasks);
         </div>
 
       </div>
+
 
     </div>
   );

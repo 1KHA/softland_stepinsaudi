@@ -1,5 +1,10 @@
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
+console.log(
+  "DB PATH:",
+  path.resolve('./database.db')
+);
 // إنشاء / فتح قاعدة البيانات
 const db = new sqlite3.Database('./database.db', (err) => {
   console.log("DB PATH:", require('path').resolve('./database.db'));
@@ -68,12 +73,13 @@ db.run(`
 `);
 
 db.run(`
-  INSERT OR IGNORE INTO sectors (id, name_en, name_ar)
-  VALUES
-  (1, 'Commercial', 'تجاري'),
-  (2, 'Industrial', 'صناعي'),
-  (3, 'Real Estate', 'عقاري'),
-  (4, 'Entrepreneurial', 'ريادي')
+INSERT OR IGNORE INTO sectors (id, name_en, name_ar)
+VALUES
+(1, 'Commercial', 'تجاري'),
+(2, 'Industrial', 'صناعي'),
+(3, 'Real Estate', 'عقاري'),
+(4, 'Entrepreneurial', 'ريادي'),
+(5, 'All Sectors', 'جميع القطاعات')
 `);
 
 db.run(`
@@ -206,67 +212,25 @@ SET description = 'Final review and approval'
 WHERE id = 4
 `);
 
-db.run(`
-INSERT OR IGNORE INTO tasks
-(id, stage_id, sector_id, title, description, required, task_order)
-VALUES
-
--- =========================
--- COMMERCIAL
--- =========================
-
-(1, 1, 1, 'Reserve Trade Name', 'Reserve company trade name', 1, 1),
-(2, 1, 1, 'Commercial Registration', 'Issue commercial registration', 1, 2),
-(3, 1, 1, 'Articles of Association Upload', 'Upload company legal documents', 1, 3),
-
-(4, 2, 1, 'ZATCA Registration', 'Register in ZATCA', 1, 1),
-(5, 2, 1, 'Chamber Registration', 'Register in Chamber of Commerce', 1, 2),
-
-(6, 3, 1, 'Municipality License', 'Issue municipality license', 1, 1),
-(7, 3, 1, 'Commercial Activity License', 'Issue activity license', 1, 2),
-
-(8, 4, 1, 'Final Legal Review', 'Final company review', 1, 1),
-
--- =========================
--- ENTREPRENEURIAL
--- =========================
-
-(9, 1, 4, 'Startup Registration', 'Register startup company', 1, 1),
-(10, 1, 4, 'Founder Verification', 'Verify founders identity', 1, 2),
-
-(11, 2, 4, 'Innovation Compliance', 'Review innovation requirements', 1, 1),
-
-(12, 3, 4, 'Startup Activity Permit', 'Issue startup permit', 1, 1),
-
-(13, 4, 4, 'Startup Final Review', 'Final startup review', 1, 1),
-
--- =========================
--- INDUSTRIAL
--- =========================
-
-(14, 1, 2, 'Industrial Registration', 'Register industrial company', 1, 1),
-
-(15, 2, 2, 'Industrial Safety Compliance', 'Safety compliance review', 1, 1),
-(16, 2, 2, 'Environmental Compliance', 'Environmental review', 1, 2),
-
-(17, 3, 2, 'Industrial License', 'Issue industrial license', 1, 1),
-(18, 3, 2, 'Factory Permit', 'Factory operation permit', 1, 2),
-
-(19, 4, 2, 'Industrial Final Audit', 'Final industrial audit', 1, 1),
-
--- =========================
--- REAL ESTATE
--- =========================
-
-(20, 1, 3, 'Real Estate Registration', 'Register real estate company', 1, 1),
-
-(21, 2, 3, 'Property Compliance Review', 'Property compliance review', 1, 1),
-
-(22, 3, 3, 'Real Estate License', 'Issue real estate license', 1, 1),
-
-(23, 4, 3, 'Legal Property Review', 'Final legal property review', 1, 1)
-`);
 });
+
+
+db.run(`
+CREATE TABLE IF NOT EXISTS task_required_documents (
+
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+  task_id INTEGER NOT NULL,
+
+  document_name TEXT NOT NULL,
+
+  is_required INTEGER DEFAULT 1,
+
+  FOREIGN KEY (task_id)
+  REFERENCES tasks(id)
+
+)
+`);
 
 
 db.run(`

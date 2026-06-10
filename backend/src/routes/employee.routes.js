@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const authMiddleware = require('../middleware/authMiddleware');
+const upload = require("../middleware/upload");
 
 // ─── MIDDLEWARE: employee or admin only ───────────────────────────────────────
 function employeeOrAdmin(req, res, next) {
@@ -47,11 +48,47 @@ router.get('/dashboard/stats', authMiddleware, employeeOrAdmin, (req, res) => {
       const approved = companies.filter(c => c.status === 'APPROVED').length;
       const rejected = companies.filter(c => c.status === 'REJECTED').length;
       const needsCompletion = companies.filter(c => c.status === 'NEEDS_COMPLETION').length;
+      const activeCompanies = companies.filter(
+  c => c.status !== 'REJECTED'
+).length;
 
-      res.json({
-        success: true,
-        stats: { total, pending, approved, rejected, needsCompletion }
+db.all(
+  `
+  SELECT
+    s.id,
+    s.name,
+    COUNT(cs.company_id) as total
+  FROM stages s
+  LEFT JOIN company_stages cs
+    ON s.id = cs.stage_id
+    AND cs.status = 'IN_PROGRESS'
+  GROUP BY s.id
+  ORDER BY s.stage_order
+  `,
+  [],
+  (err, stageStats) => {
+
+    if (err) {
+      return res.status(500).json({
+        success: false
       });
+    }
+
+    res.json({
+      success: true,
+stats: {
+  total,
+  pending,
+  approved,
+  rejected,
+  needsCompletion,
+  activeCompanies
+},
+      stageStats
+    });
+
+  }
+);
     }
   );
 });
@@ -142,10 +179,14 @@ router.get('/requests/:id', authMiddleware, employeeOrAdmin, (req, res) => {
           if (err) return res.status(500).json({ success: false, message: 'DB error' });
 
           db.all(
-            `SELECT ct.*, t.title AS task_title
-             FROM company_tasks ct
-             JOIN tasks t ON ct.task_id = t.id
-             WHERE ct.company_id = ?`,
+            `SELECT
+  ct.*,
+  t.title AS task_title,
+  t.task_type
+FROM company_tasks ct
+JOIN tasks t
+ON ct.task_id = t.id
+WHERE ct.company_id = ?`,
             [id],
             (err, tasks) => {
               if (err) return res.status(500).json({ success: false, message: 'DB error' });
@@ -432,11 +473,226 @@ router.put('/documents/:id/approve', authMiddleware, employeeOrAdmin, (req, res)
   const { id } = req.params;
 
   db.run(
-    `UPDATE task_documents SET status = 'APPROVED', reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    `
+    UPDATE task_documents
+    SET status = 'APPROVED',
+        reviewed_by = ?,
+        reviewed_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+    `,
     [req.user.id, id],
     function (err) {
-      if (err) return res.status(500).json({ success: false, message: 'DB error' });
-      res.json({ success: true, message: 'Document approved' });
+
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: 'DB error'
+        });
+      }
+
+      db.get(
+        `
+        SELECT company_task_id
+        FROM task_documents
+        WHERE id = ?
+        `,
+        [id],
+        (err2, doc) => {
+console.log('DOC ID =', id);
+console.log('COMPANY TASK ID =', doc.company_task_id);
+          if (err2 || !doc) {
+            return res.json({
+              success: true,
+              message: 'Document approved'
+            });
+          }
+
+db.get(
+  `
+  SELECT COUNT(*) AS uploadedCount
+  FROM task_documents
+  WHERE company_task_id = ?
+  AND status = 'APPROVED'
+  `,
+  [doc.company_task_id],
+  (err3, approvedResult) => {
+
+    console.log('UPDATED TASK =', doc.company_task_id);
+    console.log('CHANGES =', this.changes);
+    console.log('ERROR =', err3);
+
+    db.get(
+  `
+SELECT
+  ct.company_stage_id,
+  ct.task_id,
+  t.task_type
+FROM company_tasks ct
+JOIN tasks t
+  ON ct.task_id = t.id
+WHERE ct.id = ?
+  `,
+  [doc.company_task_id],
+  (err4, taskRow) => {
+
+    if (!taskRow) {
+      return res.json({
+        success: true,
+        message: 'Document approved'
+      });
+    }
+// إذا كان File -> يكفي أول ملف
+if (taskRow.task_type === "file") {
+
+  db.run(
+    `
+    UPDATE company_tasks
+    SET status = 'COMPLETED'
+    WHERE id = ?
+    `,
+    [doc.company_task_id]
+  );
+
+} else {
+
+  // في حالة License:
+  // إذا تم اعتماد جميع الملفات، لا نكمل التاسك.
+  // نتركه UNDER_REVIEW إلى أن يرفع الأدمن الترخيص النهائي.
+  db.get(
+    `
+    SELECT COUNT(*) AS requiredCount
+    FROM task_required_documents
+    WHERE task_id = ?
+    `,
+    [taskRow.task_id],
+    (errReq, requiredResult) => {
+
+      if (
+        approvedResult.uploadedCount >=
+        requiredResult.requiredCount
+      ) {
+
+        console.log(
+          "All required documents approved. Waiting for final license upload."
+        );
+
+      }
+
+    }
+  );
+
+}
+
+    db.get(
+      `
+      SELECT COUNT(*) AS remaining
+      FROM company_tasks
+      WHERE company_stage_id = ?
+      AND status != 'COMPLETED'
+      `,
+      [taskRow.company_stage_id],
+      (err5, result) => {
+
+        if (result.remaining > 0) {
+          return res.json({
+            success: true,
+            message: 'Document approved'
+          });
+        }
+
+db.run(
+  `
+  UPDATE company_stages
+  SET status = 'COMPLETED'
+  WHERE id = ?
+  `,
+  [taskRow.company_stage_id],
+  function () {
+
+    db.get(
+      `
+      SELECT company_id, stage_id
+      FROM company_stages
+      WHERE id = ?
+      `,
+      [taskRow.company_stage_id],
+      (err6, currentStage) => {
+
+        if (!currentStage) {
+          return res.json({
+            success: true,
+            message: 'Document approved'
+          });
+        }
+
+        db.get(
+          `
+          SELECT cs.id
+FROM company_stages cs
+JOIN stages s
+ON cs.stage_id = s.id
+WHERE cs.company_id = ?
+AND s.stage_order > (
+  SELECT s2.stage_order
+  FROM company_stages cs2
+  JOIN stages s2
+  ON cs2.stage_id = s2.id
+  WHERE cs2.id = ?
+)
+ORDER BY s.stage_order
+LIMIT 1
+          `,
+         [
+  currentStage.company_id,
+  taskRow.company_stage_id
+],
+          (err7, nextStage) => {
+
+            if (!nextStage) {
+              return res.json({
+                success: true,
+                message: 'Document approved'
+              });
+            }
+
+            db.run(
+              `
+              UPDATE company_stages
+              SET status = 'IN_PROGRESS'
+              WHERE id = ?
+              `,
+              [nextStage.id],
+              function () {
+console.log('OPENING STAGE', nextStage.id);
+                return res.json({
+                  success: true,
+                  message: 'Document approved'
+                });
+
+              }
+            );
+
+          }
+        );
+
+      }
+    );
+
+  }
+);
+
+      }
+    );
+
+  }
+);
+
+  }
+);
+
+        }
+      );
+
     }
   );
 });
@@ -578,11 +834,176 @@ router.put('/tasks/:id/status', authMiddleware, (req, res) => {
           message: 'DB error'
         });
       }
+db.get(
+  `
+  SELECT company_stage_id
+  FROM company_tasks
+  WHERE id = ?
+  `,
+  [req.params.id],
+  (err2, taskRow) => {
 
-      res.json({
+    if (err2 || !taskRow) {
+      return res.json({
         success: true,
         message: 'Task status updated'
       });
+    }
+
+    db.get(
+      `
+      SELECT COUNT(*) AS remaining
+      FROM company_tasks
+      WHERE company_stage_id = ?
+      AND status != 'COMPLETED'
+      `,
+      [taskRow.company_stage_id],
+      (err3, result) => {
+
+const stageCompleted = result.remaining === 0;
+
+db.run(
+  `
+  UPDATE company_stages
+  SET status = ?
+  WHERE id = ?
+  `,
+  [
+    stageCompleted ? 'COMPLETED' : 'IN_PROGRESS',
+    taskRow.company_stage_id
+  ],
+  function () {
+
+    db.get(
+      `
+      SELECT company_id, stage_id
+      FROM company_stages
+      WHERE id = ?
+      `,
+      [taskRow.company_stage_id],
+      (err4, currentStage) => {
+
+        if (err4 || !currentStage) {
+          return res.json({
+            success: true,
+            message: 'Task status updated'
+          });
+        }
+
+if (!stageCompleted) {
+console.log('STAGE NOT COMPLETED');
+console.log('CURRENT STAGE:', currentStage);
+  db.get(
+    `
+SELECT cs.id
+FROM company_stages cs
+JOIN stages s
+ON cs.stage_id = s.id
+WHERE cs.company_id = ?
+AND s.stage_order > (
+  SELECT s2.stage_order
+  FROM company_stages cs2
+  JOIN stages s2
+  ON cs2.stage_id = s2.id
+  WHERE cs2.id = ?
+)
+ORDER BY s.stage_order
+LIMIT 1
+    `,
+   [
+  currentStage.company_id,
+  taskRow.company_stage_id
+],
+    (errNext, nextStage) => {
+
+      if (nextStage) {
+console.log('LOCKING STAGE:', nextStage.id);
+db.run(
+  `
+  UPDATE company_stages
+  SET status = 'LOCKED'
+  WHERE company_id = ?
+  AND stage_id > ?
+  `,
+  [
+    currentStage.company_id,
+    currentStage.stage_id
+  ]
+);
+
+      }
+
+      return res.json({
+        success: true,
+        message: 'Task status updated'
+      });
+
+    }
+  );
+
+  return;
+}
+
+        db.get(
+          `
+SELECT cs.id
+FROM company_stages cs
+JOIN stages s
+ON cs.stage_id = s.id
+WHERE cs.company_id = ?
+AND s.stage_order > (
+  SELECT s2.stage_order
+  FROM company_stages cs2
+  JOIN stages s2
+  ON cs2.stage_id = s2.id
+  WHERE cs2.id = ?
+)
+ORDER BY s.stage_order
+LIMIT 1
+          `,
+         [
+  currentStage.company_id,
+  taskRow.company_stage_id
+],
+          (err5, nextStage) => {
+
+(err7, nextStage) => {
+
+console.log('CURRENT STAGE =', currentStage);
+console.log('NEXT STAGE FOUND =', nextStage);
+
+if (!nextStage) {
+
+            if (nextStage) {
+              db.run(
+                `
+                UPDATE company_stages
+                SET status = 'IN_PROGRESS'
+                WHERE id = ?
+                `,
+                [nextStage.id]
+              );
+            }
+
+return res.json({
+              success: true,
+              message: 'Task status updated'
+            });
+
+          }
+        }
+      });
+      }
+    );
+
+  }
+);
+
+      }
+    );
+
+  }
+);
 
     }
   );
@@ -665,4 +1086,155 @@ router.put('/stages/:id/status', authMiddleware, (req, res) => {
 
 });
 
+router.post(
+  "/tasks/:taskId/final-license",
+  authMiddleware,
+  employeeOrAdmin,
+  upload.single("file"),
+  (req, res) => {
+
+    const { taskId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "File is required"
+      });
+    }
+
+    const fileUrl =
+      `http://localhost:3000/uploads/${req.file.filename}`;
+
+    db.run(
+      `
+      INSERT INTO task_documents (
+        company_task_id,
+        file_name,
+        file_url,
+        uploaded_by,
+        status,
+        is_final_license
+      )
+      VALUES (?, ?, ?, ?, 'APPROVED', 1)
+      `,
+      [
+        taskId,
+        req.file.originalname,
+        fileUrl,
+        req.user.id
+      ],
+      function (err) {
+
+if (err) {
+  console.log(err);
+
+  return res.status(500).json({
+    success: false
+  });
+}
+
+db.run(
+  `
+  UPDATE company_tasks
+  SET status = 'COMPLETED'
+  WHERE id = ?
+  `,
+  [taskId],
+  function () {
+db.get(
+  `
+  SELECT company_stage_id
+  FROM company_tasks
+  WHERE id = ?
+  `,
+  [taskId],
+  function (err2, taskRow) {
+db.get(
+  `
+  SELECT COUNT(*) AS remaining
+  FROM company_tasks
+  WHERE company_stage_id = ?
+  AND status != 'COMPLETED'
+  `,
+  [taskRow.company_stage_id],
+  function (err3, result) {
+if (result.remaining === 0) {
+
+  db.run(
+    `
+    UPDATE company_stages
+    SET status = 'COMPLETED'
+    WHERE id = ?
+    `,
+    [taskRow.company_stage_id]
+  );
+db.get(
+  `
+  SELECT company_id, stage_id
+  FROM company_stages
+  WHERE id = ?
+  `,
+  [taskRow.company_stage_id],
+  function (err4, currentStage) {
+
+    if (!currentStage) {
+      return res.json({
+        success: true
+      });
+    }
+
+    db.get(
+      `
+SELECT cs.id
+FROM company_stages cs
+JOIN stages s
+ON cs.stage_id = s.id
+WHERE cs.company_id = ?
+AND s.stage_order > (
+  SELECT s2.stage_order
+  FROM company_stages cs2
+  JOIN stages s2
+  ON cs2.stage_id = s2.id
+  WHERE cs2.id = ?
+)
+ORDER BY s.stage_order
+LIMIT 1
+      `,
+      [
+  currentStage.company_id,
+  taskRow.company_stage_id
+],
+      function (err5, nextStage) {
+
+        if (nextStage) {
+
+          db.run(
+            `
+            UPDATE company_stages
+            SET status = 'IN_PROGRESS'
+            WHERE id = ?
+            `,
+            [nextStage.id]
+          );
+
+        }
+
+        return res.json({
+          success: true
+        });
+
+      }
+    );
+
+  }
+);
+
+}
+  });
+  });
+  });
+
+      });
+
+  });
 module.exports = router;

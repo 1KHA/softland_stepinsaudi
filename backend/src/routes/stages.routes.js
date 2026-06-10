@@ -111,7 +111,45 @@ router.post('/', (req, res) => {
                 });
 
               }
+const stageId = this.lastID;
 
+db.all(
+  `
+  SELECT id
+  FROM companies
+  `,
+  [],
+
+  (err, companies) => {
+
+    if (err) {
+      console.log(err);
+      return;
+    }
+
+    companies.forEach((company) => {
+
+      db.run(
+        `
+        INSERT INTO company_stages
+        (
+          company_id,
+          stage_id,
+          status
+        )
+        VALUES (?, ?, ?)
+        `,
+        [
+          company.id,
+          stageId,
+          "LOCKED"
+        ]
+      );
+
+    });
+
+  }
+);
               res.json({
                 success: true,
                 id: this.lastID

@@ -32,6 +32,9 @@ const isAdmin = user.role === 'ADMIN';
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState<ActionType>(null);
   const [notes, setNotes] = useState('');
+  const [licenseFiles, setLicenseFiles] = useState<{
+  [taskId: number]: File | null;
+}>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
@@ -40,7 +43,9 @@ const isAdmin = user.role === 'ADMIN';
   const fetchDetails = async () => {
     setLoading(true);
     try {
+      console.log('FETCHING DETAILS...');
       const res = await axios.get(`${API}/employee/requests/${id}`, { headers });
+      console.log('NEW DATA', res.data);
       setData(res.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -127,6 +132,16 @@ const isAdmin = user.role === 'ADMIN';
   }
 
   const { company, stages, tasks, documents } = data;
+  console.log('STAGES', stages);
+console.table(
+  tasks.map((t:any) => ({
+    id: t.id,
+    task_id: t.task_id,
+    company_stage_id: t.company_stage_id,
+    status: t.status
+  }))
+);
+console.log('DOCUMENTS', documents);
   const confirmMsg: Record<string, string> = {
     approve:  t('employee.requestDetails.confirmation.approve'),
     reject:   t('employee.requestDetails.confirmation.reject'),
@@ -343,15 +358,99 @@ const isAdmin = user.role === 'ADMIN';
       </span>
 
       {isAdmin && (
-        <select
-          className="border rounded px-2 py-1 text-xs"
-        >
+       <select
+  value={task.status}
+  onChange={async (e) => {
+    try {
+      await axios.put(
+        `${API}/employee/tasks/${task.id}/status`,
+        {
+          status: e.target.value
+        },
+        {
+          headers
+        }
+      );
+
+      fetchDetails();
+
+    } catch (err) {
+      console.error(err);
+    }
+  }}
+  className="border rounded px-2 py-1 text-xs"
+>
           <option value="PENDING">Pending</option>
           <option value="IN_PROGRESS">In Progress</option>
           <option value="COMPLETED">Completed</option>
           <option value="REJECTED">Rejected</option>
         </select>
       )}
+
+{task.task_type === "license" && (
+  <>
+    <input
+      type="file"
+      accept=".pdf,.jpg,.jpeg,.png"
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+
+        if (!file) return;
+
+        setLicenseFiles((prev) => ({
+          ...prev,
+          [task.id]: file,
+        }));
+      }}
+      className="text-xs"
+    />
+
+<button
+  className="bg-blue-600 text-white px-3 py-1 rounded text-xs"
+  onClick={async () => {
+
+    const file = licenseFiles[task.id];
+
+    if (!file) {
+      alert("Please select a file first");
+      return;
+    }
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    try {
+
+      await axios.post(
+        `${API}/employee/tasks/${task.id}/final-license`,
+        formData,
+        {
+          headers: {
+            ...headers,
+            "Content-Type": "multipart/form-data"
+          }
+        }
+      );
+
+      alert("Final license uploaded successfully ✅");
+
+      fetchDetails();
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert("Upload failed");
+
+    }
+
+  }}
+>
+  Upload Final License
+</button>
+  </>
+)}
 
     </div>
   </div>
@@ -399,6 +498,33 @@ const isAdmin = user.role === 'ADMIN';
                         <a href={doc.file_url} download className="p-2 hover:bg-gray-100 rounded-lg transition">
                           <Download className="w-4 h-4 text-[#1E3A5F]" />
                         </a>
+                        {isAdmin && doc.status !== 'APPROVED' && (
+  <button
+    onClick={async () => {
+      try {
+console.log('APPROVING DOC', doc.id);
+
+await axios.put(
+  `${API}/employee/documents/${doc.id}/approve`,
+  {},
+  { headers }
+);
+
+console.log('REFETCHING...');
+
+await fetchDetails();
+
+console.log('DONE');
+
+      } catch (err) {
+        console.error(err);
+      }
+    }}
+    className="bg-green-600 text-white px-3 py-1 rounded text-xs"
+  >
+    Approve
+  </button>
+)}
                       </div>
                     </div>
                     {doc.rejection_reason && (

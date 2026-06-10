@@ -6,8 +6,9 @@ export default function TaskDetails() {
   const { id } = useParams();
 
 const [selectedFiles, setSelectedFiles] =
-  useState<File[]>([]);
-
+  useState<{
+    [documentName: string]: File | null;
+  }>({});
 const [task, setTask] = useState<any>(null);
 
 useEffect(() => {
@@ -162,127 +163,79 @@ className="bg-[#D6B36A] text-white px-5 py-2 rounded-xl text-sm"    >
             Upload Documents
           </h2>
 
-          <label className="border-2 border-dashed border-gray-300 rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer hover:border-[#D6B36A] transition">
-            
-            <input
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-              const files = Array.from(
-              e.target.files || []
-             );
+          <div className="space-y-4">
 
-             setSelectedFiles((prev) => [
-             ...prev,
-              ...files
-             ]);
-              }}
-            />
+{task?.requiredDocuments?.map((doc: string) => (
 
-            <p className="text-lg text-gray-500">
-              Click to upload file
-            </p>
+    <div
+      key={doc}
+      className="border rounded-xl p-4 flex justify-between items-center"
+    >
 
-            <p className="text-sm text-gray-400 mt-2">
-              PDF, JPG, PNG
-            </p>
-          </label>
+      <div>
 
-          {/* FILE PREVIEW */}
-{selectedFiles.length > 0 && (
+        <p className="font-semibold">
+          {doc}
+        </p>
 
-  <div className="space-y-4 mt-6">
+        {selectedFiles[doc] && (
 
-    {selectedFiles.map(
-      (file, index) => (
+          <p className="text-sm text-green-600">
+            {selectedFiles[doc]?.name}
+          </p>
 
-        <div
-          key={index}
-          className="border rounded-2xl p-5 flex justify-between items-center"
-        >
+        )}
 
-          <div>
+      </div>
 
-            <p className="font-semibold">
-              {file.name}
-            </p>
+<input
+  type="file"
+  accept=".pdf,.jpg,.jpeg,.png"
+  onChange={(e) => {
+    const file = e.target.files?.[0];
 
-            <p className="text-sm text-gray-500">
-              {(file.size / 1024).toFixed(2)} KB
-            </p>
+    if (!file) return;
 
-          </div>
+    setSelectedFiles(prev => ({
+      ...prev,
+      [doc]: file
+    }));
+  }}
+/>
 
-          <div className="flex items-center gap-3">
+    </div>
 
-            <button
-              onClick={() =>
-                window.open(
-                  URL.createObjectURL(file),
-                  "_blank"
-                )
-              }
-              className="bg-[#4B5563] text-white px-4 py-2 rounded-lg"
-            >
-              Preview
-            </button>
+  ))}
 
-            <button
-              onClick={() => {
+</div>
 
-                setSelectedFiles(
-                  selectedFiles.filter(
-                    (_, i) => i !== index
-                  )
-                );
-
-              }}
-              className="bg-red-500 text-white px-4 py-2 rounded-lg"
-            >
-              Remove
-            </button>
-
-          </div>
-
-        </div>
-
-      )
-    )}
-
-  </div>
-
-)}
 
           {/* ACTION BUTTONS */}
           <div className="flex justify-end gap-4 mt-8">
-
-            <button className="bg-gray-200 px-6 py-3 rounded-xl">
-              Save Draft
-            </button>
 
 <button
   className="bg-[#D6B36A] text-white px-6 py-3 rounded-xl"
 
   onClick={async () => {
 
-if (selectedFiles.length === 0) {
-
+if (Object.keys(selectedFiles).length === 0) {
   alert("Please select files");
-
   return;
-
 }
 
     try {
 
       const formData = new FormData();
 
-selectedFiles.forEach((file) => {
+Object.entries(selectedFiles).forEach(([documentName, file]) => {
+
+  if (!file) return;
+
+  formData.append("files", file);
 
   formData.append(
-    "files",
-    file
+    "required_document_name",
+    documentName
   );
 
 });
@@ -292,42 +245,31 @@ formData.append(
   id || ""
 );
 
-      const response = await fetch(
- "http://localhost:3000/companies/tasks/upload",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+const response = await fetch(
+  `http://localhost:3000/companies/tasks/${id}/upload`,
+  {
+    method: "POST",
 
-      const data = await response.json();
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`
+    },
+
+    body: formData,
+  }
+);
+
+const data = await response.json();
 
       console.log(data);
 
-      await fetch(
-`http://localhost:3000/tasks/${id}/status`,
-        {
-          method: "PUT",
 
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            status: "UNDER_REVIEW",
-          }),
-
-        }
-      );
-
-      setTask({
-        ...task,
-        status: "UNDER_REVIEW",
-      });
+setTask((prev: any) => ({
+  ...prev,
+  status: "UNDER_REVIEW",
+}));
 
       alert(
-        "File uploaded successfully ✅"
+        "Documents uploaded successfully ✅"
       );
 
     } catch (error) {

@@ -199,22 +199,24 @@ router.post('/register-with-company', async (req, res) => {
             db.run(
               `
               INSERT INTO users
-              (
-                name,
-                email,
-                password,
-                role,
-                company_id
-              )
-              VALUES (?, ?, ?, ?, ?)
+(
+  name,
+  email,
+  password,
+  role,
+  company_id,
+  status
+)
+VALUES (?, ?, ?, ?, ?, ?)
               `,
               [
-                name,
-                email,
-                hashedPassword,
-                'CLIENT',
-                companyId
-              ],
+  name,
+  email,
+  hashedPassword,
+  "CLIENT",
+  companyId,
+  "ACTIVE"
+],
 
               function (err) {
 
@@ -342,7 +344,16 @@ router.post('/login', async (req, res) => {
           );
 
         }
-
+if (
+  user.status &&
+  user.status.toUpperCase() === "INACTIVE"
+) {
+  return sendError(
+    res,
+    403,
+    "Your account has been deactivated"
+  );
+}
         const isMatch =
           await bcrypt.compare(
             password,
@@ -498,22 +509,24 @@ router.post(
           db.run(
             `
             INSERT INTO users
-            (
-              name,
-              email,
-              password,
-              role,
-              company_id
-            )
-            VALUES (?, ?, ?, ?, ?)
+(
+  name,
+  email,
+  password,
+  role,
+  company_id,
+  status
+)
+VALUES (?, ?, ?, ?, ?, ?)
             `,
             [
-              name,
-              email,
-              hashedPassword,
-              "ADMIN",
-              null
-            ],
+  name,
+  email,
+  hashedPassword,
+  "ADMIN",
+  null,
+  "ACTIVE"
+],
 
             function (err) {
 
@@ -924,25 +937,63 @@ router.put(
 
       function (err) {
 
-        if (err) {
+  if (err) {
 
-          console.error(err);
+    console.error(err);
 
-          return res.status(500).json({
-            success: false,
-            message: "Error updating status"
-          });
+    return res.status(500).json({
+      success: false,
+      message: "Error updating status"
+    });
 
-        }
+  }
 
-        res.json({
+  // جلب معلومات المستخدم
+  db.get(
+    `
+    SELECT company_id, role
+    FROM users
+    WHERE id = ?
+    `,
+    [id],
+    (err2, user) => {
+
+      if (err2 || !user) {
+        return res.json({
           success: true,
           message: "Status updated successfully"
         });
+      }
+
+      // إذا كان CLIENT فقط، غيّر حالة الشركة معه
+      if (user.role === "CLIENT") {
+
+        db.run(
+          `
+          UPDATE companies
+          SET status = ?
+          WHERE id = ?
+          `,
+          [
+            status === "ACTIVE"
+              ? "UNDER_REVIEW"
+              : "DISABLED",
+            user.company_id
+          ]
+        );
 
       }
-    );
 
+      res.json({
+        success: true,
+        message: "Status updated successfully"
+      });
+
+    }
+  );
+
+}
+    );
   }
 );
 
@@ -1057,25 +1108,63 @@ ORDER BY c.id DESC
   `,
         [],
 
-        (err, companies) => {
+       (err, companies) => {
 
-          if (err) {
+  if (err) {
 
-            console.error(err);
+    console.error(err);
 
-            return res.status(500).json({
-              success: false,
-              message: "Error fetching companies"
-            });
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching companies"
+    });
 
-          }
-console.log(companies[0]);
-          res.json({
-            success: true,
-            companies
-          });
+  }
 
-        }
+  db.all(
+    `
+    SELECT
+      company_id,
+      full_name
+    FROM founders
+    `,
+    [],
+    (foundersErr, founders) => {
+
+      if (foundersErr) {
+
+        console.error(foundersErr);
+
+        return res.status(500).json({
+          success: false,
+          message: "Error fetching founders"
+        });
+
+      }
+
+      companies.forEach((company) => {
+
+        company.founders = founders
+          .filter(
+            (f) => f.company_id === company.id
+          )
+          .map(
+            (f) => f.full_name
+          );
+
+      });
+
+      console.log(companies[0]);
+
+      res.json({
+        success: true,
+        companies
+      });
+
+    }
+  );
+
+}
       );
 
     } catch (error) {
@@ -1202,6 +1291,6 @@ router.post(
     });
 
   }
-);
+  );
 
 module.exports = router;

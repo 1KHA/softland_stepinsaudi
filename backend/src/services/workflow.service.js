@@ -76,11 +76,14 @@ if (!stages.length) {
                             db.all(
                                 `
                                 SELECT *
-                                FROM tasks
-                                WHERE stage_id = ?
-                                AND sector_id = ?
-                                AND is_active = 1
-                                ORDER BY task_order ASC
+FROM tasks
+WHERE stage_id = ?
+AND (
+  sector_id = ?
+  OR sector_id = 5
+)
+AND is_active = 1
+ORDER BY task_order ASC
                                 `,
                                 [
                                     stage.id,

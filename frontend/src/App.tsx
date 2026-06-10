@@ -28,7 +28,7 @@ import { Users } from './pages/Users'
 import { Companies } from './pages/Companies'
 import { Requests } from './pages/Requests'
 import { Stages } from './pages/Stages'
-import { Licenses } from './pages/Licenses'
+import { TasksLicenses } from './pages/TasksLicenses'
 import { MarketRules } from './pages/MarketRules'
 import { Notifications } from './pages/Notifications'
 import { Settings } from './pages/Settings'
@@ -164,17 +164,23 @@ function AppContent() {
           />
 
             {/* ── ADMIN DASHBOARD ─── */}
-          <Route path="/admin" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="users" element={<Users />} />
-          <Route path="companies" element={<Companies />} />
-          <Route path="requests" element={<Requests />} />
-          <Route path="stages" element={<Stages />} />
-          <Route path="licenses" element={<Licenses />} />
-          <Route path="market-rules" element={<MarketRules />} />
-          <Route path="notifications" element={<Notifications />} />
-          <Route path="settings" element={<Settings />} />
-          </Route>
+<Route path="/admin" element={<Layout />}>
+  <Route index element={<Dashboard />} />
+  <Route path="users" element={<Users />} />
+  <Route path="companies" element={<Companies />} />
+  <Route path="requests" element={<Requests />} />
+
+  <Route
+    path="requests/:id"
+    element={<RequestDetails />}
+  />
+
+  <Route path="stages" element={<Stages />} />
+<Route path="tasks-licenses" element={<TasksLicenses />} />
+  <Route path="market-rules" element={<MarketRules />} />
+  <Route path="notifications" element={<Notifications />} />
+  <Route path="settings" element={<Settings />} />
+</Route>
 
         </Routes>
 

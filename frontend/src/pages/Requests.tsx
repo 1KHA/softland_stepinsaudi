@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
 import {
   FileTextIcon,
   SearchIcon,
@@ -7,110 +8,70 @@ import {
   ChevronDownIcon } from
 'lucide-react';
 import { motion } from 'framer-motion';
-interface Request {
-  id: string;
-  company: string;
-  type: string;
-  status: 'submitted' | 'underReview' | 'approved' | 'rejected';
-  assignedTo: string | null;
-  date: string;
-}
+
 export const Requests: React.FC = () => {
   const { t, language } = useAppContext();
+  const navigate = useNavigate();
   const isRtl = language === 'ar';
-  const [requests, setRequests] = useState<Request[]>([
-  {
-    id: 'REQ-2023-001',
-    company: 'TechNova Solutions',
-    type: 'New Registration',
-    status: 'approved',
-    assignedTo: 'Ahmed Ali',
-    date: '2023-10-15'
-  },
-  {
-    id: 'REQ-2023-002',
-    company: 'Global Industries',
-    type: 'License Renewal',
-    status: 'underReview',
-    assignedTo: 'Sarah Smith',
-    date: '2023-11-02'
-  },
-  {
-    id: 'REQ-2023-003',
-    company: 'Desert Startups',
-    type: 'Stage Update',
-    status: 'submitted',
-    assignedTo: null,
-    date: '2023-11-05'
-  },
-  {
-    id: 'REQ-2023-004',
-    company: 'Future Retail',
-    type: 'New Registration',
-    status: 'rejected',
-    assignedTo: 'Mohammed K.',
-    date: '2023-10-20'
-  },
-  {
-    id: 'REQ-2023-005',
-    company: 'Oasis Tech',
-    type: 'Document Update',
-    status: 'approved',
-    assignedTo: 'Ahmed Ali',
-    date: '2023-09-12'
-  },
-  {
-    id: 'REQ-2023-006',
-    company: 'Pioneer Manufacturing',
-    type: 'License Addition',
-    status: 'underReview',
-    assignedTo: 'Sarah Smith',
-    date: '2023-11-01'
-  },
-  {
-    id: 'REQ-2023-007',
-    company: 'NextGen Commerce',
-    type: 'New Registration',
-    status: 'submitted',
-    assignedTo: null,
-    date: '2023-11-06'
-  },
-  {
-    id: 'REQ-2023-008',
-    company: 'Alpha Innovations',
-    type: 'Stage Update',
-    status: 'approved',
-    assignedTo: 'Mohammed K.',
-    date: '2023-08-30'
-  }]
-  );
+  const [requests, setRequests] = useState<any[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const statusOptions = [
-    { value: 'approved', label: 'statusApproved' },
-    { value: 'underReview', label: 'statusUnderReview' },
-    { value: 'submitted', label: 'statusSubmitted' },
-    { value: 'rejected', label: 'statusRejected' }
-  ];
+  useEffect(() => {
+  fetchRequests();
+}, []);
+
+const fetchRequests = async () => {
+  try {
+
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(
+      'http://localhost:3000/employee/requests',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      setRequests(data.requests);
+    }
+
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const statusOptions = [
+  { value: 'APPROVED', label: 'statusApproved' },
+  { value: 'UNDER_REVIEW', label: 'statusUnderReview' },
+  { value: 'REJECTED', label: 'statusRejected' },
+  { value: 'NEEDS_COMPLETION', label: 'needsCompletion' }
+];
 
   const filteredRequests = requests.filter((request) => {
     if (selectedStatuses.length > 0 && !selectedStatuses.includes(request.status)) {
       return false;
     }
-    if (startDate && request.date < startDate) return false;
-    if (endDate && request.date > endDate) return false;
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        request.company.toLowerCase().includes(query) ||
-        request.id.toLowerCase().includes(query) ||
-        request.type.toLowerCase().includes(query)
-      );
-    }
+    if (startDate && request.created_at < startDate) return false;
+if (endDate && request.created_at > endDate) return false;
+
+if (searchQuery) {
+  const query = searchQuery.toLowerCase();
+
+  return (
+    request.company_name?.toLowerCase().includes(query) ||
+    String(request.id).includes(query) ||
+    request.current_stage_name?.toLowerCase().includes(query)
+  );
+}
     return true;
   });
 
@@ -142,18 +103,21 @@ export const Requests: React.FC = () => {
   'Fatima N.',
   'Omar H.'];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-      case 'underReview':
-        return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'rejected':
-        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-      default:
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-    }
-  };
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'APPROVED':
+      return 'bg-green-100 text-green-700';
+
+    case 'UNDER_REVIEW':
+      return 'bg-yellow-100 text-yellow-700';
+
+    case 'REJECTED':
+      return 'bg-red-100 text-red-700';
+
+    default:
+      return 'bg-blue-100 text-blue-700';
+  }
+};
   const handleAssign = (id: string, employee: string) => {
     setRequests(
       requests.map((r) =>
@@ -283,7 +247,7 @@ export const Requests: React.FC = () => {
               <tr className="bg-gray-50/50 dark:bg-navy-light/20 text-gray-500 dark:text-gray-400 text-sm border-b border-gray-100 dark:border-navy-light">
                 <th className="px-6 py-4 font-medium">{t('id')}</th>
                 <th className="px-6 py-4 font-medium">{t('company')}</th>
-                <th className="px-6 py-4 font-medium">{t('type')}</th>
+                <th className="px-6 py-4 font-medium">Stage</th>
                 <th className="px-6 py-4 font-medium">{t('status')}</th>
                 <th className="px-6 py-4 font-medium">{t('assignedTo')}</th>
                 <th className="px-6 py-4 font-medium">{t('date')}</th>
@@ -292,8 +256,10 @@ export const Requests: React.FC = () => {
             <tbody className="divide-y divide-gray-100 dark:divide-navy-light text-sm">
               {filteredRequests.map((request) =>
               <tr
-                key={request.id}
-                className="hover:bg-gray-50/50 dark:hover:bg-navy-light/10 transition-colors">
+  key={request.id}
+  onClick={() => navigate(`/admin/requests/${request.id}`)}
+  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-navy-light/10 transition-colors"
+>
                 
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -304,10 +270,10 @@ export const Requests: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">
-                    {request.company}
+                    {request.company_name}
                   </td>
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                    {request.type}
+                    {request.current_stage_name}
                   </td>
                   <td className="px-6 py-4">
                     <span
@@ -319,7 +285,7 @@ export const Requests: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="relative group">
                       <select
-                      value={request.assignedTo || ''}
+                      value={request.assigned_employee_name || ''}
                       onChange={(e) =>
                       handleAssign(request.id, e.target.value)
                       }
