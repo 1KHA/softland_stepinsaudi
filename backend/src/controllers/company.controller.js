@@ -72,7 +72,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           description,
           phone,
           email,
-         "UNDER_REVIEW"
+         "PENDING"
          ],
 
         function (err) {
@@ -209,7 +209,6 @@ const {
   manager_name,
   country,
   sector_id,
-  status,
   founders,
   description,
   phone,
@@ -265,6 +264,29 @@ const {
 
       }
 
+db.get(
+  `
+  SELECT sector_id, status
+  FROM companies
+  WHERE id = ?
+  `,
+  [companyId],
+  (err, currentCompany) => {
+
+    if (err) {
+      return res.status(500).json({
+        message: "Database error"
+      });
+    }
+
+const sectorChanged =
+  Number(currentCompany.sector_id) !== Number(sector_id);
+
+const newStatus = sectorChanged
+  ? "UNDER_REVIEW"
+  : currentCompany.status;
+
+
       db.run(
         `
 UPDATE companies
@@ -286,7 +308,7 @@ WHERE id = ?
   manager_name,
   country,
   Number(sector_id),
-  status,
+  newStatus,
   description,
   phone,
   email,
@@ -314,43 +336,56 @@ WHERE id = ?
             });
 
           }
-// delete old company tasks
+          
+          // مزامنة إيميل العميل مع إيميل الشركة
+db.run(
+  `
+  UPDATE users
+  SET email = ?
+  WHERE company_id = ?
+  AND role = 'CLIENT'
+  `,
+  [email, companyId]
+);
+
+if (sectorChanged) {
+  db.run(
+    `
+    DELETE FROM company_tasks
+    WHERE company_id = ?
+    `,
+    [companyId],
+    (err) => {
+
+      if (err) {
+        console.log(err);
+        return;
+      }
+
       db.run(
         `
-        DELETE FROM company_tasks
+        DELETE FROM company_stages
         WHERE company_id = ?
         `,
         [companyId],
-        (err) => {
+        async (err) => {
 
           if (err) {
             console.log(err);
             return;
           }
 
-         db.run(
-  `
-  DELETE FROM company_stages
-  WHERE company_id = ?
-  `,
-  [companyId],
-  async (err) => {
-
-    if (err) {
-      console.log(err);
-      return;
-    }
-
-    await generateWorkflow(
-      companyId,
-      Number(sector_id)
-    );
-
-  }
-);
+          await generateWorkflow(
+            companyId,
+            Number(sector_id)
+          );
 
         }
       );
+
+    }
+  );
+}
 
           // delete old founders
           db.run(
@@ -426,7 +461,7 @@ WHERE id = ?
 
     }
   );
-
+    })
 };
 
 // SUBMIT COMPANY
@@ -482,7 +517,7 @@ db.get(
       SET status = ?
       WHERE id = ?
       `,
-      ["UNDER_REVIEW", companyId],
+      ["PENDING", companyId],
 
       function (err) {
 

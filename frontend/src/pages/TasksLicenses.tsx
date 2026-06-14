@@ -38,6 +38,7 @@ export const TasksLicenses: React.FC = () => {
   const [sectors, setSectors] = useState<Sector[]>([]);
 
   const [loading, setLoading] = useState(true);
+const [successMessage, setSuccessMessage] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -104,10 +105,6 @@ const [newDocument, setNewDocument] =
 
   const handleDelete = async (id: number) => {
 
-    if (!window.confirm('Delete task?')) {
-      return;
-    }
-
     try {
 
       await fetch(
@@ -118,7 +115,11 @@ const [newDocument, setNewDocument] =
       );
 
       loadData();
+setSuccessMessage('Task deleted successfully.');
 
+setTimeout(() => {
+  setSuccessMessage('');
+}, 3000);
     } catch (error) {
 
       console.log(error);
@@ -206,7 +207,11 @@ is_global:
           body: JSON.stringify(payload)
         }
       );
+setSuccessMessage('Task updated successfully.');
 
+setTimeout(() => {
+  setSuccessMessage('');
+}, 3000);
     } else {
 
       await fetch(
@@ -219,13 +224,16 @@ is_global:
           body: JSON.stringify(payload)
         }
       );
+setSuccessMessage('Task added successfully.');
 
+setTimeout(() => {
+  setSuccessMessage('');
+}, 3000);
     }
 
     setIsModalOpen(false);
 
     loadData();
-
   } catch (error) {
 
     console.log(error);
@@ -250,6 +258,11 @@ is_global:
             Manage onboarding files and licenses
           </p>
 
+{successMessage && (
+  <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+    {successMessage}
+  </div>
+)}
         </div>
 
         <button
@@ -508,11 +521,6 @@ is_global:
     })
   }
   className="w-full border rounded-xl px-4 py-3">
-
-sector_id:
-  formData.sector_id === 'all'
-    ? 1
-    : Number(formData.sector_id),
 
   {sectors.map((sector) => (
 

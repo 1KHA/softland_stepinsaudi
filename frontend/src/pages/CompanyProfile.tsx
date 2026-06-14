@@ -1,11 +1,10 @@
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../node_modules/react-i18next';
+import CompanyHeader from "../components/CompanyHeader";
 
 export default function CompanyProfile() {
 
-    const navigate = useNavigate();
     const { i18n } = useTranslation();
 
     const user = JSON.parse(
@@ -13,7 +12,7 @@ export default function CompanyProfile() {
     );
     console.log(user);
     const [isEditing, setIsEditing] = useState(false);
-
+const [showSuccess, setShowSuccess] = useState(false);
     const [companyData, setCompanyData] = useState(
         {
 
@@ -211,8 +210,11 @@ Authorization: `Bearer ${localStorage.getItem("token")}`                    }
 
             setIsEditing(false);
 
-            alert('Changes saved successfully ✅');
+setShowSuccess(true);
 
+setTimeout(() => {
+  setShowSuccess(false);
+}, 4000);
         } catch (error) {
 
             console.log(error);
@@ -231,107 +233,28 @@ Authorization: `Bearer ${localStorage.getItem("token")}`                    }
 
     };
 
-    return (
+return (
+  <>
+    <CompanyHeader />
 
-        <div className="min-h-screen bg-[#F7F3EE]">
+    <div className="min-h-screen bg-[#F7F3EE]">
 
-            {/* Header */}
-            <div className="bg-white shadow-sm px-8 py-5">
-
-                {/* Top */}
-                <div className="flex items-center justify-between">
-
-                    {/* Logo */}
-                    <div className="flex items-center gap-3">
-
-                        <div className="w-11 h-11 rounded-xl bg-[#1E3A5F] flex items-center justify-center text-white font-bold text-lg">
-                            S
-                        </div>
-
-                        <div>
-
-                            <h1 className="text-xl font-bold text-[#1E3A5F]">
-                                Soft Landing
-                            </h1>
-
-                            <p className="text-sm text-gray-500">
-                                Company Workspace
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                    {/* Navigation */}
-                    <div className="hidden md:flex items-center gap-10">
-
-                        <button
-                            onClick={() =>
-                                navigate('/company-dashboard')
-                            }
-                            className="text-[#1E3A5F] font-semibold hover:text-[#C5A55A]"
-                        >
-                            Dashboard
-                        </button>
-
-                        <button
-                            className="text-[#C5A55A] font-semibold"
-                        >
-                            My Profile
-                        </button>
-
-                        <button
-                            onClick={() =>
-                                navigate('/progress-tracking')
-                            }
-                            className="text-[#1E3A5F] font-semibold hover:text-[#C5A55A]"
-                        >
-                            Progress Tracking
-                        </button>
-
-                        <button
-                            onClick={() =>
-                                navigate('/notifications')
-                            }
-                            className="text-[#1E3A5F] font-semibold hover:text-[#C5A55A]"
-                        >
-                            Notifications
-                        </button>
-
-                    </div>
-
-                    {/* Language */}
-                    <button
-                        onClick={() =>
-                            i18n.changeLanguage(
-                                i18n.language === 'en'
-                                    ? 'ar'
-                                    : 'en'
-                            )
-                        }
-                        className="flex items-center gap-2 border border-gray-200 bg-white px-5 py-3 rounded-full hover:bg-gray-50 transition"
-                    >
-
-                        <span className="text-lg">
-                            🌐
-                        </span>
-
-                        <span className="text-[#1E3A5F] font-medium">
-                            {i18n.language === 'en'
-                                ? 'AR'
-                                : 'EN'}
-                        </span>
-
-                    </button>
-
-                </div>
-
-            </div>
 
             {/* Content */}
             <div className="p-8">
 
                 <div className="bg-white rounded-3xl shadow-sm p-8">
+                    {showSuccess && (
+  <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-4">
+    <h3 className="font-semibold text-green-700">
+      ✅ Changes saved successfully
+    </h3>
+
+    <p className="mt-1 text-sm text-green-600">
+      Company information has been updated.
+    </p>
+  </div>
+)}
 
                     {/* Top Section */}
                     <div className="flex items-center justify-between mb-10">
@@ -669,6 +592,6 @@ Authorization: `Bearer ${localStorage.getItem("token")}`                    }
             </div>
 
         </div>
-
-    );
+    </>
+  );
 }

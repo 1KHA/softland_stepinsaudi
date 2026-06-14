@@ -10,21 +10,18 @@ export function Footer() {
     <footer className="bg-[#152844] text-gray-300 pt-16 pb-8 border-t border-gray-800">
       <div className="section-shell">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
-          <div>
-            <img
-              src="/Screenshot_2026-04-22_142843.png"
-              alt={t('common.brand')}
+<div className={isArabic ? "text-right" : "text-left"}>
+              <img
+              src="/StepInLogo.png"
+              alt="StepIn"
               className="h-16 w-auto object-contain mb-6 brightness-0 invert" />
-            <p className="text-sm leading-relaxed mb-6">
-              {t('footer.description')}
-            </p>
-            <div className={`flex ${isArabic ? 'space-x-reverse space-x-4' : 'space-x-4'}`}>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-gold hover:text-brand-navy transition-colors duration-300">
-                <Linkedin className="w-5 h-5" />
-              </a>
-            </div>
+<p
+  dir="ltr"
+  className="text-sm leading-relaxed mb-6 text-left"
+>
+  STEPIN simplifies business setup,
+  licensing, and market entry in Saudi Arabia.
+</p>
           </div>
 
           <div>
@@ -49,46 +46,20 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="#how-it-works"
-                  className="hover:text-brand-gold transition-colors duration-200">
-                  {t('footer.howItWorks')}
-                </a>
-              </li>
-              <li>
-                <a
                   href="#services"
                   className="hover:text-brand-gold transition-colors duration-200">
                   {t('footer.services')}
                 </a>
               </li>
-            </ul>
-          </div>
+              <li>
+                               <a
 
-          <div>
-            <h3 className="text-white text-lg font-bold mb-6 relative inline-block">
-              {t('footer.services')}
-              <span className="absolute bottom-0 right-0 w-1/2 h-0.5 bg-brand-gold -mb-2"></span>
-            </h3>
-            <ul className="space-y-3">
-              <li>
-                <a
-                  href="#"
+                  href="#how-it-works"
+
                   className="hover:text-brand-gold transition-colors duration-200">
-                  {t('footer.serviceLinks.companyFormation')}
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="hover:text-brand-gold transition-colors duration-200">
-                  {t('footer.serviceLinks.licenses')}
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="hover:text-brand-gold transition-colors duration-200">
-                  {t('footer.serviceLinks.support')}
+
+                  {t('footer.howItWorks')}
+
                 </a>
               </li>
             </ul>
@@ -102,17 +73,17 @@ export function Footer() {
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-brand-gold mt-1 flex-shrink-0" />
-                <span dir="ltr" className="text-right w-full">
-                  050 000 0000
-                </span>
+<span dir="ltr" className="text-left">
+  +966 50 123 4567
+</span>
               </li>
-              <li className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-brand-gold mt-1 flex-shrink-0" />
-                <span>softlanding@gmail.com</span>
+<li className="flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-brand-gold mt-1 flex-shrink-0" />
+                <span>info@stepin.sa</span>
               </li>
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-brand-gold mt-1 flex-shrink-0" />
-                <span>{t('footer.address')}</span>
+                <span>Riyadh, Saudi Arabia</span>
               </li>
             </ul>
           </div>
@@ -120,7 +91,9 @@ export function Footer() {
 
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm">
-            {t('footer.rights', { year: new Date().getFullYear() })}
+<p className="text-sm">
+  © {new Date().getFullYear()} STEPIN. All rights reserved.
+</p>
           </p>
           <div className="flex gap-4 text-sm">
             <a href="#" className="hover:text-white transition-colors">

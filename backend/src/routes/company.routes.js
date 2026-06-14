@@ -23,13 +23,6 @@ router.post(
   createCompany
 );
 
-// GET BY ID
-router.get(
-  "/:id",
-  authMiddleware,
-  checkOwnership,
-  getCompanyById
-);
 
 router.put('/assign/:id', authMiddleware, (req, res) => {
 
@@ -293,24 +286,68 @@ req.files.forEach((file, index) => {
   const fileUrl =
     `http://localhost:3000/uploads/${file.filename}`;
 
-  db.run(
+  const documentName =
+    documentNames[index] || null;
+
+  db.get(
     `
-    INSERT INTO task_documents (
-      company_task_id,
-      file_name,
-      file_url,
-      uploaded_by,
-      required_document_name
-    )
-    VALUES (?, ?, ?, ?, ?)
+    SELECT id
+    FROM task_documents
+    WHERE company_task_id = ?
+      AND required_document_name = ?
     `,
-    [
-      taskId,
-      file.originalname,
-      fileUrl,
-      req.user.id,
-      documentNames[index] || null
-    ]
+    [taskId, documentName],
+    (err, existing) => {
+
+      if (existing) {
+
+        db.run(
+          `
+          UPDATE task_documents
+          SET
+            file_name = ?,
+            file_url = ?,
+            uploaded_by = ?,
+            uploaded_at = CURRENT_TIMESTAMP,
+            status = 'PENDING',
+            rejection_reason = NULL,
+            reviewed_by = NULL,
+            reviewed_at = NULL
+          WHERE id = ?
+          `,
+          [
+            file.originalname,
+            fileUrl,
+            req.user.id,
+            existing.id
+          ]
+        );
+
+      } else {
+
+        db.run(
+          `
+          INSERT INTO task_documents (
+            company_task_id,
+            file_name,
+            file_url,
+            uploaded_by,
+            required_document_name
+          )
+          VALUES (?, ?, ?, ?, ?)
+          `,
+          [
+            taskId,
+            file.originalname,
+            fileUrl,
+            req.user.id,
+            documentName
+          ]
+        );
+
+      }
+
+    }
   );
 
 });
@@ -322,6 +359,42 @@ db.run(
   WHERE id = ?
   `,
   [taskId]
+);
+
+db.all(
+  `
+  SELECT id
+  FROM users
+  WHERE role = 'ADMIN'
+  `,
+  [],
+  (err, admins) => {
+
+    if (err || !admins) return;
+
+    admins.forEach((admin) => {
+
+      db.run(
+        `
+        INSERT INTO notifications
+        (
+          user_id,
+          message,
+          type,
+          is_read
+        )
+        VALUES (?, ?, ?, 0)
+        `,
+        [
+          admin.id,
+          `A company has uploaded new documents for review.`,
+          "DOCUMENT"
+        ]
+      );
+
+    });
+
+  }
 );
 
 return res.json({
@@ -375,11 +448,20 @@ console.log(row);
 
 db.all(
   `
-  SELECT document_name
-  FROM task_required_documents
-  WHERE task_id = ?
+SELECT
+  trd.document_name,
+  td.status,
+  td.rejection_reason
+FROM task_required_documents trd
+LEFT JOIN task_documents td
+  ON td.required_document_name = trd.document_name
+ AND td.company_task_id = ?
+WHERE trd.task_id = ?
   `,
-  [row.task_id],
+  [
+  row.id,      // company_task_id
+  row.task_id  // task_id
+],
 
   (err, docs) => {
 
@@ -398,12 +480,18 @@ db.all(
         row.description ||
         "Complete all required documents for this task.",
 
-      requiredDocuments:
-        row.task_type === "file"
-          ? [row.title]
-          : docs.map(
-              (d) => d.document_name
-            )
+requiredDocuments:
+  row.task_type === "file"
+    ? [{
+        document_name: row.title,
+        status: row.status,
+        rejection_reason: null
+      }]
+    : docs.map((d) => ({
+        document_name: d.document_name,
+        status: d.status || "PENDING",
+        rejection_reason: d.rejection_reason
+      }))
     });
 
   }
@@ -428,24 +516,27 @@ router.post(
     const companyTaskId =
       req.body.company_task_id;
 
-    req.files.forEach((file) => {
+req.files.forEach((file, index) => {
 
-      db.run(
-        `
-        INSERT INTO task_documents (
-          company_task_id,
-          file_name,
-          file_url
-        )
-        VALUES (?, ?, ?)
-        `,
-        [
-          companyTaskId,
-          file.originalname,
-          `/uploads/${file.filename}`,
-        ]
-      );
-    });
+  db.run(
+    `
+    INSERT INTO task_documents (
+      company_task_id,
+      file_name,
+      file_url,
+      required_document_name
+    )
+    VALUES (?, ?, ?, ?)
+    `,
+    [
+      companyTaskId,
+      file.originalname,
+      `/uploads/${file.filename}`,
+      req.body.required_document_name[index]
+    ]
+  );
+
+});
 
     res.json({
       message:
@@ -558,22 +649,35 @@ router.put(
                       task.company_id,
                       task.company_stage_id
                     ],
-                    (err, nextStage) => {
+(err, nextStage) => {
 
-                      if (nextStage) {
+  if (nextStage) {
 
-                        db.run(
-                          `
-                          UPDATE company_stages
-                          SET status = 'IN_PROGRESS'
-                          WHERE id = ?
-                          `,
-                          [nextStage.id]
-                        );
+    // افتح المرحلة التالية
+    db.run(
+      `
+      UPDATE company_stages
+      SET status = 'IN_PROGRESS'
+      WHERE id = ?
+      `,
+      [nextStage.id]
+    );
 
-                      }
+  } else {
 
-                    }
+    // لا توجد مرحلة تالية => جميع المراحل اكتملت
+    db.run(
+      `
+      UPDATE companies
+      SET status = 'APPROVED'
+      WHERE id = ?
+      `,
+      [task.company_id]
+    );
+
+  }
+
+}
                   );
                 }
                 
@@ -642,6 +746,152 @@ router.put(
       }
     );
 
+  }
+);
+
+// ─────────────────────────────────────────────
+// GET COMPANY NOTIFICATIONS
+// ─────────────────────────────────────────────
+router.get(
+  "/notifications",
+  authMiddleware,
+  (req, res) => {
+
+    db.all(
+      `
+      SELECT *
+      FROM notifications
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      `,
+      [req.user.id],
+      (err, rows) => {
+
+        if (err) {
+          return res.status(500).json({
+            success: false,
+            message: "Failed to fetch notifications"
+          });
+        }
+
+        res.json({
+          success: true,
+          notifications: rows
+        });
+
+      }
+    );
+
+  }
+);
+
+// ─────────────────────────────────────────────
+// GET COMPANY LICENSES
+// ─────────────────────────────────────────────
+router.get(
+  "/licenses",
+  authMiddleware,
+  (req, res) => {
+    db.all(
+      `
+      SELECT
+        td.id,
+        td.file_name,
+        td.file_url,
+        td.uploaded_at,
+        t.title AS license_name
+      FROM task_documents td
+      JOIN company_tasks ct
+        ON td.company_task_id = ct.id
+      JOIN tasks t
+        ON ct.task_id = t.id
+      WHERE
+        ct.company_id = ?
+        AND td.is_final_license = 1
+      ORDER BY td.uploaded_at DESC
+      `,
+      [req.user.company_id],
+      (err, rows) => {
+        if (err) {
+          console.log(err);
+
+          return res.status(500).json({
+            success: false,
+            message: "Failed to fetch licenses",
+          });
+        }
+
+        res.json({
+          success: true,
+          licenses: rows,
+        });
+      }
+    );
+  }
+);
+
+// GET BY ID
+router.get(
+  "/:id",
+  authMiddleware,
+  checkOwnership,
+  getCompanyById
+);
+
+// Mark all notifications as read
+router.put(
+  "/notifications/read",
+  authMiddleware,
+  (req, res) => {
+    db.run(
+      `
+      UPDATE notifications
+      SET is_read = 1
+      WHERE user_id = ?
+      `,
+      [req.user.id],
+      function (err) {
+        if (err) {
+          return res.status(500).json({
+            success: false,
+            message: "Database error",
+          });
+        }
+
+        return res.json({
+          success: true,
+        });
+      }
+    );
+  }
+);
+
+// GET UNREAD NOTIFICATIONS COUNT
+router.get(
+  "/notifications/unread-count",
+  authMiddleware,
+  (req, res) => {
+    db.get(
+      `
+      SELECT COUNT(*) AS count
+      FROM notifications
+      WHERE user_id = ?
+      AND is_read = 0
+      `,
+      [req.user.id],
+      (err, row) => {
+        if (err) {
+          return res.status(500).json({
+            success: false,
+          });
+        }
+
+        res.json({
+          success: true,
+          count: row.count,
+        });
+      }
+    );
   }
 );
 

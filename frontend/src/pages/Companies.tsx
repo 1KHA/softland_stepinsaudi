@@ -120,12 +120,12 @@ console.log('TOKEN =', token);
     ? company.name_ar
     : company.name_en,
 
-          status:
-            company.status === 'APPROVED'
-              ? 'active'
-              : company.status === 'UNDER_REVIEW'
-              ? 'pending'
-              : 'suspended',
+status:
+  company.status === 'APPROVED'
+    ? 'active'
+    : ["UNDER_REVIEW", "PENDING"].includes(company.status)
+    ? 'pending'
+    : 'suspended',
 
           registrationDate: company.created_at
             ? new Date(company.created_at)

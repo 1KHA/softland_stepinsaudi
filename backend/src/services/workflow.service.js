@@ -171,7 +171,77 @@ ORDER BY task_order ASC
         );
     });
 };
+const updateCompanyStatus = (companyId) => {
+    return new Promise((resolve, reject) => {
+
+        db.all(
+            `
+            SELECT status
+            FROM company_stages
+            WHERE company_id = ?
+            `,
+            [companyId],
+            (err, stages) => {
+
+                if (err) {
+                    return reject(err);
+                }
+
+                // إذا كل المراحل مكتملة
+                const allCompleted =
+                    stages.length > 0 &&
+                    stages.every(
+                        stage => stage.status === "COMPLETED"
+                    );
+
+                let newStatus = "PENDING";
+
+                if (allCompleted) {
+                    newStatus = "APPROVED";
+                } else {
+
+                    const completedCount =
+                        stages.filter(
+                            s => s.status === "COMPLETED"
+                        ).length;
+
+                    if (completedCount <= 1) {
+                        // التسجيل فقط مكتمل
+                        newStatus = "PENDING";
+                    } else {
+                        // بدأ تنفيذ بقية المراحل
+                        newStatus = "IN_PROGRESS";
+                    }
+                }
+
+                db.run(
+                    `
+                    UPDATE companies
+                    SET status = ?
+                    WHERE id = ?
+                    `,
+                    [
+                        newStatus,
+                        companyId
+                    ],
+                    (err2) => {
+
+                        if (err2) {
+                            return reject(err2);
+                        }
+
+                        resolve(newStatus);
+
+                    }
+                );
+
+            }
+        );
+
+    });
+};
 
 module.exports = {
-    generateWorkflow
+    generateWorkflow,
+    updateCompanyStatus
 };

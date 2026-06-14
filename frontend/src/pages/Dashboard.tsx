@@ -202,16 +202,13 @@ const stages = stageStats.map((stage) => ({
   };
   return (
     <div className="space-y-8 pb-8">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold text-navy dark:text-cream-dark mb-2">
-            {t('dashboard')}
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            Welcome back, Admin. Here's what's happening today.
-          </p>
-        </div>
-      </div>
+<div className="flex justify-between items-center mb-2">
+  <div className="flex items-center gap-4">
+
+
+
+  </div>
+</div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

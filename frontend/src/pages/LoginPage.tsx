@@ -160,27 +160,31 @@ if (isLogin) {
  // إنشاء حساب
 try {
 
-  const res = await fetch('http://localhost:3000/auth/register-with-company', {
-    method: 'POST',
+const res = await fetch(
+  "http://localhost:3000/auth/register-with-company",
+  {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json'
+      "Content-Type": "application/json",
     },
-
-body: JSON.stringify({
-  name,
-  email,
-  password,
-  company_name: companyName,
-  sector_id: Number(sector),
-  phone: contactNumber,
-  description: companyDescription,
-  country,
-founders: founders
-  .split(',')
-  .map((f) => f.trim())
-  .filter((f) => f.length > 0)})
-
-  });
+    body: JSON.stringify({
+      name,
+      email,
+      password,
+      company_name: companyName,
+      manager_name: companyManager,
+      sector_id: Number(sector),
+      country,
+      phone: contactNumber,
+      description: companyDescription,
+      branches_count: Number(branchesCount),
+      founders: founders
+        .split(",")
+        .map((f) => f.trim())
+        .filter((f) => f.length > 0),
+    }),
+  }
+);
 
   const data = await res.json();
 
@@ -215,19 +219,46 @@ founders: founders
       {/* Top Bar */}
       <div className="bg-white shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <Link
-            to="/"
-            className="flex items-center gap-3 text-brand-navy hover:text-brand-gold transition-colors group">
-            <BackIcon className={`w-5 h-5 transition-transform ${isArabic ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`} />
-            <span className="font-medium">{t('common.backHome')}</span>
-          </Link>
-          <Link to="/">
-            <img
-              src="/Screenshot_2026-04-22_142843.png"
-              alt={t('common.brand')}
-              className="h-12 w-auto object-contain" />
-          </Link>
-        </div>
+
+  {/* Logo - Left */}
+<Link
+  to="/"
+  className="flex items-center gap-3"
+>
+  <img
+    src="/StepInLogo.png"
+    alt="STEPIN"
+    className="h-14 w-10 object-contain"
+  />
+
+  <div>
+            <h3 className="text-[#1E3A5F] font-bold text-lg">
+              StepIn
+            </h3>      
+       <p className="text-xs text-slate-500">Saudi market entry, simplified</p>
+  </div>
+</Link>
+
+  {/* Back Button - Right */}
+  <Link
+    to="/"
+className={`flex items-center gap-3 text-brand-navy hover:text-brand-gold transition-colors group ${
+  isArabic ? "flex-row" : "flex-row-reverse"
+}`}
+  >
+    <span className="font-medium">
+      {t('common.backHome')}
+    </span>
+    <BackIcon
+      className={`w-5 h-5 transition-transform ${
+        isArabic
+          ? "group-hover:translate-x-1"
+          : "group-hover:-translate-x-1"
+      }`}
+    />
+  </Link>
+
+</div>
       </div>
 
       {/* Main Content */}

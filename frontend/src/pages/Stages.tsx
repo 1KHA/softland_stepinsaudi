@@ -13,13 +13,22 @@ interface Stage {
   name: string;
   description: string;
   order: number;
+  workflow_phase: string;
 }
 export const Stages: React.FC = () => {
   const { t } = useAppContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
-  const [formData, setFormData] = useState({ name: '', description: '' });
-  const [errors, setErrors] = useState<{ name?: string; description?: string }>({});
+const [formData, setFormData] = useState({
+  name: '',
+  description: '',
+  workflow_phase: 'PROCESSING'
+});
+const [errors, setErrors] = useState<{
+  name?: string;
+  description?: string;
+  workflow_phase?: string;
+}>({});
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [stages, setStages] = useState<Stage[]>([]);
@@ -33,7 +42,8 @@ const mappedStages = data.stages.map((stage: any) => ({
   id: String(stage.id),
   name: stage.name,
   description: stage.description || '',
-  order: stage.stage_order
+  order: stage.stage_order,
+  workflow_phase: stage.workflow_phase
 }));
       setStages(mappedStages);
     })
@@ -45,10 +55,19 @@ const mappedStages = data.stages.map((stage: any) => ({
   const handleOpenModal = (stage?: Stage) => {
     if (stage) {
       setSelectedStage(stage);
-      setFormData({ name: stage.name, description: stage.description });
+setFormData({
+  name: stage.name,
+  description: stage.description,
+  workflow_phase: (stage as any).workflow_phase || 'PROCESSING'
+});
+
     } else {
       setSelectedStage(null);
-      setFormData({ name: '', description: '' });
+setFormData({
+  name: '',
+  description: '',
+  workflow_phase: 'PROCESSING'
+});
     }
     setErrors({});
     setIsModalOpen(true);
@@ -80,10 +99,11 @@ if (selectedStage) {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      name: formData.name,
-      description: formData.description
-    })
+body: JSON.stringify({
+  name: formData.name,
+  description: formData.description,
+  workflow_phase: formData.workflow_phase
+})
   })
 .then((res) => res.json())
 .then((data) => {
@@ -107,12 +127,13 @@ if (selectedStage) {
 .then((res) => res.json())
 .then((data) => {
 
-  const mappedStages = data.stages.map((stage: any) => ({
-    id: String(stage.id),
-    name: stage.name,
-    description: stage.description || '',
-    order: stage.stage_order
-  }));
+const mappedStages = data.stages.map((stage: any) => ({
+  id: String(stage.id),
+  name: stage.name,
+  description: stage.description || '',
+  order: stage.stage_order,
+  workflow_phase: stage.workflow_phase
+}));
 
   setStages(mappedStages);
 
@@ -129,10 +150,11 @@ if (selectedStage) {
   headers: {
     'Content-Type': 'application/json'
   },
-  body: JSON.stringify({
-    name: formData.name,
-    description: formData.description
-  })
+body: JSON.stringify({
+  name: formData.name,
+  description: formData.description,
+  workflow_phase: formData.workflow_phase
+})
 })
 .then((res) => res.json())
 .then((data) => {
@@ -154,12 +176,13 @@ if (selectedStage) {
   .then((res) => res.json())
   .then((data) => {
 
-    const mappedStages = data.stages.map((stage: any) => ({
-      id: String(stage.id),
-      name: stage.name,
-      description: stage.description || '',
-      order: stage.stage_order
-    }));
+const mappedStages = data.stages.map((stage: any) => ({
+  id: String(stage.id),
+  name: stage.name,
+  description: stage.description || '',
+  order: stage.stage_order,
+  workflow_phase: stage.workflow_phase
+}));
 
     setStages(mappedStages);
 
@@ -198,12 +221,13 @@ throw new Error(data.message);  }
     .then((res) => res.json())
     .then((data) => {
 
-      const mappedStages = data.stages.map((stage: any) => ({
-        id: String(stage.id),
-        name: stage.name,
-        description: stage.description || '',
-        order: stage.stage_order
-      }));
+const mappedStages = data.stages.map((stage: any) => ({
+  id: String(stage.id),
+  name: stage.name,
+  description: stage.description || '',
+  order: stage.stage_order,
+  workflow_phase: stage.workflow_phase
+}));
 
       setStages(mappedStages);
       setSuccessMessage('Stage deleted successfully');
@@ -399,6 +423,24 @@ onReorder={(newOrder) => {
                     <span className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.description}</span>
                   ) : null}
                 </div>
+                <div>
+  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+    Workflow Phase
+  </label>
+
+  <select
+    value={formData.workflow_phase}
+    onChange={(e) =>
+      handleFormChange("workflow_phase", e.target.value)
+    }
+    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-navy-light"
+  >
+    <option value="REGISTRATION">Registration</option>
+    <option value="UNDER_REVIEW">Under Review</option>
+    <option value="PROCESSING">Processing</option>
+    <option value="FINAL_APPROVAL">Final Approval</option>
+  </select>
+</div>
               </div>
 
               <div className="p-6 border-t border-gray-100 dark:border-navy-light flex justify-end gap-3 bg-gray-50 dark:bg-navy-card/50">

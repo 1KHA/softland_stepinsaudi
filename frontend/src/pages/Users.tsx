@@ -111,6 +111,8 @@ export const Users: React.FC = () => {
   const [companies, setCompanies] = useState<any[]>([]);
   const [roleFilter, setRoleFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+
 useEffect(() => {
 
   fetchUsers();
@@ -135,21 +137,20 @@ const fetchUsers = async () => {
 
     const data = await response.json();
 
-const mappedUsers = data.users.map((user: any) => ({
-  ...user,
+const mappedUsers = data.users
+  .filter((user: any) => user.role !== 'EMPLOYEE') // إخفاء الموظفين
+  .map((user: any) => ({
+    ...user,
 
-  company_id: user.company_id,
+    company_id: user.company_id,
 
-  role:
-    user.role === 'ADMIN'
-      ? 'admin'
-      : user.role === 'CLIENT'
-      ? 'manager'
-      : 'employee',
+    role:
+      user.role === 'ADMIN'
+        ? 'admin'
+        : 'manager',
 
-  status:
-    String(user.status || 'ACTIVE').toLowerCase()
-}));
+    status: String(user.status || 'ACTIVE').toLowerCase()
+  }));
 
 console.log('Mapped Users:', mappedUsers);
 
@@ -317,16 +318,6 @@ const toggleStatus = async (
       }
     }
 
-    if (formState.role === 'manager') {
-      if (!formState.companyName.trim()) {
-        errors.companyName = t('fieldRequired');
-      }
-
-      if (!formState.companyEmail.trim()) {
-        errors.companyEmail = t('fieldRequired');
-      }
-    }
-
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
@@ -351,6 +342,7 @@ const toggleStatus = async (
 body: JSON.stringify({
   name: formState.name,
   email: formState.email,
+  password: formState.password,
   company_id: Number(formState.companyId),
   status: formState.status.toUpperCase()
 })
@@ -375,8 +367,7 @@ body: JSON.stringify({
         return;
       }
 
-      let backendRole = 'EMPLOYEE';
-
+let backendRole = 'ADMIN';
       if (formState.role === 'admin') {
         backendRole = 'ADMIN';
       }
@@ -408,57 +399,7 @@ body: JSON.stringify({
         if (!response.ok) {
           throw new Error(data.message || 'Failed to create admin');
         }
-      } else if (backendRole === 'EMPLOYEE') {
-        const response = await fetch(
-          'http://localhost:3000/auth/users/employee',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`
-            },
-body: JSON.stringify({
-  name: formState.name,
-  email: formState.email,
-  password: formState.password,
-  company_id: Number(formState.companyId)
-})
-          }
-        );
-
-        data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to create employee');
-        }
-      } else if (backendRole === 'CLIENT') {
-
-  const response = await fetch(
-    'http://localhost:3000/auth/register',
-    {
-      method: 'POST',
-
-      headers: {
-        'Content-Type': 'application/json'
-      },
-
-      body: JSON.stringify({
-        name: formState.name,
-        email: formState.email,
-        password: formState.password,
-        role: 'CLIENT'
-      })
-    }
-  );
-
-  data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to create manager');
-  }
-
-}
-
+      }
       await fetchUsers();
 
       setSuccessMessage(t('userCreatedSuccess'));
@@ -494,6 +435,13 @@ body: JSON.stringify({
     setUsers((prev) =>
       prev.filter((user) => user.id !== id)
     );
+    setDeleteUserId(null);
+
+setSuccessMessage("User deleted successfully.");
+
+setTimeout(() => {
+  setSuccessMessage("");
+}, 4000);
 
   } catch (error) {
 
@@ -603,18 +551,6 @@ const filteredUsers = users.filter((user) => {
     Managers
   </button>
 
-  <button
-    type="button"
-    onClick={() => setRoleFilter('employee')}
-    className={`px-4 py-2 rounded-xl ${
-      roleFilter === 'employee'
-        ? 'bg-navy text-white'
-        : 'bg-gray-100'
-    }`}
-  >
-    Employees
-  </button>
-
 </div>
 
       <div className="bg-white dark:bg-navy-card rounded-2xl shadow-sm overflow-hidden">
@@ -713,12 +649,13 @@ onChange={() => {
                         type="button"
 onClick={() => {
   if (user.id === currentUser.id) {
-    alert("لا يمكنك حذف حسابك");
+    alert("You cannot delete your own account.");
     return;
   }
 
-  handleDeleteUser(user.id);
-}}                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-100 rounded-md transition-colors"
+  setDeleteUserId(user.id);
+}}      
+               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-100 rounded-md transition-colors"
                         title="Delete User">
                         <Trash2Icon size={16} />
                       </button>
@@ -731,6 +668,35 @@ onClick={() => {
         </div>
       </div>
 
+      {deleteUserId && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="bg-white dark:bg-navy-card rounded-2xl p-6 w-[420px] shadow-xl">
+      <h2 className="text-xl font-bold mb-3">
+        Delete User
+      </h2>
+
+      <p className="mb-6 text-gray-600 dark:text-gray-300">
+        Are you sure you want to permanently delete this user and all related company data?
+      </p>
+
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={() => setDeleteUserId(null)}
+          className="px-4 py-2 border rounded-xl"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={() => handleDeleteUser(deleteUserId)}
+          className="px-4 py-2 bg-red-600 text-white rounded-xl"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all duration-200 ease-out">
           <div className="w-full max-w-2xl rounded-3xl bg-white dark:bg-navy-card border border-gray-200 dark:border-navy-light shadow-2xl overflow-hidden transform transition-transform duration-200">
@@ -787,26 +753,12 @@ onClick={() => {
                   label={t('role')}
                   value={formState.role}
                   onChange={(value) => handleFormChange('role', value as Role)}
-                  options={[
-                    { value: 'admin', label: t('admin') },
-                    { value: 'manager', label: t('companyManager') },
-                    { value: 'employee', label: t('employee') }
-                  ]}
+                 options={[
+  { value: 'admin', label: t('admin') }
+]}
                   error={formErrors.role}
                 />
-                {formState.role === 'employee' && (
-<SelectField
-  label="Company"
-  value={formState.companyId}
-  onChange={(value) =>
-    handleFormChange('companyId', value)
-  }
-  options={companies.map((company) => ({
-    value: String(company.id),
-    label: company.name
-  }))}
-/>
-)}
+
                 <SelectField
                   label={t('status')}
                   value={formState.status}
@@ -818,44 +770,6 @@ onClick={() => {
                   error={formErrors.status}
                 />
               </div>
-
-              {formState.role === 'manager' && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    label={t('companyName')}
-                    value={formState.companyName}
-                    onChange={(value) => handleFormChange('companyName', value)}
-                    placeholder={t('companyName')}
-                    error={formErrors.companyName}
-                  />
-                  <FormField
-                    label={t('companyEmail')}
-                    value={formState.companyEmail}
-                    onChange={(value) => handleFormChange('companyEmail', value)}
-                    type="email"
-                    placeholder={t('companyEmail')}
-                    error={formErrors.companyEmail}
-                  />
-                  <FormField
-                    label={t('companyAddress')}
-                    value={formState.companyAddress}
-                    onChange={(value) => handleFormChange('companyAddress', value)}
-                    placeholder={t('companyAddress')}
-                  />
-                  <FormField
-                    label={t('sector')}
-                    value={formState.sector}
-                    onChange={(value) => handleFormChange('sector', value)}
-                    placeholder={t('sector')}
-                  />
-                  <FormField
-                    label={t('managerPhoneNumber')}
-                    value={formState.managerPhoneNumber}
-                    onChange={(value) => handleFormChange('managerPhoneNumber', value)}
-                    placeholder={t('managerPhoneNumber')}
-                  />
-                </div>
-              )}
 
               <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-navy-light">
                 <button

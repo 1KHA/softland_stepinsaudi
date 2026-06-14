@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const {
+    generateWorkflow,
+    updateCompanyStatus
+} = require('../services/workflow.service');
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require("../middleware/upload");
 
@@ -295,7 +299,7 @@ router.put('/requests/:id/approve', authMiddleware, employeeOrAdmin, (req, res) 
                 `INSERT INTO notifications
                  (user_id, message, type, related_company_id)
                  SELECT u.id,
-                        'طلبك تمت الموافقة عليه',
+                        'Your request has been approved successfully.',
                         'REQUEST_APPROVED',
                         ?
                  FROM users u
@@ -343,7 +347,7 @@ router.put('/requests/:id/reject', authMiddleware, employeeOrAdmin, (req, res) =
 
   verifyOwnership(() => {
   db.run(
-    `UPDATE companies SET status = 'REJECTED' WHERE id = ?`,
+    `UPDATE companies SET status = 'NEEDS_COMPLETION' WHERE id = ?`,
     [id],
     function (err) {
       if (err) return res.status(500).json({ success: false, message: 'DB error' });
@@ -351,7 +355,7 @@ router.put('/requests/:id/reject', authMiddleware, employeeOrAdmin, (req, res) =
       // CLIENT role only to avoid notifying employees linked to the same company
       db.run(
         `INSERT INTO notifications (user_id, message, type, related_company_id)
-         SELECT u.id, 'تم رفض طلبك', 'REQUEST_REJECTED', ?
+         SELECT u.id, 'Your request requires additional information. Please complete the required details and resubmit.', 'RESUBMISSION_REQUESTED', ?
          FROM users u WHERE u.company_id = ? AND u.role = 'CLIENT'`,
         [id, id],
         () => {}
@@ -396,7 +400,7 @@ router.put('/requests/:id/resubmit', authMiddleware, employeeOrAdmin, (req, res)
       // CLIENT role only to avoid notifying employees linked to the same company
       db.run(
         `INSERT INTO notifications (user_id, message, type, related_company_id)
-         SELECT u.id, 'يرجى إعادة تقديم المستندات المطلوبة', 'RESUBMISSION_REQUESTED', ?
+         SELECT u.id, 'Please re-submit the required documents.', 'RESUBMISSION_REQUESTED', ?
          FROM users u WHERE u.company_id = ? AND u.role = 'CLIENT'`,
         [id, id],
         () => {}
@@ -469,19 +473,54 @@ router.get('/documents', authMiddleware, employeeOrAdmin, (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // APPROVE DOCUMENT
 // ─────────────────────────────────────────────────────────────────────────────
-router.put('/documents/:id/approve', authMiddleware, employeeOrAdmin, (req, res) => {
-  const { id } = req.params;
+router.put(
+  '/documents/:id/approve',
+  authMiddleware,
+  employeeOrAdmin,
+  (req, res) => {
 
-  db.run(
-    `
-    UPDATE task_documents
-    SET status = 'APPROVED',
-        reviewed_by = ?,
-        reviewed_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-    `,
-    [req.user.id, id],
-    function (err) {
+    const { id } = req.params;
+
+    db.get(
+      `
+      SELECT status
+      FROM task_documents
+      WHERE id = ?
+      `,
+      [id],
+      (err, docStatus) => {
+
+        if (err) {
+          return res.status(500).json({
+            success: false,
+            message: "DB error"
+          });
+        }
+
+        if (
+          docStatus &&
+          (
+            docStatus.status === "APPROVED" ||
+            docStatus.status === "NEEDS_RESUBMISSION"
+          )
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: "Document has already been reviewed."
+          });
+        }
+
+        db.run(
+          `
+          UPDATE task_documents
+          SET
+            status = 'APPROVED',
+            reviewed_by = ?,
+            reviewed_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          `,
+          [req.user.id, id],
+          function (err) {
 
       if (err) {
         return res.status(500).json({
@@ -492,15 +531,21 @@ router.put('/documents/:id/approve', authMiddleware, employeeOrAdmin, (req, res)
 
       db.get(
         `
-        SELECT company_task_id
-        FROM task_documents
-        WHERE id = ?
+SELECT
+  td.company_task_id,
+  ct.company_id
+FROM task_documents td
+JOIN company_tasks ct
+  ON td.company_task_id = ct.id
+WHERE td.id = ?
         `,
         [id],
         (err2, doc) => {
 console.log('DOC ID =', id);
-console.log('COMPANY TASK ID =', doc.company_task_id);
-          if (err2 || !doc) {
+console.log(
+  'COMPANY TASK ID =',
+  doc?.company_task_id
+);          if (err2 || !doc) {
             return res.json({
               success: true,
               message: 'Document approved'
@@ -552,7 +597,28 @@ if (taskRow.task_type === "file") {
     `,
     [doc.company_task_id]
   );
-
+db.run(
+  `
+  INSERT INTO notifications (
+    user_id,
+    message,
+    type,
+    related_company_id
+  )
+  SELECT
+    u.id,
+    'Your document has been approved successfully.',
+    'DOCUMENT_APPROVED',
+    ?
+  FROM users u
+  WHERE u.company_id = ?
+    AND u.role = 'CLIENT'
+  `,
+  [
+    doc.company_id,
+    doc.company_id,
+  ]
+);
 } else {
 
   // في حالة License:
@@ -594,6 +660,7 @@ if (taskRow.task_type === "file") {
       (err5, result) => {
 
         if (result.remaining > 0) {
+          
           return res.json({
             success: true,
             message: 'Document approved'
@@ -648,29 +715,40 @@ LIMIT 1
 ],
           (err7, nextStage) => {
 
-            if (!nextStage) {
-              return res.json({
-                success: true,
-                message: 'Document approved'
-              });
-            }
+if (!nextStage) {
 
-            db.run(
-              `
-              UPDATE company_stages
-              SET status = 'IN_PROGRESS'
-              WHERE id = ?
-              `,
-              [nextStage.id],
-              function () {
-console.log('OPENING STAGE', nextStage.id);
-                return res.json({
-                  success: true,
-                  message: 'Document approved'
-                });
+   updateCompanyStatus(
+    currentStage.company_id
+  );
 
-              }
-            );
+  return res.json({
+    success: true,
+    message: 'Document approved'
+  });
+
+}
+
+db.run(
+  `
+  UPDATE company_stages
+  SET status = 'IN_PROGRESS'
+  WHERE id = ?
+  `,
+  [nextStage.id],
+  async function () {
+
+     updateCompanyStatus(
+      currentStage.company_id
+    );
+
+    return res.json({
+      success: true,
+      message: 'Document approved'
+    
+    });
+
+  }
+);
 
           }
         );
@@ -696,7 +774,8 @@ console.log('OPENING STAGE', nextStage.id);
     }
   );
 });
-
+      }
+    );
 // ─────────────────────────────────────────────────────────────────────────────
 // REJECT DOCUMENT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -717,38 +796,128 @@ router.put('/documents/:id/reject', authMiddleware, employeeOrAdmin, (req, res) 
 // ─────────────────────────────────────────────────────────────────────────────
 // REQUEST DOCUMENT RESUBMISSION
 // ─────────────────────────────────────────────────────────────────────────────
-router.put('/documents/:id/needs-resubmission', authMiddleware, employeeOrAdmin, (req, res) => {
-  const { id } = req.params;
-  const { reason } = req.body;
+router.put(
+  '/documents/:id/needs-resubmission',
+  authMiddleware,
+  employeeOrAdmin,
+  (req, res) => {
 
-  db.run(
-    `UPDATE task_documents SET status = 'NEEDS_RESUBMISSION', reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP, rejection_reason = ? WHERE id = ?`,
-    [req.user.id, reason || '', id],
-    function (err) {
-      if (err) return res.status(500).json({ success: false, message: 'DB error' });
+    const { id } = req.params;
+    const { reason } = req.body;
 
-      db.get(
-        `SELECT ct.company_id FROM task_documents td
-         JOIN company_tasks ct ON td.company_task_id = ct.id
-         WHERE td.id = ?`,
-        [id],
-        (err, row) => {
-          if (row) {
-            db.run(
-              `INSERT INTO notifications (user_id, message, type, related_company_id)
-               SELECT u.id, 'مستند يحتاج إعادة رفع', 'RESUBMISSION_REQUESTED', ?
-               FROM users u WHERE u.company_id = ? AND u.role = 'CLIENT'`,
-              [row.company_id, row.company_id],
-              () => {}
-            );
-          }
+    db.run(
+      `
+      UPDATE task_documents
+      SET
+        status = 'NEEDS_RESUBMISSION',
+        reviewed_by = ?,
+        reviewed_at = CURRENT_TIMESTAMP,
+        rejection_reason = ?
+      WHERE id = ?
+      `,
+      [req.user.id, reason || '', id],
+      function (err) {
+
+        if (err) {
+          return res.status(500).json({
+            success: false,
+            message: 'DB error'
+          });
         }
-      );
 
-      res.json({ success: true, message: 'Resubmission requested' });
-    }
-  );
-});
+        db.get(
+          `
+          SELECT
+            ct.company_id,
+            ct.id AS company_task_id
+          FROM task_documents td
+          JOIN company_tasks ct
+            ON td.company_task_id = ct.id
+          WHERE td.id = ?
+          `,
+          [id],
+          (err, row) => {
+
+            if (!row) {
+              return res.json({
+                success: true,
+                message: 'Resubmission requested'
+              });
+            }
+
+            // رجوع التاسك إلى Pending
+            db.run(
+              `
+              UPDATE company_tasks
+              SET status = 'PENDING'
+              WHERE id = ?
+              `,
+              [row.company_task_id]
+            );
+
+            db.run(
+  `
+  UPDATE company_stages
+  SET status = 'IN_PROGRESS'
+  WHERE id = (
+    SELECT company_stage_id
+    FROM company_tasks
+    WHERE id = ?
+  )
+  `,
+  [row.company_task_id]
+);
+
+db.run(
+  `
+  UPDATE companies
+  SET status = 'NEEDS_COMPLETION'
+  WHERE id = ?
+  `,
+  [row.company_id]
+);
+
+// إشعار للعميل
+db.run(
+  `
+  INSERT INTO notifications
+  (
+    user_id,
+    message,
+    type,
+    related_company_id
+  )
+  SELECT
+    u.id,
+    ?,
+    'RESUBMISSION_REQUESTED',
+    ?
+  FROM users u
+  WHERE u.company_id = ?
+    AND u.role = 'CLIENT'
+  `,
+  [
+    `Please re-upload the requested document. Reason: ${
+      reason || "Please review the uploaded document."
+    }`,
+    row.company_id,
+    row.company_id,
+  ]
+);
+
+            return res.json({
+              success: true,
+              message: 'Resubmission requested'
+            });
+
+          }
+        );
+
+      }
+    );
+
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK ALL NOTIFICATIONS READ
@@ -967,8 +1136,6 @@ LIMIT 1
 ],
           (err5, nextStage) => {
 
-(err7, nextStage) => {
-
 console.log('CURRENT STAGE =', currentStage);
 console.log('NEXT STAGE FOUND =', nextStage);
 
@@ -992,7 +1159,7 @@ return res.json({
 
           }
         }
-      });
+      );
       }
     );
 
@@ -1092,18 +1259,16 @@ router.post(
   employeeOrAdmin,
   upload.single("file"),
   (req, res) => {
-
     const { taskId } = req.params;
 
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "File is required"
+        message: "File is required",
       });
     }
 
-    const fileUrl =
-      `http://localhost:3000/uploads/${req.file.filename}`;
+    const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
 
     db.run(
       `
@@ -1117,124 +1282,176 @@ router.post(
       )
       VALUES (?, ?, ?, ?, 'APPROVED', 1)
       `,
-      [
-        taskId,
-        req.file.originalname,
-        fileUrl,
-        req.user.id
-      ],
+      [taskId, req.file.originalname, fileUrl, req.user.id],
       function (err) {
+        if (err) {
+          console.log(err);
+          return res.status(500).json({ success: false });
+        }
 
-if (err) {
-  console.log(err);
-
-  return res.status(500).json({
-    success: false
-  });
-}
-
-db.run(
+        db.get(
   `
-  UPDATE company_tasks
-  SET status = 'COMPLETED'
-  WHERE id = ?
-  `,
-  [taskId],
-  function () {
-db.get(
-  `
-  SELECT company_stage_id
+  SELECT company_id
   FROM company_tasks
   WHERE id = ?
   `,
   [taskId],
-  function (err2, taskRow) {
-db.get(
-  `
-  SELECT COUNT(*) AS remaining
-  FROM company_tasks
-  WHERE company_stage_id = ?
-  AND status != 'COMPLETED'
-  `,
-  [taskRow.company_stage_id],
-  function (err3, result) {
-if (result.remaining === 0) {
+  function (err, task) {
+    console.log(task);
+    if (!err && task) {
+      db.run(
+        `
+        INSERT INTO notifications (
+          user_id,
+          message,
+          type,
+          related_company_id
+        )
+        SELECT
+          u.id,
+          'A new license has been issued successfully.',
+          'LICENSE_ISSUED',
+          ?
+        FROM users u
+        WHERE u.company_id = ?
+          AND u.role = 'CLIENT'
+        `,
+        [
+          task.company_id,
+          task.company_id
+        ]
+      );
+    }
+  }
+);
+
+        db.run(
+          `
+          UPDATE company_tasks
+          SET status = 'COMPLETED'
+          WHERE id = ?
+          `,
+          [taskId],
+          function () {
+            db.get(
+              `
+              SELECT company_stage_id
+              FROM company_tasks
+              WHERE id = ?
+              `,
+              [taskId],
+              function (err2, taskRow) {
+                if (err2 || !taskRow) {
+                  return res.json({ success: true });
+                }
+
+                db.get(
+                  `
+                  SELECT COUNT(*) AS remaining
+                  FROM company_tasks
+                  WHERE company_stage_id = ?
+                  AND status != 'COMPLETED'
+                  `,
+                  [taskRow.company_stage_id],
+                  function (err3, result) {
+                    if (err3) {
+                      return res.json({ success: true });
+                    }
+
+                    if (result.remaining === 0) {
+                      db.run(
+                        `
+                        UPDATE company_stages
+                        SET status = 'COMPLETED'
+                        WHERE id = ?
+                        `,
+                        [taskRow.company_stage_id],
+                        function () {
+                          db.get(
+                            `
+                            SELECT company_id
+                            FROM company_stages
+                            WHERE id = ?
+                            `,
+                            [taskRow.company_stage_id],
+                            function (err4, currentStage) {
+                              if (err4 || !currentStage) {
+                                return res.json({ success: true });
+                              }
+
+                              db.get(
+                                `
+                                SELECT cs.id
+                                FROM company_stages cs
+                                JOIN stages s ON cs.stage_id = s.id
+                                WHERE cs.company_id = ?
+                                  AND s.stage_order > (
+                                    SELECT s2.stage_order
+                                    FROM company_stages cs2
+                                    JOIN stages s2 ON cs2.stage_id = s2.id
+                                    WHERE cs2.id = ?
+                                  )
+                                ORDER BY s.stage_order
+                                LIMIT 1
+                                `,
+                                [
+                                  currentStage.company_id,
+                                  taskRow.company_stage_id,
+                                ],
+                                function (err5, nextStage) {
+if (nextStage) {
 
   db.run(
     `
     UPDATE company_stages
-    SET status = 'COMPLETED'
+    SET status = 'IN_PROGRESS'
     WHERE id = ?
     `,
-    [taskRow.company_stage_id]
-  );
-db.get(
-  `
-  SELECT company_id, stage_id
-  FROM company_stages
-  WHERE id = ?
-  `,
-  [taskRow.company_stage_id],
-  function (err4, currentStage) {
+    [nextStage.id],
+    async function () {
 
-    if (!currentStage) {
+       updateCompanyStatus(
+        currentStage.company_id
+      );
+
       return res.json({
-        success: true
+        success: true,
       });
+
     }
+  );
 
-    db.get(
-      `
-SELECT cs.id
-FROM company_stages cs
-JOIN stages s
-ON cs.stage_id = s.id
-WHERE cs.company_id = ?
-AND s.stage_order > (
-  SELECT s2.stage_order
-  FROM company_stages cs2
-  JOIN stages s2
-  ON cs2.stage_id = s2.id
-  WHERE cs2.id = ?
-)
-ORDER BY s.stage_order
-LIMIT 1
-      `,
-      [
-  currentStage.company_id,
-  taskRow.company_stage_id
-],
-      function (err5, nextStage) {
+} else {
 
-        if (nextStage) {
+   updateCompanyStatus(
+    currentStage.company_id
+  );
 
-          db.run(
-            `
-            UPDATE company_stages
-            SET status = 'IN_PROGRESS'
-            WHERE id = ?
-            `,
-            [nextStage.id]
-          );
-
-        }
-
-        return res.json({
-          success: true
-        });
-
-      }
-    );
-
-  }
-);
+  return res.json({
+    success: true,
+  });
 
 }
-  });
-  });
-  });
-
-      });
-
-  });
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    } else {
+                      return res.json({
+                        success: true,
+                        
+                      });
+                    }
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
+  }
+);
 module.exports = router;

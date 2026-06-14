@@ -8,9 +8,9 @@ export function HomePage() {
   return (
     <>
       <HeroSection />
+      <AboutSection />
       <ServicesSection />
       <HowItWorksSection />
-      <AboutSection />
       <CTASection />
     </>);
 

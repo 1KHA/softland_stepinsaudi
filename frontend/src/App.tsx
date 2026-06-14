@@ -11,10 +11,12 @@ import { LoginPage } from './pages/LoginPage';
 import CompanyDashboard from './pages/CompanyDashboard';
 import CompanyProfile from './pages/CompanyProfile';
 import TaskDetails from './pages/TaskDetails';
+import CompanyNotifications from "./pages/CompanyNotifications.tsx";
+import CompanyLicenses from "./pages/CompanyLicenses.tsx";
 
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import EmployeeRequests from './pages/employee/EmployeeRequests';
-import RequestDetails from './pages/employee/RequestDetails';
+import RequestDetails from './pages/employee/RequestDetails.tsx';
 import DocumentsReview from './pages/employee/DocumentsReview';
 import EmployeeNotifications from './pages/employee/EmployeeNotifications';
 
@@ -40,13 +42,15 @@ function AppContent() {
 
   const location = useLocation();
 
-  const hideNavbar =
-  location.pathname === '/login' ||
-  location.pathname === '/company-dashboard' ||
-  location.pathname === '/company-profile' ||
-  location.pathname.includes('/company-task') ||
-  location.pathname.startsWith('/employee') ||
-  location.pathname.startsWith('/admin');
+ const hideNavbar =
+  location.pathname === "/login" ||
+  location.pathname === "/company-dashboard" ||
+  location.pathname === "/company-profile" ||
+  location.pathname === "/company-notifications" || 
+  location.pathname === "/company-licenses" ||      
+  location.pathname.includes("/company-task") ||
+  location.pathname.startsWith("/employee") ||
+  location.pathname.startsWith("/admin");
 
   const currentLanguage =
     i18n.language.startsWith('ar') ? 'ar' : 'en';
@@ -110,6 +114,24 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+
+<Route
+  path="/company-licenses"
+  element={
+    <ProtectedRoute allowedRole="CLIENT">
+      <CompanyLicenses />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/company-notifications"
+  element={
+    <ProtectedRoute allowedRole="CLIENT">
+      <CompanyNotifications />
+    </ProtectedRoute>
+  }
+/>
 
           {/* Task Details */}
           <Route
@@ -187,12 +209,16 @@ function AppContent() {
       </main>
 
       {/* Footer */}
-      {
-        location.pathname !== '/login' &&
-        !location.pathname.includes('/company-task') &&
-        !location.pathname.startsWith('/employee') &&
-        !location.pathname.startsWith('/admin') &&
-    <Footer />
+{
+  location.pathname !== "/login" &&
+  location.pathname !== "/company-dashboard" &&
+  location.pathname !== "/company-profile" &&
+  location.pathname !== "/company-notifications" &&
+  location.pathname !== "/company-licenses" &&
+  !location.pathname.includes("/company-task") &&
+  !location.pathname.startsWith("/employee") &&
+  !location.pathname.startsWith("/admin") &&
+  <Footer />
 }
 
     </div>

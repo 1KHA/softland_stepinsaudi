@@ -78,11 +78,17 @@ export const Layout: React.FC = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-navy dark:bg-navy-card text-white flex flex-col flex-shrink-0 shadow-xl z-20 transition-colors duration-300">
         <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gold flex items-center justify-center font-bold text-navy">
-            SL
-          </div>
-          <span className="text-xl font-bold tracking-wide">Soft Landing</span>
-        </div>
+  <img
+    src="/StepInLogo.png"
+    alt="StepIn"
+  className="w-12 h-12 object-contain brightness-0 invert"
+  />
+
+<span className="text-xl font-bold tracking-wide text-white">
+    StepIn
+  </span>
+
+</div>
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {

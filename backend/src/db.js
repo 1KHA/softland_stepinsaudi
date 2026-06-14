@@ -268,6 +268,11 @@ CREATE TABLE IF NOT EXISTS task_documents (
 )
 `);
 
+db.run(`
+ALTER TABLE task_documents
+ADD COLUMN required_document_name TEXT
+`, () => {});
+
 // ─── NOTIFICATIONS TABLE ───────────────────────────────
 db.run(`
 CREATE TABLE IF NOT EXISTS notifications (

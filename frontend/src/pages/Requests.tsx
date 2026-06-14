@@ -5,7 +5,7 @@ import {
   FileTextIcon,
   SearchIcon,
   FilterIcon,
-  ChevronDownIcon } from
+ } from
 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -96,12 +96,33 @@ if (searchQuery) {
 
   const hasActiveFilters = selectedStatuses.length > 0 || startDate || endDate;
 
-  const employees = [
-  'Ahmed Ali',
-  'Sarah Smith',
-  'Mohammed K.',
-  'Fatima N.',
-  'Omar H.'];
+const formatLastUpdated = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+
+  const isToday =
+    date.toDateString() === now.toDateString();
+
+  if (isToday) {
+    return `Today • ${date.toLocaleTimeString(
+      isRtl ? "ar-SA" : "en-US",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    )}`;
+  }
+
+  return date.toLocaleString(
+    isRtl ? "ar-SA" : "en-US",
+    {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -118,18 +139,7 @@ const getStatusColor = (status: string) => {
       return 'bg-blue-100 text-blue-700';
   }
 };
-  const handleAssign = (id: string, employee: string) => {
-    setRequests(
-      requests.map((r) =>
-      r.id === id ?
-      {
-        ...r,
-        assignedTo: employee
-      } :
-      r
-      )
-    );
-  };
+
   return (
     <div className="space-y-8 pb-8" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -249,8 +259,7 @@ const getStatusColor = (status: string) => {
                 <th className="px-6 py-4 font-medium">{t('company')}</th>
                 <th className="px-6 py-4 font-medium">Stage</th>
                 <th className="px-6 py-4 font-medium">{t('status')}</th>
-                <th className="px-6 py-4 font-medium">{t('assignedTo')}</th>
-                <th className="px-6 py-4 font-medium">{t('date')}</th>
+                <th className="px-6 py-4 font-medium">Updated</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-navy-light text-sm">
@@ -282,33 +291,12 @@ const getStatusColor = (status: string) => {
                       {t(request.status as any)}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="relative group">
-                      <select
-                      value={request.assigned_employee_name || ''}
-                      onChange={(e) =>
-                      handleAssign(request.id, e.target.value)
-                      }
-                      className={`appearance-none bg-transparent border-none focus:ring-0 cursor-pointer pr-8 py-1 ${request.assignedTo ? 'text-navy dark:text-cream-dark font-medium' : 'text-gray-400 italic'}`}>
-                      
-                        <option value="" disabled>
-                          {t('unassigned')}
-                        </option>
-                        {employees.map((emp) =>
-                      <option key={emp} value={emp}>
-                            {emp}
-                          </option>
-                      )}
-                      </select>
-                      <ChevronDownIcon
-                      size={14}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
-                    {request.date}
-                  </td>
+                  
+<td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-sm whitespace-nowrap">
+  {formatLastUpdated(
+    request.updated_at || request.created_at
+  )}
+</td>
                 </tr>
               )}
             </tbody>

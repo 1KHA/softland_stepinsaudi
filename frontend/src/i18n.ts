@@ -5,7 +5,7 @@ const resources = {
   en: {
     translation: {
       common: {
-        brand: 'Soft Landing',
+        brand: 'StepIn',
         switchLanguage: 'Switch language',
         english: 'EN',
         arabic: 'AR',

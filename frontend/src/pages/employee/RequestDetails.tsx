@@ -11,7 +11,11 @@ import {
 
 const API = 'http://localhost:3000';
 
-type ActionType = 'approve' | 'reject' | 'resubmit' | null;
+type ActionType =
+  | "approve"
+  | "reject"
+  | "resubmit"
+  | "documentReject";
 
 export default function RequestDetails() {
   const { id } = useParams<{ id: string }>();
@@ -30,12 +34,17 @@ const isAdmin = user.role === 'ADMIN';
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showConfirm, setShowConfirm] = useState<ActionType>(null);
-  const [notes, setNotes] = useState('');
+  const [showConfirm, setShowConfirm] =
+  useState<ActionType | null>(null);
+    const [notes, setNotes] = useState('');
+  const [selectedDocumentId, setSelectedDocumentId] =
+  useState<number | null>(null);
   const [licenseFiles, setLicenseFiles] = useState<{
   [taskId: number]: File | null;
 }>({});
-  const [isProcessing, setIsProcessing] = useState(false);
+const [processingDocId, setProcessingDocId] = useState<number | null>(null);
+const [isProcessing, setIsProcessing] = useState(false);
+
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => { fetchDetails(); }, [id]);
@@ -45,6 +54,13 @@ const isAdmin = user.role === 'ADMIN';
     try {
       console.log('FETCHING DETAILS...');
       const res = await axios.get(`${API}/employee/requests/${id}`, { headers });
+      console.table(
+  res.data.tasks.map((t: any) => ({
+    id: t.id,
+    title: t.task_title,
+    status: t.status,
+  }))
+);
       console.log('NEW DATA', res.data);
       setData(res.data);
     } catch (err) { console.error(err); }
@@ -57,16 +73,57 @@ const isAdmin = user.role === 'ADMIN';
   };
 
   const handleAction = async () => {
+    if (
+  showConfirm === "documentReject" &&
+  selectedDocumentId
+) {
+  try {
+    await axios.put(
+      `${API}/employee/documents/${selectedDocumentId}/needs-resubmission`,
+      { reason: notes },
+      { headers }
+    );
+
+showToast(
+  "Document marked for resubmission ✅",
+  "success"
+);
+
+
+    setShowConfirm(null);
+    setSelectedDocumentId(null);
+    setNotes("");
+
+    await fetchDetails();
+  } catch (err) {
+    console.error(err);
+
+    showToast(
+  "Failed to update document",
+  "error"
+);
+  }
+
+  return;
+}
     if (!showConfirm) return;
     setIsProcessing(true);
-    const endpoints: Record<string, string> = {
-      approve:  `/employee/requests/${id}/approve`,
-      reject:   `/employee/requests/${id}/reject`,
-      resubmit: `/employee/requests/${id}/resubmit`,
-    };
+
+const endpoints: Record<
+  Exclude<ActionType, "documentReject">,
+  string
+> = {
+  approve: `/employee/requests/${id}/approve`,
+  reject: `/employee/requests/${id}/reject`,
+  resubmit: `/employee/requests/${id}/resubmit`,
+};
+
     try {
-      await axios.put(`${API}${endpoints[showConfirm]}`, { note: notes }, { headers });
-      const toastMap: Record<string, string> = {
+await axios.put(
+  `${API}${endpoints[showConfirm as Exclude<ActionType, "documentReject">]}`,
+  { note: notes },
+  { headers }
+);      const toastMap: Record<string, string> = {
         approve:  t('employee.requestDetails.toast.approved'),
         reject:   t('employee.requestDetails.toast.rejected'),
         resubmit: t('employee.requestDetails.toast.resubmit'),
@@ -142,11 +199,16 @@ console.table(
   }))
 );
 console.log('DOCUMENTS', documents);
-  const confirmMsg: Record<string, string> = {
-    approve:  t('employee.requestDetails.confirmation.approve'),
-    reject:   t('employee.requestDetails.confirmation.reject'),
-    resubmit: t('employee.requestDetails.confirmation.requestEdit'),
-  };
+const confirmMsg: Record<ActionType, string> = {
+  approve: t("employee.requestDetails.confirmation.approve"),
+  reject: t("employee.requestDetails.confirmation.reject"),
+  resubmit: t("employee.requestDetails.confirmation.requestEdit"),
+  documentReject: "Please enter the reason for requesting the document again.",
+};
+
+const canManageRequest =
+  isAdmin &&
+  !["APPROVED", "REJECTED", "COMPLETED"].includes(company.status);
 
   return (
     <div className="min-h-screen bg-[#F7F3EE]" dir={dir}>
@@ -170,26 +232,40 @@ console.log('DOCUMENTS', documents);
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <p className="text-gray-600 mb-6">{confirmMsg[showConfirm]}</p>
-            {(showConfirm === 'reject' || showConfirm === 'resubmit') && (
-              <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder={t('employee.requestDetails.confirmation.reasonPlaceholder')}
-                className="w-full border border-gray-200 rounded-xl p-4 min-h-[100px] mb-5 focus:outline-none focus:border-[#C5A55A] text-sm resize-none"
-              />
-            )}
+            <p className="text-gray-600 mb-6">
+  {confirmMsg[showConfirm]}
+</p>
+
+{(
+  showConfirm === "reject" ||
+  showConfirm === "resubmit" ||
+  showConfirm === "documentReject"
+) && (
+  <textarea
+    value={notes}
+    onChange={(e) => setNotes(e.target.value)}
+    placeholder={t(
+      "employee.requestDetails.confirmation.reasonPlaceholder"
+    )}
+    className="w-full border border-gray-200 rounded-xl p-4 min-h-[100px] mb-5 focus:outline-none focus:border-[#C5A55A] text-sm resize-none"
+  />
+)}
+
             <div className="flex gap-3">
               <button onClick={() => setShowConfirm(null)}
                 className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition text-sm">
                 {t('employee.requestDetails.confirmation.cancel')}
               </button>
               <button onClick={handleAction} disabled={isProcessing}
-                className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium disabled:opacity-50 ${
-                  showConfirm === 'approve' ? 'bg-green-600 hover:bg-green-700' :
-                  showConfirm === 'reject'  ? 'bg-red-600 hover:bg-red-700' :
-                  'bg-orange-500 hover:bg-orange-600'
-                }`}>
+className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium disabled:opacity-50 ${
+  showConfirm === "approve"
+    ? "bg-green-600 hover:bg-green-700"
+    : showConfirm === "reject" ||
+      showConfirm === "documentReject"
+    ? "bg-red-600 hover:bg-red-700"
+    : "bg-orange-500 hover:bg-orange-600"
+}`}
+>
                 {isProcessing ? t('employee.requestDetails.confirmation.processing') : t('employee.requestDetails.confirmation.confirm')}
               </button>
             </div>
@@ -284,31 +360,8 @@ console.log('DOCUMENTS', documents);
               </div>
             </div>
           </div>
-
-          {/* Actions */}
-          {isAdmin && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold text-[#1E3A5F] mb-5">{t('employee.requestDetails.actions.title')}</h2>
-            <div className="space-y-3">
-              <button onClick={() => setShowConfirm('approve')}
-                className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl transition font-medium text-sm">
-                <CheckCircle className="w-5 h-5" />
-                {t('employee.requestDetails.actions.approve')}
-              </button>
-              <button onClick={() => setShowConfirm('resubmit')}
-                className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl transition font-medium text-sm">
-                <AlertCircle className="w-5 h-5" />
-                {t('employee.requestDetails.actions.requestEdit')}
-              </button>
-              <button onClick={() => setShowConfirm('reject')}
-                className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl transition font-medium text-sm">
-                <XCircle className="w-5 h-5" />
-                {t('employee.requestDetails.actions.reject')}
-              </button>
-            </div>
-          </div>
-)}
 </div>
+
         {/* ── RIGHT ── */}
         <div className="lg:col-span-2 space-y-6">
 
@@ -357,38 +410,38 @@ console.log('DOCUMENTS', documents);
         {statusLabel(task.status)}
       </span>
 
-      {isAdmin && (
-       <select
-  value={task.status}
-  onChange={async (e) => {
-    try {
-      await axios.put(
-        `${API}/employee/tasks/${task.id}/status`,
-        {
-          status: e.target.value
-        },
-        {
-          headers
-        }
-      );
+{canManageRequest &&
+ task.task_type !== "license" && (
+  <select
+    value={task.status}
+    onChange={async (e) => {
+      try {
+        await axios.put(
+          `${API}/employee/tasks/${task.id}/status`,
+          {
+            status: e.target.value,
+          },
+          { headers }
+        );
 
-      fetchDetails();
+        fetchDetails();
+      } catch (err) {
+        console.error(err);
+      }
+    }}
+    className="border rounded px-2 py-1 text-xs"
+  >
+    <option value="PENDING">Pending</option>
+    <option value="IN_PROGRESS">In Progress</option>
+    <option value="COMPLETED">Completed</option>
+    <option value="REJECTED">Rejected</option>
+  </select>
+)}
 
-    } catch (err) {
-      console.error(err);
-    }
-  }}
-  className="border rounded px-2 py-1 text-xs"
->
-          <option value="PENDING">Pending</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="REJECTED">Rejected</option>
-        </select>
-      )}
-
-{task.task_type === "license" && (
-  <>
+{
+canManageRequest &&
+task.task_type === "license" &&
+task.status !== "COMPLETED"&& (  <>
     <input
       type="file"
       accept=".pdf,.jpg,.jpeg,.png"
@@ -411,17 +464,16 @@ console.log('DOCUMENTS', documents);
 
     const file = licenseFiles[task.id];
 
-    if (!file) {
-      alert("Please select a file first");
-      return;
-    }
+if (!file) {
+  showToast("Please select a file first", "error");
+  return;
+}
 
     const formData = new FormData();
 
     formData.append("file", file);
 
     try {
-
       await axios.post(
         `${API}/employee/tasks/${task.id}/final-license`,
         formData,
@@ -433,16 +485,20 @@ console.log('DOCUMENTS', documents);
         }
       );
 
-      alert("Final license uploaded successfully ✅");
+showToast(
+  "Final license uploaded successfully ✅",
+  "success"
+);
 
-      fetchDetails();
-
+await fetchDetails();
     } catch (err) {
 
       console.error(err);
 
-      alert("Upload failed");
-
+showToast(
+  "Upload failed",
+  "error"
+);
     }
 
   }}
@@ -451,7 +507,7 @@ console.log('DOCUMENTS', documents);
 </button>
   </>
 )}
-
+                    
     </div>
   </div>
 ))}
@@ -484,7 +540,22 @@ console.log('DOCUMENTS', documents);
                           <FileText className="w-5 h-5 text-[#C5A55A]" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-[#1E3A5F] text-sm">{doc.file_name}</h3>
+                          <div>
+  <h3 className="font-semibold text-[#1E3A5F] text-sm">
+    {doc.file_name}
+  </h3>
+
+  <p className="text-xs text-[#C5A55A] font-medium">
+    {doc.task_title}
+  </p>
+
+  <p className="text-xs text-gray-400 mt-0.5">
+    {doc.stage_name} •{" "}
+    {new Date(doc.uploaded_at).toLocaleDateString(
+      isArabic ? "ar-SA" : "en-US"
+    )}
+  </p>
+</div>
                           <p className="text-xs text-gray-400 mt-0.5">{doc.stage_name} • {new Date(doc.uploaded_at).toLocaleDateString(isArabic ? 'ar-SA' : 'en-US')}</p>
                         </div>
                       </div>
@@ -498,71 +569,77 @@ console.log('DOCUMENTS', documents);
                         <a href={doc.file_url} download className="p-2 hover:bg-gray-100 rounded-lg transition">
                           <Download className="w-4 h-4 text-[#1E3A5F]" />
                         </a>
-                        {isAdmin && doc.status !== 'APPROVED' && (
+{canManageRequest &&
+ doc.status !== "APPROVED" &&
+ doc.status !== "NEEDS_RESUBMISSION" && (
   <button
+    disabled={processingDocId === doc.id}
     onClick={async () => {
+      setProcessingDocId(doc.id);
+
       try {
-console.log('APPROVING DOC', doc.id);
+        await axios.put(
+          `${API}/employee/documents/${doc.id}/approve`,
+          {},
+          { headers }
+        );
 
-await axios.put(
-  `${API}/employee/documents/${doc.id}/approve`,
-  {},
-  { headers }
-);
+        showToast(
+          "Document approved successfully ✅",
+          "success"
+        );
 
-console.log('REFETCHING...');
-
-await fetchDetails();
-
-console.log('DONE');
-
+        await fetchDetails();
       } catch (err) {
         console.error(err);
+
+        showToast(
+          "Failed to approve document",
+          "error"
+        );
+      } finally {
+        setProcessingDocId(null);
       }
     }}
-    className="bg-green-600 text-white px-3 py-1 rounded text-xs"
+    className="bg-green-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
   >
-    Approve
+    {processingDocId === doc.id ? "Processing..." : "Approve"}
   </button>
 )}
-                      </div>
-                    </div>
-                    {doc.rejection_reason && (
-                      <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
-                        {t('employee.requestDetails.rejectionReason')}: {doc.rejection_reason}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
 
-          {/* Notes */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-5">
-              <MessageSquare className="w-5 h-5 text-[#C5A55A]" />
-              <h2 className="text-xl font-bold text-[#1E3A5F]">{t('employee.requestDetails.notes')}</h2>
-            </div>
-            {company.admin_note ? (
-              <div className="border border-orange-100 rounded-xl p-4 mb-4 bg-orange-50">
-                <p className="text-sm font-semibold text-orange-700 mb-1">{t('employee.requestDetails.adminNote')}</p>
-                <p className="text-sm text-orange-700">{company.admin_note}</p>
-              </div>
-            ) : (
-              <p className="text-center text-gray-400 text-sm py-4">{t('employee.requestDetails.noNotes')}</p>
-            )}
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder={t('employee.requestDetails.notePlaceholder')}
-              className="w-full border border-gray-200 rounded-xl p-4 min-h-[100px] focus:outline-none focus:border-[#C5A55A] text-sm resize-none"
-            />
-          </div>
-        </div>
-      </div>
+{canManageRequest &&
+ doc.status !== "APPROVED" &&
+ doc.status !== "NEEDS_RESUBMISSION" && (
+  <button
+    disabled={processingDocId === doc.id}
+    onClick={() => {
+      setSelectedDocumentId(doc.id);
+      setNotes("");
+      setShowConfirm("documentReject");
+    }}
+    className="bg-red-600 text-white px-3 py-1 rounded text-xs"
+  >
+    Reject
+  </button>
+)}
+</div>  
+                </div>     
 
-      <Footer />
-    </div>
-  );
+{doc.rejection_reason && (
+  <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
+    {t("employee.requestDetails.rejectionReason")}:{" "}
+    {doc.rejection_reason}
+  </div>
+)}
+             </div>   
+              ))}        
+            </div>       
+          )}            
+        </div>           
+
+      </div>             
+    </div>              
+    <Footer />
+  </div>
+);
 }

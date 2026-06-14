@@ -23,13 +23,15 @@ export function Navbar() {
           <div className="flex shrink-0 items-center gap-3">
             <a href="#home">
               <img
-                src="/Screenshot_2026-04-22_142843.png"
-                alt={t('common.brand')}
+                src="/StepInLogo.png"
+                alt="StepIn"
                 className="h-12 w-auto object-contain" />
             </a>
             <div className="hidden md:block">
-              <p className="text-sm font-semibold text-brand-navy">{t('common.brand')}</p>
-              <p className="text-xs text-slate-500">{t('hero.badge')}</p>
+            <h3 className="text-[#1E3A5F] font-bold text-lg">
+              StepIn
+            </h3>       
+       <p className="text-xs text-slate-500">Saudi market entry, simplified</p>
             </div>
           </div>
 

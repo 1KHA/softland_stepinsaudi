@@ -140,27 +140,54 @@ router.post('/register-with-company', async (req, res) => {
             description || "",
             phone || "",
             email,
-            "UNDER_REVIEW"
+            "PENDING"
           ],
 
           function (err) {
 
-            if (err) {
+if (err) {
 
-              console.error(
-                "Company insert error:",
-                err
-              );
+  console.error(
+    "Company insert error:",
+    err
+  );
 
-              return sendError(
-                res,
-                500,
-                "Error creating company"
-              );
+  return sendError(
+    res,
+    500,
+    "Error creating company"
+  );
 
-            }
+}
 
             const companyId = this.lastID;
+
+            // Send notification to all admins
+db.all(
+  `SELECT id FROM users WHERE role = 'ADMIN'`,
+  [],
+  (err, admins) => {
+    if (err) {
+      console.error("Failed to fetch admins:", err);
+      return;
+    }
+
+    admins.forEach((admin) => {
+      db.run(
+        `
+        INSERT INTO notifications
+        (user_id, message, type, is_read)
+        VALUES (?, ?, ?, 0)
+        `,
+        [
+          admin.id,
+          `A new company (${company_name}) has registered.`,
+          "NEW_COMPANY"
+        ]
+      );
+    });
+  }
+);
 
             // generate workflow
             generateWorkflow(companyId, sector_id)
@@ -226,7 +253,6 @@ VALUES (?, ?, ?, ?, ?, ?)
                     "User insert error:",
                     err
                   );
-
                   if (
                     isDuplicateEmailError(err)
                   ) {
@@ -808,9 +834,16 @@ const { id } = req.params;
 const {
   name,
   email,
+  password,
   company_id,
   status
 } = req.body;
+
+let finalPassword = null;
+
+if (password && password.trim() !== "") {
+  finalPassword = await bcrypt.hash(password, 10);
+}
 
 db.run(
   `
@@ -818,6 +851,7 @@ db.run(
   SET
     name = ?,
     email = ?,
+    password = COALESCE(?, password),
     company_id = ?,
     status = ?
   WHERE id = ?
@@ -825,30 +859,56 @@ db.run(
   [
     name,
     email,
+    finalPassword,
     company_id,
     status,
     id
   ],
 
-  function (err) {
+function (err) {
+  if (err) {
+    console.error(err);
 
-    if (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Error updating user"
+    });
+  }
 
-      console.error(err);
+  // إذا كان المستخدم Client حدّث إيميل الشركة أيضاً
+  db.get(
+    `
+    SELECT role, company_id
+    FROM users
+    WHERE id = ?
+    `,
+    [id],
+    (findErr, user) => {
 
-      return res.status(500).json({
-        success: false,
-        message: "Error updating user"
+      if (
+        !findErr &&
+        user &&
+        user.role === "CLIENT" &&
+        user.company_id
+      ) {
+        db.run(
+          `
+          UPDATE companies
+          SET email = ?
+          WHERE id = ?
+          `,
+          [email, user.company_id]
+        );
+      }
+
+      res.json({
+        success: true,
+        message: "User updated successfully"
       });
 
     }
-
-    res.json({
-      success: true,
-      message: "User updated successfully"
-    });
-
-  }
+  );
+}
 );
 
     } catch (error) {
@@ -876,30 +936,89 @@ router.delete(
 
       const { id } = req.params;
 
-      db.run(
+      db.get(
         `
-        DELETE FROM users
+        SELECT role, company_id
+        FROM users
         WHERE id = ?
         `,
         [id],
 
-        function (err) {
+        (err, user) => {
 
-          if (err) {
-
-            console.error(err);
-
-            return res.status(500).json({
+          if (err || !user) {
+            return res.status(404).json({
               success: false,
-              message: "Error deleting user"
+              message: "User not found"
             });
-
           }
 
-          res.json({
-            success: true,
-            message: "User deleted successfully"
-          });
+          // إذا كان Client احذف كل بيانات الشركة أولاً
+          if (user.role === "CLIENT" && user.company_id) {
+
+            const companyId = user.company_id;
+
+            db.run(
+  `
+  DELETE FROM task_documents
+  WHERE company_task_id IN (
+    SELECT id
+    FROM company_tasks
+    WHERE company_id = ?
+  )
+  `,
+  [companyId]
+);
+
+  db.run(
+    `DELETE FROM company_tasks WHERE company_id = ?`,
+    [companyId]
+  ); 
+
+              db.run(
+              `DELETE FROM company_stages WHERE company_id = ?`,
+              [companyId]
+            );
+
+            db.run(
+              `DELETE FROM founders WHERE company_id = ?`,
+              [companyId]
+            );
+
+            db.run(
+              `DELETE FROM companies WHERE id = ?`,
+              [companyId]
+            );
+          }
+
+          // حذف المستخدم
+          db.run(
+            `
+            DELETE FROM users
+            WHERE id = ?
+            `,
+            [id],
+
+            function (deleteErr) {
+
+              if (deleteErr) {
+
+                console.error(deleteErr);
+
+                return res.status(500).json({
+                  success: false,
+                  message: "Error deleting user"
+                });
+
+              }
+
+              res.json({
+                success: true,
+                message: "User deleted successfully"
+              });
+
+            }
+          );
 
         }
       );
@@ -1207,8 +1326,7 @@ router.put(
         `,
         [userId],
 
-        (err, user) => {
-
+async (err, user) => {
           if (err) {
 
             return res.status(500).json({
@@ -1227,41 +1345,51 @@ router.put(
 
           }
 
-          if (user.password !== currentPassword) {
+const isMatch = await bcrypt.compare(
+  currentPassword,
+  user.password
+);
 
-            return res.status(400).json({
-              success: false,
-              message: "Current password is incorrect"
-            });
+if (!isMatch) {
 
-          }
+  return res.status(400).json({
+    success: false,
+    message: "Current password is incorrect"
+  });
 
-          db.run(
-            `
-            UPDATE users
-            SET password = ?
-            WHERE id = ?
-            `,
-            [newPassword, userId],
+}
 
-            function (updateErr) {
+const hashedPassword = await bcrypt.hash(
+  newPassword,
+  10
+);
 
-              if (updateErr) {
+db.run(
+  `
+  UPDATE users
+  SET password = ?
+  WHERE id = ?
+  `,
+  [hashedPassword, userId],
 
-                return res.status(500).json({
-                  success: false,
-                  message: "Error updating password"
-                });
+  function (updateErr) {
 
-              }
+    if (updateErr) {
 
-              res.json({
-                success: true,
-                message: "Password updated successfully"
-              });
+      return res.status(500).json({
+        success: false,
+        message: "Error updating password"
+      });
 
-            }
-          );
+    }
+
+    res.json({
+      success: true,
+      message: "Password updated successfully"
+    });
+
+  }
+);
 
         }
       );

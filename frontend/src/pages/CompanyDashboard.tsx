@@ -2,11 +2,10 @@ import React, {
   useEffect,
   useState
 } from 'react';
-
+import CompanyHeader from "../components/CompanyHeader";
 import { useNavigate } from 'react-router-dom';
 
 import { useTranslation } from '../../node_modules/react-i18next';
-
 import axios from 'axios';
 
 export default function CompanyDashboard() {
@@ -30,6 +29,8 @@ export default function CompanyDashboard() {
 
   const [currentStage, setCurrentStage] =
     useState("");
+const [showApprovedPopup, setShowApprovedPopup] =
+  useState(false);
 
   useEffect(() => {
 
@@ -42,6 +43,22 @@ export default function CompanyDashboard() {
 
         const companyId =
           user?.company_id;
+const companyResponse =
+  await axios.get(
+    `http://localhost:3000/companies/${companyId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+if (
+  companyResponse.data.status === "APPROVED" &&
+  localStorage.getItem("approval_popup_seen") !== "true"
+) {
+  setShowApprovedPopup(true);
+}
 
         // stages
         const stagesResponse =
@@ -156,181 +173,16 @@ console.log(
   }))
 );
 
-  return (
+return (
+  <>
+    <CompanyHeader />
 
     <div className="min-h-screen bg-[#F7F3EE]">
-
-      {/* Header */}
-      <div className="bg-white shadow-sm px-8 py-5 flex items-center justify-between">
-
-        {/* Left */}
-        <div>
-
-          <h1 className="text-3xl font-bold text-[#1E3A5F]">
-            {t('dashboard.welcome')}،
-            {" "}
-            {user?.name}
-          </h1>
-
-          <p className="text-gray-500 mt-2">
-            {t('dashboard.title')}
-          </p>
-
-        </div>
-
-        {/* Center Nav */}
-        <div className="hidden md:flex items-center gap-10">
-
-          <button
-            onClick={() =>
-              navigate('/dashboard-overview')
-            }
-            className="text-[#1E3A5F] font-semibold hover:text-[#C5A55A] transition"
-          >
-            {t('dashboard.dashboard')}
-          </button>
-
-          <button
-            onClick={() =>
-              navigate('/company-profile')
-            }
-            className="text-[#1E3A5F] font-semibold hover:text-[#C5A55A] transition"
-          >
-            {t('dashboard.profile')}
-          </button>
-
-          <button
-            className="text-[#1E3A5F] font-semibold hover:text-[#C5A55A] transition"
-          >
-            {t('dashboard.progress')}
-          </button>
-
-          <button
-            className="text-[#1E3A5F] font-semibold hover:text-[#C5A55A] transition"
-          >
-            {t('dashboard.notifications')}
-          </button>
-
-        </div>
-
-        {/* Right */}
-        <div>
-
-          <button
-            onClick={() =>
-              i18n.changeLanguage(
-                i18n.language === 'en'
-                  ? 'ar'
-                  : 'en'
-              )
-            }
-            className="flex items-center gap-2 border border-gray-200 bg-white px-5 py-3 rounded-full hover:bg-gray-50 transition"
-          >
-
-            <span className="text-lg">
-              🌐
-            </span>
-
-            <span className="text-[#1E3A5F] font-medium">
-              {i18n.language === 'en'
-                ? 'AR'
-                : 'EN'}
-            </span>
-
-          </button>
-
-        </div>
-
-      </div>
-
-      {/* Action Buttons */}
-      <div className="px-8 pt-8 flex gap-4">
-
-        <button
-          onClick={() =>
-            navigate('/company-profile')
-          }
-          className="bg-white border border-gray-200 px-6 py-3 rounded-2xl shadow-sm hover:bg-gray-50 transition"
-        >
-          {t('dashboard.editProfile')}
-        </button>
-
-        <label className="bg-[#C5A55A] text-white border border-[#C5A55A] px-6 py-3 rounded-2xl shadow-sm hover:opacity-90 transition cursor-pointer flex items-center justify-center">
-
-          {t('dashboard.uploadDocuments')}
-
-          <input
-            type="file"
-            className="hidden"
-            onChange={async (e) => {
-
-  const file = e.target.files?.[0];
-
-  if (!file) return;
-
-  try {
-
-    const token =
-      localStorage.getItem("token");
-
-    const firstTask =
-      companyTasks[0];
-
-    const formData =
-      new FormData();
-
-    formData.append(
-      "files",
-      file
-    );
-
-    const response =
-      await axios.post(
-
-        `http://localhost:3000/companies/tasks/${firstTask.id}/upload`,
-
-        formData,
-
-        {
-
-          headers: {
-
-            Authorization:
-              `Bearer ${token}`,
-
-            "Content-Type":
-              "multipart/form-data"
-
-          }
-
-        }
-
-      );
-
-    console.log(response.data);
-
-    alert("Uploaded Successfully ✅");
-
-  } catch (error) {
-
-    console.log(error);
-
-    alert("Upload failed ❌");
-
-  }
-
-}}
-          />
-
-        </label>
-
-      </div>
 
       {/* Progress Card */}
       <div className="p-8">
 
-        <div className="bg-white rounded-3xl p-8 shadow-sm">
-
+<div className="bg-white rounded-3xl p-8 shadow-lg border border-[#ECE7DD]">
           <div className="flex items-center justify-between mb-6">
 
             <div>
@@ -379,11 +231,11 @@ console.log(
                   className={`px-4 py-2 rounded-full text-sm ${
                     stage.status ===
                     "COMPLETED"
-                      ? "bg-green-100 text-green-700"
+                      ? "bg-green-100 text-green-700 border border-green-300"
                       : stage.status ===
                         "IN_PROGRESS"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-gray-200 text-gray-700"
+                      ? "bg-[#FFF7E5] text-[#C5A55A] border border-[#F3D48B]"
+                      : "bg-gray-100 text-gray-500 border border-gray-200"
                   }`}
                 >
 
@@ -412,35 +264,35 @@ console.log(
 
               <div
                 key={task.id}
-                className="bg-[#8E8686] rounded-3xl p-6 flex items-center justify-between"
+                className="bg-white border border-[#ECE7DD] rounded-3xl p-6 flex items-center justify-between shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
               >
 
                 <div>
 
-                  <h3 className="text-white text-xl font-semibold">
+                  <h3 className="text-[#1E3A5F] text-xl font-bold">
                     {task.title}
                   </h3>
-
-                  <p className="text-gray-200 text-sm mt-1">
-                    Status:
-                    {" "}
-                    {task.status}
-                  </p>
 
                 </div>
 
                 <div className="flex gap-3">
-
-                  <button className="bg-[#C5A55A] text-white px-5 py-2 rounded-xl">
-
-                    {task.status}
-
-                  </button>
+<span
+  className={`px-4 py-2 rounded-full text-sm font-semibold ${
+    task.status === "COMPLETED"
+      ? "bg-green-100 text-green-700 border border-green-300"
+      : task.status === "IN_PROGRESS"
+      ? "bg-[#FFF7E5] text-[#C5A55A] border border-[#F3D48B]"
+      : task.status === "PENDING"
+      ? "bg-gray-100 text-gray-700"
+      : "bg-red-100 text-red-700"
+  }`}
+>
+  {task.status}
+</span>
 
                 <button
   onClick={() => navigate(`/company-task/${task.id}`)}
-  className="bg-white px-5 py-2 rounded-xl"
->
+className="bg-[#C5A55A] text-white px-5 py-2 rounded-xl hover:bg-[#B18F46] transition">
   View
 </button>
 
@@ -457,5 +309,32 @@ console.log(
 
 
     </div>
+    {showApprovedPopup && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl">
+      <h2 className="text-3xl font-bold text-green-600 mb-4">
+        🎉 Congratulations!
+      </h2>
+
+      <p className="text-gray-600 mb-6">
+        Your company has successfully completed all onboarding stages and has been approved.
+      </p>
+
+      <button
+onClick={() => {
+  localStorage.setItem(
+    "approval_popup_seen",
+    "true"
   );
+
+  setShowApprovedPopup(false);
+}}        className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700"
+      >
+        OK
+      </button>
+    </div>
+  </div>
+)}
+  </>
+);
 }

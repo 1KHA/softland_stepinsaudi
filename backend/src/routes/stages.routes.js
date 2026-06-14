@@ -5,11 +5,12 @@ const db = require('../db');
 router.get('/', (req, res) => {
   db.all(
     `
-    SELECT
+SELECT
   id,
   name,
   description,
   stage_order,
+  workflow_phase,
   weight,
   is_active
 FROM stages
@@ -37,8 +38,13 @@ ORDER BY stage_order ASC
 });
 
 router.post('/', (req, res) => {
+const {
+  name,
+  description,
+  workflow_phase
+} = req.body;
 
-  const { name, description } = req.body;
+
 
   db.get(
     `
@@ -79,40 +85,38 @@ router.post('/', (req, res) => {
           }
 
           const nextOrder = (row?.maxOrder || 0) + 1;
-
           db.run(
             `
-            INSERT INTO stages
-            (
-              name,
-              description,
-              stage_order,
-              weight,
-              is_active
-            )
-            VALUES (?, ?, ?, ?, ?)
-            `,
-            [
-              name,
-              description,
-              nextOrder,
-              25,
-              1
-            ],
+INSERT INTO stages
+(
+  name,
+  description,
+  stage_order,
+  weight,
+  is_active,
+  workflow_phase
+
+)
+            VALUES (?, ?, ?, ?, ?, ?)           `,
+[
+  name,
+  description,
+  nextOrder,
+  25,
+  1,
+  workflow_phase || "PROCESSING"
+
+],
             function (err) {
-
               if (err) {
-
                 console.log(err);
 
                 return res.status(500).json({
                   success: false,
                   message: 'Error creating stage'
                 });
-
               }
 const stageId = this.lastID;
-
 db.all(
   `
   SELECT id
@@ -126,7 +130,6 @@ db.all(
       console.log(err);
       return;
     }
-
     companies.forEach((company) => {
 
       db.run(
@@ -148,27 +151,19 @@ db.all(
 
     });
 
-  }
-);
+  });
               res.json({
                 success: true,
                 id: this.lastID
               });
 
-            }
-          );
-
-        }
-      );
-
-    }
-  );
-
+            });
 });
+});
+});
+
 router.put('/reorder', (req, res) => {
-
-  const { stages } = req.body;
-
+const { stages } = req.body;
 console.log('REORDER:', stages);
 
   if (!stages || !Array.isArray(stages)) {
@@ -176,7 +171,6 @@ console.log('REORDER:', stages);
       success: false
     });
   }
-
   stages.forEach((stage, index) => {
 
     db.run(
@@ -187,19 +181,22 @@ console.log('REORDER:', stages);
       `,
       [index + 1, stage.id]
     );
-
-  });
+ });
 
   res.json({
     success: true
   });
-
 });
 
 router.put('/:id', (req, res) => {
 
-  const { id } = req.params;
-  const { name, description } = req.body;
+const { id } = req.params;
+
+const {
+  name,
+  description,
+  workflow_phase
+} = req.body;
 
   db.get(
     `
@@ -211,22 +208,70 @@ router.put('/:id', (req, res) => {
     [name, id],
     (err, existingStage) => {
 
-      if (existingStage) {
-        return res.status(400).json({
-          success: false,
-          message: 'Stage name already exists'
+if (existingStage) {
+  return res.status(400).json({
+    success: false,
+    message: 'Stage name already exists'
+  });
+}
+
+// السماح بتكرار PROCESSING فقط
+if (
+  workflow_phase &&
+  workflow_phase !== "PROCESSING"
+) {
+
+  db.get(
+    `
+    SELECT id
+    FROM stages
+    WHERE workflow_phase = ?
+    AND id != ?
+    `,
+    [workflow_phase, id],
+    (err, existingPhase) => {
+
+      if (err) {
+        return res.status(500).json({
+          success: false
         });
       }
 
-      db.run(
+      if (existingPhase) {
+        return res.status(400).json({
+          success: false,
+          message: "Workflow phase already exists"
+        });
+      }
+
+      updateStage();
+
+    }
+  );
+
+} else {
+
+  updateStage();
+
+}
+
+function updateStage() {
+
+  db.run(
         `
-        UPDATE stages
-        SET
-          name = ?,
-          description = ?
-        WHERE id = ?
+UPDATE stages
+SET
+  name = ?,
+  description = ?,
+  workflow_phase = ?
+WHERE id = ?
         `,
-        [name, description, id],
+        [
+  name,
+  description,
+  workflow_phase,
+  id
+],
         function (err) {
 
           if (err) {
@@ -236,7 +281,6 @@ router.put('/:id', (req, res) => {
             return res.status(500).json({
               success: false
             });
-
           }
 
           res.json({
@@ -245,6 +289,7 @@ router.put('/:id', (req, res) => {
 
         }
       );
+    }
 
     }
   );
@@ -253,7 +298,6 @@ router.put('/:id', (req, res) => {
 
 
 router.delete('/:id', (req, res) => {
-
   const { id } = req.params;
 
   db.get(
@@ -293,17 +337,41 @@ router.delete('/:id', (req, res) => {
             });
           }
 
-          res.json({
-            success: true
-          });
+db.all(
+  `
+  SELECT id
+  FROM stages
+  ORDER BY stage_order ASC
+  `,
+  [],
+  (err, stages) => {
 
-        }
-      );
-
+    if (err) {
+      return res.json({
+        success: true
+      });
     }
-  );
 
+    stages.forEach((stage, index) => {
+      db.run(
+        `
+        UPDATE stages
+        SET stage_order = ?
+        WHERE id = ?
+        `,
+        [index + 1, stage.id]
+      );
+    });
+
+    return res.json({
+      success: true
+    });
+
+  }
+);
+
+        });
+    });
 });
-
 
 module.exports = router;

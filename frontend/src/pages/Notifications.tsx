@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import {
   BellIcon,
@@ -23,60 +23,67 @@ export const Notifications: React.FC = () => {
   const { t, language } = useAppContext();
   const isRtl = language === 'ar';
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
-  const [notifications, setNotifications] = useState<Notification[]>([
+const [notifications, setNotifications] = useState<Notification[]>([]);
+
+useEffect(() => {
+  fetchNotifications();
+}, []);
+
+const fetchNotifications = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+const response = await fetch(
+  "http://localhost:3000/companies/notifications",
   {
-    id: '1',
-    title: 'Document uploaded',
-    description:
-    'TechNova Solutions uploaded their Trade License document for review.',
-    timestamp: '10 mins ago',
-    read: false,
-    type: 'document'
-  },
-  {
-    id: '2',
-    title: 'Request approved',
-    description:
-    'Request REQ-001 for Global Industries has been approved by the compliance team.',
-    timestamp: '2 hours ago',
-    read: false,
-    type: 'approved'
-  },
-  {
-    id: '3',
-    title: 'Missing information alert',
-    description:
-    'Desert Startups is missing the required ID copies for their founders.',
-    timestamp: '5 hours ago',
-    read: true,
-    type: 'alert'
-  },
-  {
-    id: '4',
-    title: 'Stage update',
-    description: 'Future Retail has been moved to the Operations stage.',
-    timestamp: '1 day ago',
-    read: true,
-    type: 'stage'
-  },
-  {
-    id: '5',
-    title: 'Request rejected',
-    description:
-    'Request REQ-004 has been rejected due to incomplete documentation.',
-    timestamp: '2 days ago',
-    read: true,
-    type: 'rejected'
-  },
-  {
-    id: '6',
-    title: 'Document uploaded',
-    description: 'Oasis Tech uploaded their Financial Statements.',
-    timestamp: '3 days ago',
-    read: true,
-    type: 'document'
-  }]
-  );
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  }
+);
+
+const data = await response.json();
+
+console.log("Notifications API:", data);
+
+setNotifications(
+  (data.notifications || []).map((item: any) => ({
+    id: String(item.id),
+title:
+  item.type === "DOCUMENT"
+    ? "New document uploaded"
+    : item.type === "REQUEST_APPROVED"
+    ? "Request approved"
+    : item.type === "REQUEST_REJECTED"
+    ? "Request rejected"
+    : item.type === "RESUBMISSION_REQUESTED"
+    ? "Resubmission requested"
+    : item.type === "NEW_COMPANY"
+    ? "New company registered"
+    : item.type,
+    
+    description: item.message,
+    timestamp: item.created_at,
+    read: item.is_read === 1,
+type:
+  item.type === "DOCUMENT"
+    ? "document"
+    : item.type === "REQUEST_APPROVED"
+    ? "approved"
+    : item.type === "REQUEST_REJECTED"
+    ? "rejected"
+    : item.type === "RESUBMISSION_REQUESTED"
+    ? "alert"
+    : item.type === "STAGE_CHANGED"
+    ? "stage"
+    : "alert"  }))
+);
+  } catch (error) {
+    console.error(error);
+  }
+}; 
+
+  
   const filteredNotifications = notifications.filter((n) => {
     if (filter === 'unread') return !n.read;
     if (filter === 'read') return n.read;
