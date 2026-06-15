@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useTranslation } from '../node_modules/react-i18next';
-
+import VerifyOTP from "./pages/VerifyOTP";
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 
@@ -82,7 +82,10 @@ function AppContent() {
       <main className="overflow-x-hidden">
 
         <Routes>
-
+<Route
+path="/verify-otp"
+element={<VerifyOTP />}
+/>
           {/* Home */}
           <Route
             path="/"

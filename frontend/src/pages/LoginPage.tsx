@@ -34,52 +34,157 @@ const sectors = [
   const BackIcon = isArabic ? ArrowRight : ArrowLeft;
 const navigate = useNavigate();
 const handleLogin = async () => {
-  try {
-    const res = await fetch('http://localhost:3000/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        email,
-        password
-      })
-    });
 
+try {
 
-    const data = await res.json();
+const res =
+await fetch(
+"http://localhost:3000/auth/login",
+{
 
-if (res.ok) {
-  localStorage.setItem("user", JSON.stringify(data.user));
+method:
+"POST",
 
-  //alert('تم تسجيل الدخول 🎉');
+headers: {
 
-  if (res.ok) {
-  localStorage.setItem("token", data.token);
-  localStorage.setItem("user", JSON.stringify(data.user));
+"Content-Type":
+"application/json"
 
-  const role = data.user.role;
-// توجيه الصفحات حسب كل دور ***********************************************************
-  if (role === "ADMIN") {
-    navigate("/admin");
-  } else if (role === "CLIENT") {
-    navigate("/company-dashboard");
-  } else {
-    navigate("/employee-dashboard");
-  }
+},
 
-} else {
-  alert(data.message);
+body:
+JSON.stringify({
+
+email,
+
+password
+
+})
+
 }
-} else {
-  alert(data.message);
+);
+
+const data =
+await res.json();
+
+console.log(
+"LOGIN RESPONSE =",
+data
+);
+
+// دخول بـ OTP
+if (
+res.ok
+&&
+data.requiresOTP
+) {
+
+navigate(
+"/verify-otp",
+{
+
+state: {
+
+email,
+
+password,
+
+isLogin:
+true
+
 }
 
-  } catch (err) {
-    console.error(err);
-    alert('خطأ في الاتصال بالسيرفر');
-  }
+}
+
+);
+
+return;
+
+}
+
+// دخول مباشر
+if (
+res.ok
+) {
+
+localStorage.setItem(
+"token",
+data.token
+);
+
+localStorage.setItem(
+
+"user",
+
+JSON.stringify(
+data.user
+)
+
+);
+
+const role =
+data.user.role;
+
+if (
+role ===
+"ADMIN"
+) {
+
+navigate(
+"/admin"
+);
+
+}
+
+else if (
+
+role ===
+"CLIENT"
+
+) {
+
+navigate(
+"/company-dashboard"
+);
+
+}
+
+else {
+
+navigate(
+"/employee-dashboard"
+);
+
+}
+
+return;
+
+}
+
+alert(
+data.message
+||
+"فشل تسجيل الدخول"
+);
+
+}
+
+catch (
+err
+) {
+
+console.error(
+err
+);
+
+alert(
+"خطأ في الاتصال بالسيرفر"
+);
+
+}
+
 };
+
   const renderInput = ({
     label,
     placeholder,
@@ -153,59 +258,134 @@ const handleSubmit = async (e: React.FormEvent) => {
   console.log("SUBMIT CLICKED", isLogin);
   // تسجيل دخول
 if (isLogin) {
-  await handleLogin(); // 👈 هذا أهم سطر
+  console.log("LOGIN FUNCTION CALLED");
+  await handleLogin(); 
   return;
 }
+// تحقق كلمة المرور
 
+if (password !== confirmPassword) {
+
+alert("كلمتا المرور غير متطابقتين");
+
+return;
+
+}
+
+const strongPassword =
+/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+
+if (!strongPassword.test(password)) {
+
+alert(
+"كلمة المرور يجب أن تحتوي على:\n• 8 أحرف على الأقل\n• حرف كبير\n• رقم\n• رمز خاص"
+);
+
+return;
+
+}
  // إنشاء حساب
 try {
 
-const res = await fetch(
-  "http://localhost:3000/auth/register-with-company",
-  {
-    method: "POST",
+  const res = await fetch('http://localhost:3000/auth/register-with-company', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      name,
-      email,
-      password,
-      company_name: companyName,
-      manager_name: companyManager,
-      sector_id: Number(sector),
-      country,
-      phone: contactNumber,
-      description: companyDescription,
-      branches_count: Number(branchesCount),
-      founders: founders
-        .split(",")
-        .map((f) => f.trim())
-        .filter((f) => f.length > 0),
-    }),
-  }
-);
+
+body: JSON.stringify({
+  name,
+  email,
+  password,
+  company_name: companyName,
+  sector_id: Number(sector),
+  phone: contactNumber,
+  description: companyDescription,
+  country,
+founders: founders
+  .split(',')
+  .map((f) => f.trim())
+  .filter((f) => f.length > 0)})
+
+  });
 
   const data = await res.json();
 
   console.log("RESPONSE:", data);
+console.log(
+"OTP CHECK",
+res.ok,
+data
+);
 
-  if (res.ok) {
+if (
+res.ok
+&&
+data.requiresOTP
+) {
 
-  // حفظ التوكن
-  localStorage.setItem("token", data.token);
+navigate(
+"/verify-otp",
+{
 
-  // حفظ بيانات المستخدم
-  localStorage.setItem("user", JSON.stringify(data.user));
+state: {
 
-  // تحويل للداشبورد
-  navigate('/company-dashboard');
+email,
 
-} else {
+formData: {
 
-  alert(data.message || 'صار خطأ');
+name,
+
+email,
+
+password,
+
+company_name:
+companyName,
+
+manager_name:
+companyManager,
+
+sector_id:
+Number(
+sector
+),
+
+phone:
+contactNumber,
+
+description:
+companyDescription,
+
+country,
+
+founders:
+founders
+.split(",")
+.map(
+(f)=>
+f.trim()
+)
+.filter(
+(f)=>
+f.length > 0)
+
+},
+isLogin: false
+}
 
 }
+);
+
+return;
+
+}
+
+alert(
+data.message
+||
+"صار خطأ"
+);
 
 } catch (err) {
 
@@ -219,46 +399,19 @@ const res = await fetch(
       {/* Top Bar */}
       <div className="bg-white shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-
-  {/* Logo - Left */}
-<Link
-  to="/"
-  className="flex items-center gap-3"
->
-  <img
-    src="/StepInLogo.png"
-    alt="STEPIN"
-    className="h-14 w-10 object-contain"
-  />
-
-  <div>
-            <h3 className="text-[#1E3A5F] font-bold text-lg">
-              StepIn
-            </h3>      
-       <p className="text-xs text-slate-500">Saudi market entry, simplified</p>
-  </div>
-</Link>
-
-  {/* Back Button - Right */}
-  <Link
-    to="/"
-className={`flex items-center gap-3 text-brand-navy hover:text-brand-gold transition-colors group ${
-  isArabic ? "flex-row" : "flex-row-reverse"
-}`}
-  >
-    <span className="font-medium">
-      {t('common.backHome')}
-    </span>
-    <BackIcon
-      className={`w-5 h-5 transition-transform ${
-        isArabic
-          ? "group-hover:translate-x-1"
-          : "group-hover:-translate-x-1"
-      }`}
-    />
-  </Link>
-
-</div>
+          <Link
+            to="/"
+            className="flex items-center gap-3 text-brand-navy hover:text-brand-gold transition-colors group">
+            <BackIcon className={`w-5 h-5 transition-transform ${isArabic ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`} />
+            <span className="font-medium">{t('common.backHome')}</span>
+          </Link>
+          <Link to="/">
+            <img
+              src="/Screenshot_2026-04-22_142843.png"
+              alt={t('common.brand')}
+              className="h-12 w-auto object-contain" />
+          </Link>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -525,7 +678,7 @@ className={`flex items-center gap-3 text-brand-navy hover:text-brand-gold transi
                 </div>
               }
 
-              <button
+<button
   type="submit"
   className="w-full bg-brand-gold text-brand-navy hover:bg-yellow-500 font-bold py-4 rounded-xl"
 >

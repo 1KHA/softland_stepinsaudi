@@ -8,10 +8,44 @@ const authMiddleware = require('../middleware/authMiddleware');
 const checkOwnership = require('../middleware/ownership');
 const checkRole = require("../middleware/checkRole");
 
-const { generateWorkflow } = require('../services/workflow.service');
+const { generateWorkflow } =
+require('../services/workflow.service');
+
+const { sendOTP } =
+require("../services/email.service");
 
 const PHONE_REGEX = /^\d{10}$/;
 
+function generateOTP() {
+
+return Math.floor(
+100000 +
+Math.random() *
+900000
+).toString();
+
+}
+
+function getExpiry() {
+
+return new Date(
+Date.now() +
+5 *
+60 *
+1000
+).toISOString();
+
+}
+
+function getResendTime() {
+
+return new Date(
+Date.now() +
+35 *
+1000
+).toISOString();
+
+}
 // ================= HELPERS =================
 
 function sendSuccess(res, message, data = {}, status = 200) {
@@ -111,7 +145,101 @@ router.post('/register-with-company', async (req, res) => {
           );
 
         }
+const otp =
+generateOTP();
 
+db.run(
+`
+DELETE FROM otp_requests
+WHERE email = ?
+AND type = 'REGISTER'
+`,
+[email]
+);
+
+db.run(
+`
+INSERT INTO otp_requests
+(
+email,
+otp,
+type,
+payload,
+expires_at,
+resend_after
+)
+VALUES
+(
+?,
+?,
+?,
+?,
+?,
+?
+)
+`,
+[
+email,
+otp,
+'REGISTER',
+
+JSON.stringify(
+req.body
+),
+
+getExpiry(),
+
+getResendTime()
+],
+
+async (otpErr) => {
+
+if (otpErr) {
+
+console.log(
+otpErr
+);
+
+return sendError(
+res,
+500,
+'OTP error'
+);
+
+}
+
+try {
+
+await sendOTP(
+email,
+otp
+);
+
+return sendSuccess(
+res,
+'OTP sent',
+{
+requiresOTP:
+true
+}
+);
+
+}
+
+catch {
+
+return sendError(
+res,
+500,
+'Email failed'
+);
+
+}
+
+}
+);
+
+return;
         // hash password
         const hashedPassword =
           await bcrypt.hash(password, 10);
@@ -325,122 +453,408 @@ VALUES (?, ?, ?, ?, ?, ?)
 });
 
 // ================= LOGIN =================
-
 router.post('/login', async (req, res) => {
 
-  try {
+try {
 
-    const {
-      email,
-      password
-    } = req.body;
+const {
+email,
+password
+} = req.body;
 
-    if (!email || !password) {
-
-      return sendError(
-        res,
-        400,
-        'Email and password are required'
-      );
-
-    }
-
-    findUserByEmail(
-      email,
-      async (err, user) => {
-
-        if (err) {
-
-          console.error(err);
-
-          return sendError(
-            res,
-            500,
-            'Database error'
-          );
-
-        }
-
-        if (!user) {
-
-          return sendError(
-            res,
-            401,
-            'Invalid credentials'
-          );
-
-        }
 if (
-  user.status &&
-  user.status.toUpperCase() === "INACTIVE"
+!email ||
+!password
 ) {
-  return sendError(
-    res,
-    403,
-    "Your account has been deactivated"
-  );
+
+return sendError(
+res,
+400,
+'Email and password are required'
+);
+
 }
-        const isMatch =
-          await bcrypt.compare(
-            password,
-            user.password
-          );
 
-        if (!isMatch) {
+findUserByEmail(
 
-          return sendError(
-            res,
-            401,
-            'Invalid credentials'
-          );
+email,
 
-        }
+async (
+err,
+user
+) => {
 
-        const token = jwt.sign(
-          {
-            id: user.id,
-            role: user.role,
-            company_id: user.company_id
-          },
-          process.env.JWT_SECRET || 'secret_key',
-          {
-            expiresIn: '7d'
-          }
-        );
+if (err) {
 
-        sendSuccess(
-          res,
-          'Login successful ✅',
-          {
-            token,
+console.error(err);
 
-            user: {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              role: user.role,
-              company_id: user.company_id
-            }
-          }
-        );
+return sendError(
+res,
+500,
+'Database error'
+);
 
-      }
-    );
+}
 
-  } catch (error) {
+if (!user) {
 
-    console.error(error);
+return sendError(
+res,
+401,
+'Invalid credentials'
+);
 
-    sendError(
-      res,
-      500,
-      'Server error'
-    );
+}
 
-  }
+if (
+user.status &&
+user.status.toUpperCase() === 'INACTIVE'
+) {
+
+return sendError(
+res,
+403,
+'Your account has been deactivated'
+);
+
+}
+
+const isMatch =
+await bcrypt.compare(
+password,
+user.password
+);
+
+if (!isMatch) {
+
+return sendError(
+res,
+401,
+'Invalid credentials'
+);
+
+}
+
+// إنشاء OTP
+const otp =
+generateOTP();
+
+// حذف أي OTP قديم
+db.run(
+`
+DELETE FROM otp_requests
+WHERE email = ?
+AND type = 'LOGIN'
+`,
+[email]
+);
+
+// حفظ OTP
+db.run(
+`
+INSERT INTO otp_requests
+(
+email,
+otp,
+type,
+expires_at,
+resend_after
+)
+VALUES
+(
+?,
+?,
+?,
+?,
+?
+)
+`,
+[
+email,
+otp,
+'LOGIN',
+getExpiry(),
+getResendTime()
+],
+
+async (otpErr) => {
+
+if (otpErr) {
+
+console.log(otpErr);
+
+return sendError(
+res,
+500,
+'OTP error'
+);
+
+}
+
+try {
+
+await sendOTP(
+email,
+otp
+);
+
+return sendSuccess(
+res,
+'OTP sent',
+{
+requiresOTP:
+true
+}
+);
+
+}
+
+catch (mailErr) {
+
+console.log(
+mailErr
+);
+
+return sendError(
+res,
+500,
+'Email failed'
+);
+
+}
+
+}
+
+);
+
+}
+
+);
+
+}
+
+catch (error) {
+
+console.error(error);
+
+return sendError(
+res,
+500,
+'Server error'
+);
+
+}
 
 });
+router.post(
+"/verify-login-otp",
 
+async (
+req,
+res
+) => {
+
+try {
+
+const {
+email,
+otp
+} = req.body;
+
+if (
+!email ||
+!otp
+) {
+
+return sendError(
+res,
+400,
+"OTP required"
+);
+
+}
+
+db.get(
+
+`
+SELECT *
+FROM otp_requests
+WHERE email = ?
+AND otp = ?
+AND type = 'LOGIN'
+`,
+
+[
+email,
+otp
+],
+
+(
+err,
+otpRow
+) => {
+
+if (
+err
+) {
+
+return sendError(
+res,
+500,
+"Database error"
+);
+
+}
+
+if (
+!otpRow
+) {
+
+return sendError(
+res,
+400,
+"رمز التحقق غير صحيح"
+);
+
+}
+
+if (
+new Date(
+otpRow.expires_at
+) < new Date()
+) {
+
+return sendError(
+res,
+400,
+"انتهت صلاحية الرمز"
+);
+
+}
+
+findUserByEmail(
+
+email,
+
+async (
+err,
+user
+) => {
+
+if (
+err ||
+!user
+) {
+
+return sendError(
+res,
+404,
+"User not found"
+);
+
+}
+
+const token =
+jwt.sign(
+
+{
+id:
+user.id,
+
+role:
+user.role,
+
+company_id:
+user.company_id
+
+},
+
+process.env.JWT_SECRET
+||
+"secret_key",
+
+{
+expiresIn:
+"7d"
+}
+
+);
+
+db.run(
+
+`
+DELETE FROM otp_requests
+WHERE email = ?
+AND type = 'LOGIN'
+`,
+
+[
+email
+]
+
+);
+
+return sendSuccess(
+
+res,
+
+"Login successful ✅",
+
+{
+
+token,
+
+user: {
+
+id:
+user.id,
+
+name:
+user.name,
+
+email:
+user.email,
+
+role:
+user.role,
+
+company_id:
+user.company_id
+
+}
+
+}
+
+);
+
+}
+
+);
+
+}
+
+);
+
+}
+
+catch (
+error
+) {
+
+console.log(
+error
+);
+
+return sendError(
+res,
+500,
+"Server error"
+);
+
+}
+
+}
+);
 // ================= CURRENT USER =================
 
 router.get(
@@ -1421,4 +1835,307 @@ router.post(
   }
   );
 
+  router.post(
+'/verify-register-otp',
+
+async (
+req,
+res
+) => {
+
+try {
+
+const {
+email,
+otp
+} =
+req.body;
+
+db.get(
+`
+SELECT *
+FROM otp_requests
+WHERE email = ?
+AND type =
+'REGISTER'
+`,
+[email],
+
+async (
+err,
+record
+) => {
+
+if (
+err
+||
+!record
+) {
+
+return sendError(
+res,
+404,
+'OTP not found'
+);
+
+}
+
+if (
+record.otp
+!== otp
+) {
+
+return sendError(
+res,
+400,
+'Invalid OTP'
+);
+
+}
+
+if (
+new Date()
+>
+new Date(
+record.expires_at
+)
+) {
+
+return sendError(
+res,
+400,
+'OTP expired'
+);
+
+}
+
+const data =
+JSON.parse(
+record.payload
+);
+
+const hashedPassword =
+await bcrypt.hash(
+data.password,
+10
+);
+
+// رجعنا للكود القديم
+// إنشاء الشركة
+
+db.run(
+`
+INSERT INTO companies
+(
+name,
+manager_name,
+country,
+sector_id,
+description,
+phone,
+email,
+status
+)
+VALUES
+(
+?,
+?,
+?,
+?,
+?,
+?,
+?,
+?
+)
+`,
+[
+data.company_name,
+
+data.manager_name
+||
+data.name,
+
+data.country,
+
+data.sector_id,
+
+data.description
+||
+"",
+
+data.phone
+||
+"",
+
+data.email,
+
+"PENDING"
+],
+
+function (
+companyErr
+) {
+
+if (
+companyErr
+) {
+
+return sendError(
+res,
+500,
+'Company error'
+);
+
+}
+
+const companyId =
+this.lastID;
+
+generateWorkflow(
+companyId,
+data.sector_id
+);
+
+db.run(
+`
+INSERT INTO users
+(
+name,
+email,
+password,
+role,
+company_id,
+status
+)
+VALUES
+(
+?,
+?,
+?,
+?,
+?,
+?
+)
+`,
+[
+data.name,
+
+data.email,
+
+hashedPassword,
+
+"CLIENT",
+
+companyId,
+
+"ACTIVE"
+],
+
+function (
+userErr
+) {
+
+if (
+userErr
+) {
+
+return sendError(
+res,
+500,
+'User error'
+);
+
+}
+
+db.run(
+`
+DELETE
+FROM otp_requests
+WHERE id = ?
+`,
+[
+record.id
+]
+);
+
+const token =
+jwt.sign(
+
+{
+
+id:
+this.lastID,
+
+role:
+'CLIENT',
+
+company_id:
+companyId
+
+},
+
+process.env.JWT_SECRET
+||
+'secret_key',
+
+{
+
+expiresIn:
+'7d'
+
+}
+
+);
+
+return sendSuccess(
+res,
+'Account created',
+{
+
+token,
+
+user: {
+
+id: this.lastID,
+
+name: data.name,
+
+email: data.email,
+
+role: "CLIENT",
+
+company_id: companyId
+
+}
+
+}
+
+);
+
+}
+
+);
+
+}
+
+);
+
+}
+
+);
+
+}
+
+catch {
+
+return sendError(
+res,
+500,
+'Server error'
+);
+
+}
+
+}
+);
 module.exports = router;

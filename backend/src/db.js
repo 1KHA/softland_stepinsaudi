@@ -273,6 +273,33 @@ ALTER TABLE task_documents
 ADD COLUMN required_document_name TEXT
 `, () => {});
 
+
+db.run(`
+CREATE TABLE IF NOT EXISTS otp_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+  email TEXT NOT NULL,
+
+  otp TEXT NOT NULL,
+
+  type TEXT CHECK(
+    type IN (
+      'REGISTER',
+      'LOGIN'
+    )
+  ) NOT NULL,
+
+  payload TEXT,
+
+  expires_at DATETIME NOT NULL,
+
+  resend_after DATETIME NOT NULL,
+
+  created_at DATETIME
+  DEFAULT CURRENT_TIMESTAMP
+)
+`);
+
 // ─── NOTIFICATIONS TABLE ───────────────────────────────
 db.run(`
 CREATE TABLE IF NOT EXISTS notifications (
