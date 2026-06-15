@@ -407,7 +407,7 @@ data.message
           </Link>
           <Link to="/">
             <img
-              src="/Screenshot_2026-04-22_142843.png"
+              src="/StepInLogo.png"
               alt={t('common.brand')}
               className="h-12 w-auto object-contain" />
           </Link>

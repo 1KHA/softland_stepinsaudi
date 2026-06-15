@@ -7,8 +7,35 @@ export default function CompanyHeader() {
   const location = useLocation();
 
   const [unreadCount, setUnreadCount] = useState(0);
+const handleLogout = async () => {
 
+try {
+
+await axios.post(
+"http://localhost:3000/auth/logout"
+);
+
+} catch (err) {
+
+console.log(err);
+
+}
+
+localStorage.removeItem(
+"token"
+);
+
+localStorage.removeItem(
+"user"
+);
+
+navigate(
+"/login"
+);
+
+};
 useEffect(() => {
+  
   const fetchUnreadCount = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -113,6 +140,26 @@ const active =
               </button>
             );
           })}
+          <button
+onClick={handleLogout}
+className="
+ml-4
+px-5
+py-2.5
+rounded-xl
+text-sm
+font-semibold
+border
+border-red-200
+text-red-500
+hover:bg-red-50
+transition
+"
+>
+
+Logout
+
+</button>
         </div>
       </div>
     </div>
