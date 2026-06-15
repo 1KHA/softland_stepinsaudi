@@ -285,9 +285,12 @@ CREATE TABLE IF NOT EXISTS otp_requests (
   type TEXT CHECK(
     type IN (
       'REGISTER',
-      'LOGIN'
+      'LOGIN',
+      'RESET_PASSWORD'
     )
   ) NOT NULL,
+
+
 
   payload TEXT,
 

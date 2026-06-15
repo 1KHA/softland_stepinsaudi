@@ -5,7 +5,7 @@ const resources = {
   en: {
     translation: {
       common: {
-        brand: 'StepIn',
+        brand: 'STEPIN',
         switchLanguage: 'Switch language',
         english: 'EN',
         arabic: 'AR',

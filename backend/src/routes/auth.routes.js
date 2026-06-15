@@ -2138,4 +2138,184 @@ res,
 
 }
 );
+
+router.post(
+"/forgot-password",
+
+async (req, res) => {
+
+const { email } = req.body;
+
+findUserByEmail(
+email,
+
+async (err, user) => {
+
+if (err || !user) {
+
+return sendError(
+res,
+404,
+"Email not found"
+);
+
+}
+
+const otp =
+generateOTP();
+
+db.run(
+`
+DELETE FROM otp_requests
+WHERE email = ?
+AND type = 'RESET_PASSWORD'
+`,
+[
+email
+]
+);
+
+db.run(
+`
+INSERT INTO otp_requests
+(
+email,
+otp,
+type,
+expires_at,
+resend_after
+)
+VALUES
+(
+?,
+?,
+?,
+?,
+?
+)
+`,
+[
+email,
+otp,
+"RESET_PASSWORD",
+getExpiry(),
+getResendTime()
+]
+);
+
+await sendOTP(
+email,
+otp
+);
+
+return sendSuccess(
+res,
+"OTP sent",
+{
+requiresOTP: true
+}
+);
+
+}
+
+);
+
+}
+);
+router.post(
+"/reset-password",
+
+async (
+req,
+res
+) => {
+
+const {
+email,
+otp,
+password
+} =
+req.body;
+
+db.get(
+`
+SELECT *
+FROM otp_requests
+WHERE email = ?
+AND type =
+'RESET_PASSWORD'
+`,
+[email],
+
+async (
+err,
+record
+) => {
+
+if (
+!record
+) {
+
+return sendError(
+res,
+404,
+"OTP not found"
+);
+
+}
+
+if (
+record.otp
+!== otp
+) {
+
+return sendError(
+res,
+400,
+"Invalid OTP"
+);
+
+}
+
+const hashed =
+await bcrypt.hash(
+password,
+10
+);
+
+db.run(
+`
+UPDATE users
+SET password = ?
+WHERE email = ?
+`,
+[
+hashed,
+email
+]
+);
+
+db.run(
+`
+DELETE FROM otp_requests
+WHERE id = ?
+`,
+[
+record.id
+]
+);
+
+return sendSuccess(
+res,
+"Password updated"
+);
+
+}
+
+);
+
+}
+);
+
+console.log("END OF AUTH FILE");
 module.exports = router;

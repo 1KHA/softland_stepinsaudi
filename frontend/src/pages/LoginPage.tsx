@@ -670,11 +670,28 @@ data.message
 
               {isLogin &&
               <div className="flex justify-start">
-                  <button
-                  type="button"
-                  className="text-sm text-brand-gold hover:text-yellow-600 font-medium transition-colors">
-                    {t('login.forgotPassword')}
-                  </button>
+                <button
+type="button"
+
+onClick={() =>
+navigate(
+"/forgot-password"
+)
+}
+
+className="
+text-sm
+text-brand-gold
+hover:text-yellow-600
+font-medium
+transition-colors
+"
+
+>
+
+{t('login.forgotPassword')}
+
+</button>
                 </div>
               }
 

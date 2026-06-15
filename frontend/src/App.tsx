@@ -4,7 +4,7 @@ import { useTranslation } from '../node_modules/react-i18next';
 import VerifyOTP from "./pages/VerifyOTP";
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
-
+import NewPassword from "./pages/NewPassword";
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 
@@ -13,7 +13,7 @@ import CompanyProfile from './pages/CompanyProfile';
 import TaskDetails from './pages/TaskDetails';
 import CompanyNotifications from "./pages/CompanyNotifications.tsx";
 import CompanyLicenses from "./pages/CompanyLicenses.tsx";
-
+import ForgotPassword from "./pages/ForgotPassword";
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import EmployeeRequests from './pages/employee/EmployeeRequests';
 import RequestDetails from './pages/employee/RequestDetails.tsx';
@@ -86,6 +86,10 @@ function AppContent() {
 path="/verify-otp"
 element={<VerifyOTP />}
 />
+<Route
+path="/new-password"
+element={<NewPassword />}
+/>
           {/* Home */}
           <Route
             path="/"
@@ -97,7 +101,10 @@ element={<VerifyOTP />}
             path="/login"
             element={<LoginPage />}
           />
-
+<Route
+path="/forgot-password"
+element={<ForgotPassword />}
+/>
           {/* Dashboard */}
           <Route
             path="/company-dashboard"

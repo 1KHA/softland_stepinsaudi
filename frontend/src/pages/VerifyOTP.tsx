@@ -20,6 +20,9 @@ const [seconds, setSeconds] = useState(35);
 const isLogin =
 location.state?.isLogin;
 
+const isReset =
+location.state?.isResetPassword;
+
 useEffect(() => {
 
 if (!email) {
@@ -91,7 +94,15 @@ true
 try {
 
 const endpoint =
+isReset
+?
+
+"http://localhost:3000/auth/reset-password"
+
+:
+
 isLogin
+
 ?
 
 "http://localhost:3000/auth/verify-login-otp"
@@ -99,7 +110,6 @@ isLogin
 :
 
 "http://localhost:3000/auth/verify-register-otp";
-
 const res =
 await fetch(
 endpoint,
@@ -116,13 +126,36 @@ headers: {
 },
 
 body:
-JSON.stringify({
+JSON.stringify(
+
+isReset
+
+?
+
+{
+
+email,
+
+otp,
+
+password:
+location
+.state
+?.password
+
+}
+
+:
+
+{
 
 email,
 
 otp
 
-})
+}
+
+)
 
 }
 );
@@ -134,13 +167,20 @@ if (
 res.ok
 ) {
 
-localStorage
-.setItem(
+if (
+!isReset &&
+data.token
+) {
+
+localStorage.setItem(
 "token",
 data.token
 );
 
+}
+
 if (
+!isReset &&
 data.user
 ) {
 
@@ -157,9 +197,27 @@ data.user
 
 }
 
+if (
+isReset
+) {
+
+alert(
+"تم تغيير كلمة المرور"
+);
+
+navigate(
+"/login"
+);
+
+}
+
+else {
+
 navigate(
 "/company-dashboard"
 );
+
+}
 
 }
 
@@ -205,7 +263,17 @@ true
 try {
 
 const endpoint =
+
+isReset
+
+?
+
+"http://localhost:3000/auth/forgot-password"
+
+:
+
 isLogin
+
 ?
 
 "http://localhost:3000/auth/login"
@@ -213,26 +281,34 @@ isLogin
 :
 
 "http://localhost:3000/auth/register-with-company";
-
 const body =
-isLogin
+
+isReset
+
 ?
 
 {
+email
+}
 
+:
+
+isLogin
+
+?
+
+{
 email,
 
 password:
 location
 .state
 ?.password
-
 }
 
 :
 
 formData;
-
 const res =
 await fetch(
 endpoint,

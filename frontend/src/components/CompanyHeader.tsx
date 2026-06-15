@@ -91,7 +91,7 @@ className="w-12 h-12 object-contain"          />
 
           <div>
             <h3 className="text-[#1E3A5F] font-bold text-lg">
-              StepIn
+              STEPIN
             </h3>
 
 <p className="text-xs text-[#8E8E8E]">
