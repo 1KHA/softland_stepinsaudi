@@ -1,6 +1,6 @@
 import React from 'react';
 import { Phone, Mail, Linkedin, MapPin } from 'lucide-react';
-import { useTranslation } from '../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 
 export function Footer() {
   const { t, i18n } = useTranslation();

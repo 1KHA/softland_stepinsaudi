@@ -75,64 +75,80 @@ export const Settings: React.FC = () => {
   };
 
   const handleProfileSave = () => {
-    const errors = { email: '', phone: '' };
-    if (!platformEmail.trim()) {
-      errors.email = t('fieldRequired');
-    }
-    if (!supportContact.trim()) {
-      errors.phone = t('fieldRequired');
-    }
-    if (errors.email || errors.phone) {
-      setSettingsErrors(errors);
-      return;
-    }
-    setSettingsErrors({ email: '', phone: '' });
-    setSettingsSuccess(localText.settingsSaved);
-    window.setTimeout(() => setSettingsSuccess(''), 4000);
-  };
+  const errors = { email: '', phone: '' };
 
-  const handlePasswordFieldChange = (field: keyof PasswordForm, value: string) => {
-    setPasswordForm((prev) => ({ ...prev, [field]: value }));
-    if (passwordErrors[field]) {
-      setPasswordErrors((prev) => ({ ...prev, [field]: '' }));
-    }
-  };
+  if (!platformEmail.trim()) {
+    errors.email = t('fieldRequired');
+  }
 
-  const handlePasswordSave = () => {
-    const errors: Partial<PasswordForm> = {};
-    if (!passwordForm.currentPassword.trim()) {
-      errors.currentPassword = t('fieldRequired');
-    }
-    if (!passwordForm.newPassword.trim()) {
-      errors.newPassword = t('fieldRequired');
-    }
-    if (!passwordForm.confirmNewPassword.trim()) {
-      errors.confirmNewPassword = t('fieldRequired');
-    }
-    if (passwordForm.newPassword && passwordForm.confirmNewPassword && passwordForm.newPassword !== passwordForm.confirmNewPassword) {
-      errors.confirmNewPassword = localText.passwordMismatch;
-    }
-    if (Object.keys(errors).length > 0) {
-      setPasswordErrors(errors);
-      return;
-    }
-    setPasswordErrors({});
-    setIsVerificationStep(true);
-  };
+  if (!supportContact.trim()) {
+    errors.phone = t('fieldRequired');
+  }
 
-  // Simulated API call for password change with verification step
-  const handleVerificationSubmit = async () => {
+  if (errors.email || errors.phone) {
+    setSettingsErrors(errors);
+    return;
+  }
 
+  setSettingsErrors({ email: '', phone: '' });
+
+  setSettingsSuccess(t('settingsSaved'));
+
+  window.setTimeout(() => setSettingsSuccess(''), 4000);
+};
+
+const handlePasswordFieldChange = (
+  field: keyof PasswordForm,
+  value: string
+) => {
+  setPasswordForm((prev) => ({ ...prev, [field]: value }));
+
+  if (passwordErrors[field]) {
+    setPasswordErrors((prev) => ({ ...prev, [field]: '' }));
+  }
+};
+
+const handlePasswordSave = () => {
+  const errors: Partial<PasswordForm> = {};
+
+  if (!passwordForm.currentPassword.trim()) {
+    errors.currentPassword = t('fieldRequired');
+  }
+
+  if (!passwordForm.newPassword.trim()) {
+    errors.newPassword = t('fieldRequired');
+  }
+
+  if (!passwordForm.confirmNewPassword.trim()) {
+    errors.confirmNewPassword = t('fieldRequired');
+  }
+
+  if (
+    passwordForm.newPassword &&
+    passwordForm.confirmNewPassword &&
+    passwordForm.newPassword !== passwordForm.confirmNewPassword
+  ) {
+    errors.confirmNewPassword = t('passwordMismatch');
+  }
+
+  if (Object.keys(errors).length > 0) {
+    setPasswordErrors(errors);
+    return;
+  }
+
+  setPasswordErrors({});
+  setIsVerificationStep(true);
+};
+
+// Simulated API call for password change with verification step
+const handleVerificationSubmit = async () => {
   try {
-
     if (!passwordForm.verificationCode.trim()) {
-
       setPasswordErrors({
-        verificationCode: localText.codeRequired
+        verificationCode: t('codeRequired')
       });
 
       return;
-
     }
 
     const token = localStorage.getItem('token');
@@ -164,9 +180,7 @@ export const Settings: React.FC = () => {
 
     setPasswordErrors({});
 
-    setPasswordSuccessMessage(
-      localText.passwordChanged
-    );
+    setPasswordSuccessMessage(t('passwordChanged'));
 
     window.setTimeout(() => {
 
@@ -189,7 +203,7 @@ export const Settings: React.FC = () => {
 
     console.error(error);
 
-    alert('Error changing password');
+    alert(t('errorChangingPassword'));
 
   }
 
@@ -209,8 +223,7 @@ export const Settings: React.FC = () => {
           {t('settings')}
         </h1>
         <p className="text-gray-500 dark:text-gray-400">
-          Manage your account preferences and system configuration.
-        </p>
+          {t("settingsDescription")}        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-8">
@@ -348,7 +361,7 @@ export const Settings: React.FC = () => {
                     English (LTR)
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Default system language
+                   {t("defaultSystemLanguage")} 
                   </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -515,7 +528,7 @@ export const Settings: React.FC = () => {
                     {t('requestsNotifications')}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Get notified when a new request is submitted
+        {t("requestNotificationDescription")}
                   </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -534,7 +547,7 @@ export const Settings: React.FC = () => {
                     {t('systemNotifications')}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Updates, maintenance, and alerts
+                   {t("systemNotificationDescription")}
                   </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -651,7 +664,7 @@ export const Settings: React.FC = () => {
                   <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        {localText.currentPassword}
+                       {t('currentPassword')}
                       </label>
                       <input
                         type="password"
@@ -666,7 +679,7 @@ export const Settings: React.FC = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        {localText.newPassword}
+                      { t('newPassword')}
                       </label>
                       <input
                         type="password"
@@ -681,7 +694,7 @@ export const Settings: React.FC = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        {localText.confirmNewPassword}
+                      { t('confirmNewPassword')}
                       </label>
                       <input
                         type="password"
@@ -697,11 +710,11 @@ export const Settings: React.FC = () => {
                 ) : (
                   <div className="space-y-4">
                     <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 text-sm text-gray-700 dark:border-navy-light dark:bg-navy-light/40 dark:text-gray-300">
-                      {localText.verificationSent}
+                      {t('verificationCode')}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        {localText.verificationCode}
+                       { t('verificationCode')}
                       </label>
                       <input
                         type="text"

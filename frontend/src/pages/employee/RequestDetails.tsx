@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { Footer } from '../../components/Footer';
 import axios from 'axios';
 import {
@@ -23,6 +23,24 @@ export default function RequestDetails() {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith('ar');
   const dir = isArabic ? 'rtl' : 'ltr';
+
+  const stageTranslation: Record<string, string> = {
+  Registration: "registration",
+  Compliance: "compliance",
+  Licensing: "licensing",
+  "Final Approval": "final_approval",
+};
+
+const getStageName = (name: string) => {
+  const map: Record<string, string> = {
+    Registration: "dashboard.registration",
+    Compliance: "dashboard.compliance",
+    Licensing: "dashboard.licensing",
+    "Final Approval": "dashboard.finalApproval",
+  };
+
+  return t(map[name] || name);
+};
 
   const token = localStorage.getItem('token');
   const user = JSON.parse(
@@ -62,6 +80,13 @@ const [isProcessing, setIsProcessing] = useState(false);
   }))
 );
       console.log('NEW DATA', res.data);
+      console.table(
+  res.data.tasks.map((t: any) => ({
+    task_title: t.task_title,
+    task_title_ar: t.task_title_ar,
+  }))
+);
+
       setData(res.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -84,10 +109,7 @@ const [isProcessing, setIsProcessing] = useState(false);
       { headers }
     );
 
-showToast(
-  "Document marked for resubmission ✅",
-  "success"
-);
+showToast(t("documentNeedsResubmission"), "success");
 
 
     setShowConfirm(null);
@@ -98,10 +120,7 @@ showToast(
   } catch (err) {
     console.error(err);
 
-    showToast(
-  "Failed to update document",
-  "error"
-);
+showToast(t("documentUpdateFailed"), "error");
   }
 
   return;
@@ -203,7 +222,9 @@ const confirmMsg: Record<ActionType, string> = {
   approve: t("employee.requestDetails.confirmation.approve"),
   reject: t("employee.requestDetails.confirmation.reject"),
   resubmit: t("employee.requestDetails.confirmation.requestEdit"),
-  documentReject: "Please enter the reason for requesting the document again.",
+documentReject: t(
+  "employee.requestDetails.confirmation.reasonPlaceholder"
+),
 };
 
 const canManageRequest =
@@ -276,7 +297,8 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
       {/* ── HEADER ── */}
       <div className="bg-white shadow-sm px-8 py-5 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/employee-requests')} className="flex items-center gap-2 text-[#1E3A5F] hover:text-[#C5A55A] transition">
+          <button
+  onClick={() => navigate('/admin/requests')} className="flex items-center gap-2 text-[#1E3A5F] hover:text-[#C5A55A] transition">
             <ArrowBack className="w-5 h-5" />
           </button>
           <div>
@@ -385,7 +407,7 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
                     }`}>
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-gray-400" />
-                        <span className="font-semibold text-[#1E3A5F] text-sm">{stage.stage_name}</span>
+                        <span className="font-semibold text-[#1E3A5F] text-sm">{getStageName(stage.stage_name)}</span>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusCls(stage.status)}`}>
                         {statusLabel(stage.status)}
@@ -399,7 +421,9 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
     className="flex items-center justify-between px-4 py-2.5 bg-white"
   >
     <span className="text-sm text-gray-600">
-      {task.task_title}
+      {isArabic
+  ? (task.task_title_ar || task.task_title)
+  : task.task_title}
     </span>
 
     <div className="flex items-center gap-2">
@@ -431,10 +455,10 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
     }}
     className="border rounded px-2 py-1 text-xs"
   >
-    <option value="PENDING">Pending</option>
-    <option value="IN_PROGRESS">In Progress</option>
-    <option value="COMPLETED">Completed</option>
-    <option value="REJECTED">Rejected</option>
+<option value="PENDING">{t("employee.status.pending")}</option>
+<option value="IN_PROGRESS">{t("employee.status.inProgress")}</option>
+<option value="COMPLETED">{t("employee.status.completed")}</option>
+<option value="REJECTED">{t("employee.status.rejected")}</option>
   </select>
 )}
 
@@ -465,7 +489,7 @@ task.status !== "COMPLETED"&& (  <>
     const file = licenseFiles[task.id];
 
 if (!file) {
-  showToast("Please select a file first", "error");
+showToast(t("selectFileFirst"), "error");
   return;
 }
 
@@ -485,25 +509,19 @@ if (!file) {
         }
       );
 
-showToast(
-  "Final license uploaded successfully ✅",
-  "success"
-);
+showToast(t("finalLicenseUploaded"), "success");
 
 await fetchDetails();
     } catch (err) {
 
       console.error(err);
 
-showToast(
-  "Upload failed",
-  "error"
-);
+showToast(t("uploadFailed"), "error");
     }
 
   }}
 >
-  Upload Final License
+  {t("uploadFinalLicense")}
 </button>
   </>
 )}
@@ -549,14 +567,13 @@ showToast(
     {doc.task_title}
   </p>
 
-  <p className="text-xs text-gray-400 mt-0.5">
-    {doc.stage_name} •{" "}
-    {new Date(doc.uploaded_at).toLocaleDateString(
-      isArabic ? "ar-SA" : "en-US"
-    )}
-  </p>
+<p className="text-xs text-gray-400 mt-0.5">
+  {getStageName(doc.stage_name)} •{" "}
+  {new Date(doc.uploaded_at).toLocaleDateString(
+    isArabic ? "ar-SA" : "en-US"
+  )}
+</p>
 </div>
-                          <p className="text-xs text-gray-400 mt-0.5">{doc.stage_name} • {new Date(doc.uploaded_at).toLocaleDateString(isArabic ? 'ar-SA' : 'en-US')}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -584,27 +601,24 @@ showToast(
           { headers }
         );
 
-        showToast(
-          "Document approved successfully ✅",
-          "success"
-        );
+showToast(t("documentApproved"), "success");
 
         await fetchDetails();
       } catch (err) {
         console.error(err);
 
-        showToast(
-          "Failed to approve document",
-          "error"
-        );
+showToast(t("documentApproveFailed"), "error");
+
       } finally {
         setProcessingDocId(null);
       }
     }}
     className="bg-green-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
   >
-    {processingDocId === doc.id ? "Processing..." : "Approve"}
-  </button>
+{processingDocId === doc.id
+  ? t("employee.documents.modal.processing")
+  : t("employee.documents.actions.approve")}
+    </button>
 )}
 
 {canManageRequest &&
@@ -619,7 +633,7 @@ showToast(
     }}
     className="bg-red-600 text-white px-3 py-1 rounded text-xs"
   >
-    Reject
+{t("employee.documents.actions.reject")}
   </button>
 )}
 </div>  

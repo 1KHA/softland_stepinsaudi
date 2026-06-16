@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from '../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 
 export function HeroSection() {
   const { t, i18n } = useTranslation();

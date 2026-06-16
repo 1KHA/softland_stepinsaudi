@@ -127,10 +127,7 @@ status:
     ? 'pending'
     : 'suspended',
 
-          registrationDate: company.created_at
-            ? new Date(company.created_at)
-                .toLocaleDateString()
-            : '',
+registrationDate: company.created_at || '',
 
           location: company.country || '',
 branches_count: company.branches_count || 0,
@@ -199,10 +196,10 @@ progress:
   };
 
 const sectorOptions = [
-  { value: 1, label: 'Entrepreneurial' },      // Entrepreneurial
-  { value: 2, label: 'industrial' },   // Industrial
-  { value: 3, label: 'commercial' },   // Commercial
-  { value: 4, label: 'realEstate' }    // Real Estate
+  { value: 1, label: 'entrepreneurial' },
+  { value: 2, label: 'industrial' },
+  { value: 3, label: 'commercial' },
+  { value: 4, label: 'realEstate' }
 ];
 
   const statusOptions = [
@@ -443,9 +440,9 @@ const updatedCompany = {
           <h1 className="text-3xl font-bold text-navy dark:text-cream-dark mb-2">
             {t('companies')}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            View and manage registered companies on the platform.
-          </p>
+<p className="text-gray-500 dark:text-gray-400">
+  {t("companiesDescription")}
+</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -529,9 +526,9 @@ const updatedCompany = {
               
                 {company.name}
               </h3>
-              <span className="inline-block px-2.5 py-1 bg-gray-100 dark:bg-navy-light/30 text-gray-600 dark:text-gray-300 rounded-md text-xs font-medium capitalize mb-3">
-                {company.sector}
-              </span>
+<span className="inline-block px-2.5 py-1 bg-gray-100 dark:bg-navy-light/30 text-gray-600 dark:text-gray-300 rounded-md text-xs font-medium capitalize mb-3">
+  {t(company.sector as any)}
+</span>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
@@ -540,7 +537,13 @@ const updatedCompany = {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <CalendarIcon size={14} />
-                  <span>{company.registrationDate}</span>
+                  <span>
+  {company.registrationDate
+    ? new Date(company.registrationDate).toLocaleDateString(
+        language === "ar" ? "ar-SA" : "en-US"
+      )
+    : ""}
+</span>
                 </div>
               </div>
             </div>
@@ -623,8 +626,20 @@ const updatedCompany = {
                     {t('sector')}
                   </p>
                   <p className="mt-2 text-sm font-medium text-navy dark:text-cream-dark">
-                    {viewCompany.sector}
-                  </p>
+<p className="mt-2 text-sm font-medium text-navy dark:text-cream-dark">
+  {language === "ar"
+    ? viewCompany.sector === "Entrepreneurial"
+      ? "ريادي"
+      : viewCompany.sector === "Industrial"
+      ? "صناعي"
+      : viewCompany.sector === "Commercial"
+      ? "تجاري"
+      : viewCompany.sector === "Real Estate"
+      ? "عقاري"
+      : viewCompany.sector
+    : viewCompany.sector}
+</p>
+</p>
                 </div>
               </div>
               <div className="space-y-4">
@@ -657,8 +672,14 @@ const updatedCompany = {
                     {t('relatedInfo')}
                   </p>
                   <p className="mt-2 text-sm font-medium text-navy dark:text-cream-dark">
-                    Type: {viewCompany.type} · Registered: {viewCompany.registrationDate}
-                  </p>
+                    {t("type")}: {t(viewCompany.type as any)} ·
+                    {t("registered")}:{" "}
+{viewCompany.registrationDate
+  ? new Date(viewCompany.registrationDate).toLocaleDateString(
+      language === "ar" ? "ar-SA" : "en-US"
+    )
+  : ""}
+                   </p>
                 </div>
               </div>
             </div>
@@ -744,8 +765,9 @@ onChange={(event) =>
                   {formErrors.sector && <p className="text-xs text-red-500">{formErrors.sector}</p>}
                 </label>
                <label className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-  <span className="font-medium">Number of Branches</span>
-
+<span className="font-medium">
+  {t("numberOfBranches")}
+</span>
   <input
     type="number"
     value={formState.branches_count}
@@ -760,7 +782,9 @@ onChange={(event) =>
 </label>
 
 <label className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-  <span className="font-medium">Company Description</span>
+<span className="font-medium">
+  {t("companyDescription")}
+</span>
 
   <textarea
     value={formState.description}
@@ -776,7 +800,9 @@ onChange={(event) =>
 </label>
 
 <label className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-  <span className="font-medium">Company Founders</span>
+<span className="font-medium">
+  {t("companyFounders")}
+</span>
 
   <input
     type="text"
@@ -789,7 +815,7 @@ onChange={(event) =>
           .map((x) => x.trim())
       )
     }
-    placeholder="Founder 1, Founder 2"
+placeholder={t("foundersPlaceholder")}
     className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm"
   />
 </label>
@@ -878,7 +904,7 @@ onChange={(event) =>
             <div className="p-6 space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-navy dark:text-cream-dark mb-2">
-                  Progress: {viewProgress.progress}%
+{t("progress")}: {viewProgress.progress}%
                 </h3>
                 <div className="relative w-full h-2 bg-gray-100 dark:bg-navy-light rounded-full">
                   <div

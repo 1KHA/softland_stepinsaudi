@@ -74,10 +74,19 @@ export const Layout: React.FC = () => {
 }] as
   const;
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-cream dark:bg-navy-dark transition-colors duration-300">
-      {/* Sidebar */}
-      <aside className="w-64 bg-navy dark:bg-navy-card text-white flex flex-col flex-shrink-0 shadow-xl z-20 transition-colors duration-300">
-        <div className="p-6 flex items-center gap-3">
+<div
+  dir={language === "ar" ? "rtl" : "ltr"}
+  className={`flex h-screen w-full overflow-hidden bg-cream dark:bg-navy-dark transition-colors duration-300 ${
+    language === "ar" ? "flex-row-reverse" : "flex-row"
+  }`}
+>
+        {/* Sidebar */}
+<aside
+  className={`w-64 bg-navy dark:bg-navy-card text-white flex flex-col flex-shrink-0 shadow-xl z-20 transition-colors duration-300 ${
+    language === "ar" ? "order-2" : "order-1"
+  }`}
+>
+            <div className="p-6 flex items-center gap-3">
   <img
     src="/StepInLogo.png"
     alt="StepIn"
@@ -123,15 +132,22 @@ export const Layout: React.FC = () => {
       </aside> 
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Navbar */}
+<div
+  className={`flex-1 flex flex-col min-w-0 overflow-hidden ${
+    language === "ar" ? "order-1" : "order-2"
+  }`}
+>
+          {/* Top Navbar */}
         <header className="h-20 bg-white dark:bg-navy-card shadow-sm flex items-center justify-between px-8 z-10 transition-colors duration-300">
           <div className="flex items-center bg-cream dark:bg-navy-dark rounded-xl px-4 py-2.5 w-96 border border-transparent focus-within:border-gold/50 transition-colors">
             <SearchIcon size={18} className="text-gray-400" />
-            <input
-              type="text"
-              placeholder={t('searchPlaceholder')}
-              className="bg-transparent border-none outline-none px-3 w-full text-sm text-navy dark:text-cream-dark placeholder-gray-400" />
+<input
+  type="text"
+  placeholder={t("searchPlaceholder")}
+  className={`bg-transparent border-none outline-none px-3 w-full text-sm text-navy dark:text-cream-dark placeholder-gray-400 ${
+    language === "ar" ? "text-right" : "text-left"
+  }`}
+/>
             
           </div>
 
@@ -170,7 +186,7 @@ export const Layout: React.FC = () => {
             <div className="h-8 w-px bg-gray-200 dark:bg-navy-light mx-2"></div>
 
             <div className="flex items-center gap-3">
-              <div className="text-right">
+              <div className={language === "ar" ? "text-right" : "text-left"}>
                 <p className="text-sm font-semibold text-navy dark:text-cream-dark">
                   {t('adminName')}
                 </p>

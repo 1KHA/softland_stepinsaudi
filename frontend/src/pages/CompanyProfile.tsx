@@ -1,11 +1,11 @@
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from '../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import CompanyHeader from "../components/CompanyHeader";
 
 export default function CompanyProfile() {
 
-    const { i18n } = useTranslation();
+const { t, i18n } = useTranslation();
 
     const user = JSON.parse(
         localStorage.getItem('user') || 'null'
@@ -247,11 +247,11 @@ return (
                     {showSuccess && (
   <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-4">
     <h3 className="font-semibold text-green-700">
-      ✅ Changes saved successfully
+✅ {t("profile.savedSuccessfully")}
     </h3>
 
     <p className="mt-1 text-sm text-green-600">
-      Company information has been updated.
+{t("profile.updatedSuccessfully")}
     </p>
   </div>
 )}
@@ -262,11 +262,11 @@ return (
                         <div>
 
                             <h2 className="text-3xl font-bold text-[#1E3A5F]">
-                                Company Profile
+                                {t("profile.companyProfile")}
                             </h2>
 
                             <p className="text-gray-500 mt-2">
-                                Manage your company information
+                                {t("profile.manageCompanyInformation")}
                             </p>
 
                         </div>
@@ -281,9 +281,9 @@ return (
                                 }`}
                         >
 
-                            {isEditing
-                                ? 'Editing Mode'
-                                : 'View Mode'}
+{isEditing
+  ? t("profile.editingMode")
+  : t("profile.viewMode")}
 
                         </button>
 
@@ -346,252 +346,223 @@ return (
 
                     </div>
 
-                    {/* Form */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+{/* Form */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                        {/* Company Name */}
-                        <div>
+  {/* Company Name */}
+  <div>
+    <label className="block text-gray-600 mb-2">
+      {t("profile.companyName")}
+    </label>
 
-                            <label className="block text-gray-600 mb-2">
-                                Company Name
-                            </label>
+    <input
+      type="text"
+      name="companyName"
+      value={companyData.companyName}
+      disabled={!isEditing}
+      onChange={handleChange}
+      className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
+    />
+  </div>
 
-                            <input
-                                type="text"
-                                name="companyName"
-                                value={companyData.companyName}
-                                disabled={!isEditing}
-                                onChange={handleChange}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
-                            />
+  {/* Manager */}
+  <div>
+    <label className="block text-gray-600 mb-2">
+      {t("profile.companyManager")}
+    </label>
 
-                        </div>
+    <input
+      type="text"
+      name="managerName"
+      value={companyData.managerName}
+      disabled={!isEditing}
+      onChange={handleChange}
+      className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
+    />
+  </div>
 
-                        {/* Manager */}
-                        <div>
+  {/* Country */}
+  <div>
+    <label className="block text-gray-600 mb-2">
+      {t("profile.country")}
+    </label>
 
-                            <label className="block text-gray-600 mb-2">
-                                Company Manager
-                            </label>
+    <select
+      name="country"
+      value={companyData.country}
+      disabled={!isEditing}
+      onChange={handleChange}
+      className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
+    >
+      {countries.map((country) => (
+        <option key={country}>
+          {country}
+        </option>
+      ))}
+    </select>
+  </div>
 
-                            <input
-                                type="text"
-                                name="managerName"
-                                value={companyData.managerName}
-                                disabled={!isEditing}
-                                onChange={handleChange}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
-                            />
+  {/* Sector */}
+  <div>
+    <label className="block text-gray-600 mb-2">
+      {t("profile.sector")}
+    </label>
 
-                        </div>
+    <select
+      name="sector"
+      value={companyData.sector}
+      disabled={!isEditing}
+      onChange={handleChange}
+      className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
+    >
+      {sectors.map((sector) => (
+        <option
+          key={sector.id}
+          value={sector.id}
+        >
+          {i18n.language.startsWith("ar")
+            ? ({
+                Entrepreneurial: "ريادي",
+                Industrial: "صناعي",
+                Commercial: "تجاري",
+                "Real Estate": "عقاري",
+              }[sector.name] || sector.name)
+            : sector.name}
+        </option>
+      ))}
+    </select>
+  </div>
 
-                        {/* Country */}
-                        <div>
+  {/* Branches */}
+  <div>
+    <label className="block text-gray-600 mb-2">
+      {t("profile.numberOfBranches")}
+    </label>
 
-                            <label className="block text-gray-600 mb-2">
-                                Country
-                            </label>
+    <input
+      type="number"
+      name="branches_count"
+      value={companyData.branches_count}
+      disabled={!isEditing}
+      onChange={handleChange}
+      className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
+    />
+  </div>
 
-                            <select
-                                name="country"
-                                value={companyData.country}
-                                disabled={!isEditing}
-                                onChange={handleChange}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
-                            >
+  {/* Phone */}
+  <div>
+    <label className="block text-gray-600 mb-2">
+      {t("profile.contactNumber")}
+    </label>
 
-                                {countries.map((country) => (
+    <input
+      type="text"
+      name="phone"
+      value={companyData.phone}
+      disabled={!isEditing}
+      onChange={handleChange}
+      className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
+    />
+  </div>
 
-                                    <option key={country}>
-                                        {country}
-                                    </option>
+  {/* Email */}
+  <div className="md:col-span-2">
+    <label className="block text-gray-600 mb-2">
+      {t("profile.companyEmail")}
+    </label>
 
-                                ))}
+    <input
+      type="email"
+      name="email"
+      value={companyData.email}
+      disabled={!isEditing}
+      onChange={handleChange}
+      className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
+    />
+  </div>
 
-                            </select>
+  {/* Description */}
+  <div className="md:col-span-2">
+    <label className="block text-gray-600 mb-2">
+      {t("profile.companyDescription")}
+    </label>
 
-                        </div>
+    <textarea
+      name="description"
+      value={companyData.description}
+      disabled={!isEditing}
+      onChange={handleChange}
+      rows={5}
+      className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
+    />
+  </div>
 
-                        {/* Sector */}
-                        <div>
+</div>
 
-                            <label className="block text-gray-600 mb-2">
-                                Sector
-                            </label>
+{/* Founders */}
+<div className="mt-10">
 
-                            <select
-                                name="sector"
-                                value={companyData.sector}
-                                disabled={!isEditing}
-                                onChange={handleChange}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
-                            >
+  <div className="flex items-center justify-between mb-5">
 
-                                {sectors.map((sector) => (
+    <h3 className="text-2xl font-bold text-[#1E3A5F]">
+      {t("profile.companyFounders")}
+    </h3>
 
-                                    <option
-                                        key={sector.id}
-                                        value={sector.id}
-                                    >
-                                        {sector.name}
-                                    </option>
+    {isEditing && (
+      <button
+        onClick={addFounder}
+        className="bg-[#C5A55A] text-white px-5 py-2 rounded-xl"
+      >
+        + {t("profile.addFounder")}
+      </button>
+    )}
 
-                                ))}
+  </div>
 
-                            </select>
+  <div className="space-y-4">
+    {companyData.founders.map((founder, index) => (
+      <input
+        key={index}
+        type="text"
+        value={founder}
+        disabled={!isEditing}
+        onChange={(e) =>
+          updateFounder(index, e.target.value)
+        }
+        className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
+      />
+    ))}
+  </div>
 
-                        </div>
+</div>
 
-                        {/* Branches */}
-                        <div>
+{/* Buttons */}
+{isEditing && (
+  <div className="mt-10 flex gap-4">
 
-                            <label className="block text-gray-600 mb-2">
-                                Number Of Branches
-                            </label>
+    <button
+      onClick={handleSave}
+      className="bg-[#1E3A5F] text-white px-8 py-4 rounded-2xl hover:opacity-90"
+    >
+      {t("profile.saveChanges")}
+    </button>
 
-                            <input
-                                type="number"
-                                name="branches_count"
-                                value={companyData.branches_count}
-                                disabled={!isEditing}
-                                onChange={handleChange}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
-                            />
+    <button
+      onClick={handleCancel}
+      className="bg-white border border-gray-300 px-8 py-4 rounded-2xl hover:bg-gray-50"
+    >
+      {t("cancel")}
+    </button>
 
-                        </div>
-
-                        {/* Phone */}
-                        <div>
-
-                            <label className="block text-gray-600 mb-2">
-                                Contact Number
-                            </label>
-
-                            <input
-                                type="text"
-                                name="phone"
-                                value={companyData.phone}
-                                disabled={!isEditing}
-                                onChange={handleChange}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
-                            />
-
-                        </div>
-
-                        {/* Email */}
-                        <div className="md:col-span-2">
-
-                            <label className="block text-gray-600 mb-2">
-                                Company Email
-                            </label>
-
-                            <input
-                                type="email"
-                                name="email"
-                                value={companyData.email}
-                                disabled={!isEditing}
-                                onChange={handleChange}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
-                            />
-
-                        </div>
-
-                        {/* Description */}
-                        <div className="md:col-span-2">
-
-                            <label className="block text-gray-600 mb-2">
-                                Company Description
-                            </label>
-
-                            <textarea
-                                name="description"
-                                value={companyData.description}
-                                disabled={!isEditing}
-                                onChange={handleChange}
-                                rows={5}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
-                            />
-
-                        </div>
-
-                    </div>
-
-                    {/* Founders */}
-                    <div className="mt-10">
-
-                        <div className="flex items-center justify-between mb-5">
-
-                            <h3 className="text-2xl font-bold text-[#1E3A5F]">
-                                Company Founders
-                            </h3>
-
-                            {isEditing && (
-
-                                <button
-                                    onClick={addFounder}
-                                    className="bg-[#C5A55A] text-white px-5 py-2 rounded-xl"
-                                >
-                                    + Add Founder
-                                </button>
-
-                            )}
-
-                        </div>
-
-                        <div className="space-y-4">
-
-                            {companyData.founders.map(
-                                (founder, index) => (
-
-                                    <input
-                                        key={index}
-                                        type="text"
-                                        value={founder}
-                                        disabled={!isEditing}
-                                        onChange={(e) =>
-                                            updateFounder(
-                                                index,
-                                                e.target.value
-                                            )
-                                        }
-                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 disabled:bg-gray-100"
-                                    />
-
-                                )
-                            )}
+  </div>
+)}
 
                         </div>
 
-                    </div>
-
-                    {/* Buttons */}
-                    {isEditing && (
-
-                        <div className="mt-10 flex gap-4">
-
-                            <button
-                                onClick={handleSave}
-                                className="bg-[#1E3A5F] text-white px-8 py-4 rounded-2xl hover:opacity-90"
-                            >
-                                Save Changes
-                            </button>
-
-                            <button
-                                onClick={handleCancel}
-                                className="bg-white border border-gray-300 px-8 py-4 rounded-2xl hover:bg-gray-50"
-                            >
-                                Cancel
-                            </button>
-
-                        </div>
-
-                    )}
 
                 </div>
 
             </div>
-
-        </div>
     </>
   );
 }

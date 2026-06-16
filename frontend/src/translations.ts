@@ -38,46 +38,63 @@ export const translations = {
     employee: 'Employee',
     status: 'Status',
     latestNotifications: 'Latest Notifications',
+    activeCompanies: "Active Companies",
+
+    DOCUMENT: "Document",
+SUCCESS: "Success",
+ERROR: "Error",
 
     // Notifications Page
     all: 'All',
     unread: 'Unread',
     read: 'Read',
     markAllAsRead: 'Mark all as read',
+    newDocumentUploaded: "New Document Uploaded",
+requestApproved: "Request Approved",
+requestRejected: "Request Rejected",
+resubmissionRequested: "Resubmission Requested",
+newCompanyRegistered: "New Company Registered",
 
-    // Licenses Page
-    addLicense: 'Add License',
-    licenseName: 'License Name',
-    licenseType: 'License Type',
-    applicableSectors: 'Applicable Sectors',
+documentUploadedDesc: "A new document has been uploaded for review.",
+requestApprovedDesc: "The request has been approved.",
+requestRejectedDesc: "The request has been rejected.",
+resubmissionRequestedDesc: "A resubmission has been requested.",
+newCompanyRegisteredDesc: "A new company has been registered.",
+notificationsDescription: "Stay up to date with all system notifications and updates.",
+noNotifications: "No Notifications",
+noNotificationsDescription: "There are no notifications to display at the moment.",
+licenseIssuedDesc: "A new license has been issued successfully.",
+
+// Tasks & Licenses
+addTask: 'Add Task',
+editTask: 'Edit Task',
+tasks: "Tasks",
+
+title: 'Title',
+titleArabic: 'Title (Arabic)',
+
+descriptionArabic: 'Description (Arabic)',
+
+selectStage: 'Select Stage',
+
+required: 'Required',
+
+file: 'File',
+license: 'License',
+scope: "Scope",
+
+allSectors: 'All Sectors',
+entrepreneurial: 'Entrepreneurial',
+
+requiredDocuments: 'Required Documents',
+documentName: 'Document Name',
+licenseType: "Type",
+description: "Description",
+
+requestId: "Request ID",
     actions: 'Actions',
-    active: 'Active',
-    inactive: 'Inactive',
-    description: 'Description',
-    requiredDocuments: 'Required Documents',
-    companyType: 'Company Type',
-    startup: 'Startup',
-    industrial: 'Industrial',
-    realEstate: 'Real Estate',
-    commercial: 'Commercial',
-    real_estate: 'Real Estate',
-
-    // Market Rules Page
-    addRule: 'Add Rule',
-    ruleName: 'Rule Name',
-    ruleNamePlaceholder: 'e.g. Startup Capital Requirement',
-    condition: 'Condition',
-    action: 'Action',
-    enableRule: 'Enable Rule',
-    ifCompanyTypeIs: 'If company type is',
-    thenRequire: 'then require',
-    requirementPlaceholder: 'e.g. Minimum capital of $50,000',
     fieldRequired: 'This field is required',
-    ruleSaved: 'Rule saved successfully',
-    licenseSaved: 'License saved successfully',
-    deleteConfirmation: 'Are you sure you want to delete this item?',
-    licenseNamePlaceholder: 'e.g. Commercial Trade License',
-    descriptionPlaceholder: 'Brief description of the license...',
+  
 
     // Users Page
     name: 'Name',
@@ -98,6 +115,27 @@ export const translations = {
     passwordMismatch: 'Passwords do not match',
     disableUser: 'Disable User',
     enableUser: 'Enable User',
+    usersDescription: "Manage system users, roles, and access permissions",
+searchUsers: "Search users...",
+
+addUser: "Add User",
+editUser: "Edit User",
+deleteUser: "Delete User",
+deleteUserConfirmation:
+  "Are you sure you want to permanently delete this user and all related company data?",
+createUser: "Create User",
+createNewUser: "Create a new user",
+updateUserDetails: "Update user details",
+
+enterName: "Enter name",
+enterEmail: "Enter email",
+enterPassword: "Enter password",
+
+userDeletedSuccess: "User deleted successfully",
+
+errorSavingUser: "Error saving user",
+cannotDisableSelf: "You cannot disable your own account.",
+cannotDeleteSelf: "You cannot delete your own account.",
 
     // Companies Page
     registrationDate: 'Registration Date',
@@ -106,20 +144,84 @@ export const translations = {
     sector: 'Sector',
     representativeName: 'Company Representative Name',
     relatedInfo: 'Related info',
+    companiesDescription: "View and manage registered companies on the platform.",
+type: "Type",
+registered: "Registered",
+numberOfBranches: "Number of Branches",
+companyDescription: "Company Description",
+companyFounders: "Company Founders",
+foundersPlaceholder: "Founder 1, Founder 2",
+
+Entrepreneurial: "Entrepreneurial",
+Industrial: "Industrial",
+Commercial: "Commercial",
+"Real Estate": "Real Estate",
 
     // Requests Page
     assignedTo: 'Assigned To',
     date: 'Date',
     assign: 'Assign',
     unassigned: 'Unassigned',
+    requestsDescription: "Manage and process company requests and applications.",
+updated: "Updated",
+today: "Today",
+PENDING: "Pending",
+UNDER_REVIEW: "Under Review",
+APPROVED: "Approved",
+REJECTED: "Rejected",
+NEEDS_COMPLETION: "Needs Completion",
+
+requestDetails: "Request Details",
+companyInformation: "Company Information",
+workflowStages: "Workflow Stages",
+uploadedDocuments: "Uploaded Documents",
+country: "Country",
+createdAt: "Created At",
+documents: "Documents",
+progress: "Progress",
+completed: "Completed",
+inProgress: "In Progress",
+locked: "Locked",
+uploadFinalLicense: "Upload Final License",
+noDocumentsUploaded: "No documents uploaded yet",
+
+approve: "Approve",
+reject: "Reject",
+processing: "Processing...",
+selectFileFirst: "Please select a file first",
+finalLicenseUploaded: "Final license uploaded successfully",
+uploadFailed: "Upload failed",
+documentApproved: "Document approved successfully",
+documentApproveFailed: "Failed to approve document",
+documentNeedsResubmission: "Document marked for resubmission",
+documentUpdateFailed: "Failed to update document",
+
+
 
     // Stages Page
+    stagesDescription:
+  "Manage the onboarding pipeline and company progression stages.",
     addStage: 'Add Stage',
     stageName: 'Stage Name',
     order: 'Order',
     dragToReorder: 'Drag to reorder',
     stageCreatedSuccess: 'Stage created successfully',
     stageUpdatedSuccess: 'Stage updated successfully',
+stageDeletedSuccess: 'Stage deleted successfully',
+stageOrderSavedSuccess: 'Stage order saved successfully',
+
+    workflowPhase: 'Workflow Phase',
+registrationPhase: 'Registration',
+underReviewPhase: 'Under Review',
+processingPhase: 'Processing',
+finalApprovalPhase: 'Final Approval',
+stagePlaceholder: 'e.g. Registration',
+stageDescriptionPlaceholder: 'Brief description of the stage...',
+
+stageNameArabic: "Stage Name (Arabic)",
+stageArabicPlaceholder: "Example: Registration",
+stageArabicDescriptionPlaceholder: "Example: Initial company registration",
+
 
     // Settings Page
     profileSettings: 'Profile Settings',
@@ -135,6 +237,23 @@ export const translations = {
     security: 'Security',
     changePassword: 'Change Password',
     logoutAllDevices: 'Logout from all devices',
+settingsDescription:
+  "Manage your account preferences and system configuration",
+defaultSystemLanguage: "Default system language",
+requestNotificationDescription:
+  "Get notified when a new request is submitted",
+systemNotificationDescription:
+  "Updates, maintenance, and alerts",
+codeRequired: "Verification code is required",
+settingsSaved: "Settings saved successfully",
+currentPassword: "Current Password",
+newPassword: "New Password",
+confirmNewPassword: "Confirm New Password",
+verificationCode: "Verification Code",
+verificationSent: "Verification code sent to email",
+passwordChanged: "Password changed successfully",
+errorChangingPassword: "Error changing password",
+
 
     // Statuses
     submitted: 'Submitted',
@@ -148,7 +267,20 @@ export const translations = {
     statusUnderReview: 'Under Review',
     statusSubmitted: 'Submitted',
     statusRejected: 'Rejected',
+    active: "Active",
+inactive: "Inactive",
 
+taskAdded: "Task added successfully.",
+taskUpdated: "Task updated successfully.",
+taskDeleted: "Task deleted successfully.",
+
+
+  Registration: "Registration",
+  Compliance: "Compliance",
+  Licensing: "Licensing",
+  "Final Approval": "Final Approval",
+"view": "View",
+logout: "Sign out",
     // Common
     viewAll: 'View All',
     save: 'Save',
@@ -161,6 +293,7 @@ export const translations = {
     apply: 'Apply',
     reset: 'Reset',
     dateRange: 'Date Range'
+    
   },
   ar: {
     // Menu
@@ -197,46 +330,63 @@ export const translations = {
     employee: 'الموظف',
     status: 'الحالة',
     latestNotifications: 'أحدث الإشعارات',
+    activeCompanies: "الشركات النشطة",
+    
+    DOCUMENT: "مستند",
+SUCCESS: "نجاح",
+ERROR: "خطأ",
 
     // Notifications Page
     all: 'الكل',
     unread: 'غير مقروء',
     read: 'مقروء',
     markAllAsRead: 'تحديد الكل كمقروء',
+    newDocumentUploaded: "تم رفع مستند جديد",
+requestApproved: "تم قبول الطلب",
+requestRejected: "تم رفض الطلب",
+resubmissionRequested: "تم طلب إعادة التقديم",
+newCompanyRegistered: "تم تسجيل شركة جديدة",
+documentUploadedDesc: "تم رفع مستند جديد للمراجعة",
+requestApprovedDesc: "تم قبول الطلب",
+requestRejectedDesc: "تم رفض الطلب",
+resubmissionRequestedDesc: "تم طلب إعادة التقديم",
+newCompanyRegisteredDesc: "تم تسجيل شركة جديدة",
+notificationsDescription: "تابع جميع التنبيهات والتحديثات الخاصة بالنظام.",
+noNotifications: "لا توجد إشعارات",
+noNotificationsDescription: "لا توجد أي إشعارات لعرضها في الوقت الحالي.",
+licenseIssuedDesc: "تم إصدار ترخيص جديد بنجاح",
 
-    // Licenses Page
-    addLicense: 'إضافة ترخيص',
-    licenseName: 'اسم الترخيص',
-    licenseType: 'نوع الترخيص',
-    applicableSectors: 'القطاعات المستهدفة',
-    actions: 'الإجراءات',
-    active: 'نشط',
-    inactive: 'غير نشط',
-    description: 'الوصف',
-    requiredDocuments: 'المستندات المطلوبة',
-    companyType: 'نوع الشركة',
-    startup: 'شركة ناشئة',
-    industrial: 'صناعي',
-    realEstate: 'عقاري',
-    commercial: 'تجاري',
-    real_estate: 'عقاري',
 
-    // Market Rules Page
-    addRule: 'إضافة قاعدة',
-    ruleName: 'اسم القاعدة',
-    ruleNamePlaceholder: 'مثال: متطلبات رأس مال الشركة الناشئة',
-    condition: 'الشرط',
-    action: 'الإجراء',
-    enableRule: 'تفعيل القاعدة',
-    ifCompanyTypeIs: 'إذا كان نوع الشركة',
-    thenRequire: 'ثم اطلب',
-    requirementPlaceholder: 'مثال: رأس مال أدنى 50,000 دولار',
+// المهام والتراخيص
+addTask: 'إضافة مهمة',
+editTask: 'تعديل المهمة',
+tasks: "المهام",
+
+title: 'العنوان',
+titleArabic: 'العنوان (العربية)',
+
+descriptionArabic: 'الوصف (العربية)',
+
+selectStage: 'اختر المرحلة',
+
+required: 'إلزامي',
+
+file: 'ملف',
+license: 'ترخيص',
+scope: "النطاق",
+
+allSectors: 'جميع القطاعات',
+entrepreneurial: 'ريادي',
+
+requiredDocuments: 'المستندات المطلوبة',
+documentName: 'اسم المستند',
+licenseType: "النوع",
+description: "الوصف",
+
+requestId: "رقم الطلب",
+    actions: "الإجراءات",
     fieldRequired: 'هذه الخانة مطلوبة',
-    ruleSaved: 'تم حفظ القاعدة بنجاح',
-    licenseSaved: 'تم حفظ الترخيص بنجاح',
-    deleteConfirmation: 'هل أنت متأكد أنك تريد حذف هذا العنصر؟',
-    licenseNamePlaceholder: 'مثال: ترخيص تجاري',
-    descriptionPlaceholder: 'وصف مختصر عن الترخيص...',
+    
 
     // Users Page
     name: 'الاسم',
@@ -252,11 +402,33 @@ export const translations = {
     companyEmail: 'البريد الإلكتروني للشركة',
     companyAddress: 'عنوان الشركة',
     managerPhoneNumber: 'رقم هاتف المدير',
-    userCreatedSuccess: 'تم إنشاء المستخدم بنجاح',
-    userUpdatedSuccess: 'تم تحديث المستخدم بنجاح',
-    passwordMismatch: 'كلمتا المرور غير متطابقتين',
     disableUser: 'تعطيل المستخدم',
     enableUser: 'تفعيل المستخدم',
+
+usersDescription: "إدارة مستخدمي النظام والصلاحيات والأدوار",
+searchUsers: "بحث عن المستخدمين...",
+
+addUser: "إضافة مستخدم",
+editUser: "تعديل المستخدم",
+deleteUser: "حذف المستخدم",
+deleteUserConfirmation:
+  "هل أنت متأكد أنك تريد حذف هذا المستخدم وكل بيانات الشركة المرتبطة به بشكل نهائي؟",
+createUser: "إنشاء مستخدم",
+createNewUser: "إنشاء مستخدم جديد",
+updateUserDetails: "تحديث بيانات المستخدم",
+
+enterName: "أدخل الاسم",
+enterEmail: "أدخل البريد الإلكتروني",
+enterPassword: "أدخل كلمة المرور",
+
+userCreatedSuccess: "تم إنشاء المستخدم بنجاح",
+userUpdatedSuccess: "تم تحديث المستخدم بنجاح",
+userDeletedSuccess: "تم حذف المستخدم بنجاح",
+
+passwordMismatch: "كلمات المرور غير متطابقة",
+errorSavingUser: "حدث خطأ أثناء حفظ المستخدم",
+cannotDisableSelf: "لايمكنك تعطيل حسابك.",
+cannotDeleteSelf: "لايمكنك حذف حسابك.",
 
     // Companies Page
     registrationDate: 'تاريخ التسجيل',
@@ -269,20 +441,84 @@ export const translations = {
     sector: 'القطاع',
     representativeName: 'اسم ممثل الشركة',
     relatedInfo: 'معلومات ذات صلة',
+    companiesDescription: "عرض وإدارة الشركات المسجلة على المنصة.",
+type: "النوع",
+registered: "تاريخ التسجيل",
+numberOfBranches: "عدد الفروع",
+companyDescription: "وصف الشركة",
+companyFounders: "مؤسسو الشركة",
+foundersPlaceholder: "المؤسس الأول، المؤسس الثاني",
+
+Entrepreneurial: "ريادي",
+Industrial: "صناعي",
+Commercial: "تجاري",
+"Real Estate": "عقاري",
 
     // Requests Page
     assignedTo: 'معين إلى',
     date: 'التاريخ',
     assign: 'تعيين',
     unassigned: 'غير معين',
+    requestsDescription: "إدارة ومعالجة طلبات الشركات.",
+updated: "آخر تحديث",
+today: "اليوم",
+PENDING: "قيد الانتظار",
+UNDER_REVIEW: "قيد المراجعة",
+APPROVED: "مقبول",
+REJECTED: "مرفوض",
+NEEDS_COMPLETION: "بحاجة إلى استكمال",
+
+requestDetails: "تفاصيل الطلب",
+companyInformation: "معلومات الشركة",
+workflowStages: "مراحل سير العمل",
+uploadedDocuments: "المستندات المرفوعة",
+country: "الدولة",
+createdAt: "تاريخ الإنشاء",
+documents: "المستندات",
+progress: "التقدم",
+completed: "مكتمل",
+inProgress: "قيد التنفيذ",
+locked: "مقفل",
+uploadFinalLicense: "رفع الترخيص النهائي",
+noDocumentsUploaded: "لا توجد مستندات مرفوعة حتى الآن",
+
+approve: "اعتماد",
+reject: "رفض",
+processing: "جارٍ المعالجة...",
+selectFileFirst: "يرجى اختيار ملف أولاً",
+finalLicenseUploaded: "تم رفع الترخيص النهائي بنجاح",
+uploadFailed: "فشل رفع الملف",
+documentApproved: "تم اعتماد المستند بنجاح",
+documentApproveFailed: "فشل اعتماد المستند",
+documentNeedsResubmission: "تم طلب إعادة رفع المستند",
+documentUpdateFailed: "فشل تحديث المستند",
+rejectionReason: "سبب الرفض",
+
+
 
     // Stages Page
+    stagesDescription:
+  "إدارة مراحل سير العمل وتتبع تقدم الشركات.",
     addStage: 'إضافة مرحلة',
     stageName: 'اسم المرحلة',
     order: 'الترتيب',
     dragToReorder: 'اسحب لإعادة الترتيب',
     stageCreatedSuccess: 'تم إنشاء المرحلة بنجاح',
     stageUpdatedSuccess: 'تم تحديث المرحلة بنجاح',
+stageDeletedSuccess: 'تم حذف المرحلة بنجاح',
+stageOrderSavedSuccess: 'تم حفظ ترتيب المراحل بنجاح',
+workflowPhase: 'مرحلة سير العمل',
+registrationPhase: 'التسجيل',
+underReviewPhase: 'قيد المراجعة',
+processingPhase: 'قيد المعالجة',
+finalApprovalPhase: 'الموافقة النهائية',
+stagePlaceholder: 'مثال: التسجيل',
+stageDescriptionPlaceholder: 'اكتب وصفًا مختصرًا للمرحلة...',
+
+stageNameArabic: "اسم المرحلة (العربية)",
+stageArabicPlaceholder: "مثال: التسجيل",
+stageArabicDescriptionPlaceholder: "مثال: التسجيل الأولي للشركة",
+
 
     // Settings Page
     profileSettings: 'إعدادات الملف الشخصي',
@@ -298,6 +534,23 @@ export const translations = {
     security: 'الأمان',
     changePassword: 'تغيير كلمة المرور',
     logoutAllDevices: 'تسجيل الخروج من جميع الأجهزة',
+settingsDescription:
+  "إدارة تفضيلات حسابك وإعدادات النظام",
+defaultSystemLanguage: "لغة النظام الافتراضية",
+requestNotificationDescription:
+  "تلقي إشعار عند تقديم طلب جديد",
+systemNotificationDescription:
+  "التحديثات والصيانة والتنبيهات",
+codeRequired: "الرجاء إدخال رمز التحقق",
+settingsSaved: "تم حفظ الإعدادات بنجاح",
+currentPassword: "كلمة المرور الحالية",
+newPassword: "كلمة المرور الجديدة",
+confirmNewPassword: "تأكيد كلمة المرور الجديدة",
+verificationCode: "رمز التحقق",
+verificationSent: "تم إرسال رمز التحقق إلى البريد الإلكتروني",
+passwordChanged: "تم تغيير كلمة المرور بنجاح",
+errorChangingPassword: "حدث خطأ أثناء تغيير كلمة المرور",
+
 
     // Statuses
     submitted: 'مقدم',
@@ -311,7 +564,22 @@ export const translations = {
     statusUnderReview: 'قيد المراجعة',
     statusSubmitted: 'تم الإرسال',
     statusRejected: 'مرفوض',
+active: "نشط",
+inactive: "غير نشط",
 
+taskAdded: "تمت إضافة المهمة بنجاح.",
+taskUpdated: "تم تحديث المهمة بنجاح.",
+taskDeleted: "تم حذف المهمة بنجاح.",
+
+
+  Registration: "التسجيل",
+  Compliance: "الامتثال",
+  Licensing: "إصدار التراخيص",
+  "Final Approval": "الموافقة النهائية",
+
+  
+  "view": "عرض",
+logout: "تسجيل الخروج",
     // Common
     viewAll: 'عرض الكل',
     save: 'حفظ',

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { useTranslation } from '../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -31,7 +31,6 @@ import { Companies } from './pages/Companies'
 import { Requests } from './pages/Requests'
 import { Stages } from './pages/Stages'
 import { TasksLicenses } from './pages/TasksLicenses'
-import { MarketRules } from './pages/MarketRules'
 import { Notifications } from './pages/Notifications'
 import { Settings } from './pages/Settings'
 import { Layout } from './components/Layout'
@@ -52,8 +51,8 @@ function AppContent() {
   location.pathname.startsWith("/employee") ||
   location.pathname.startsWith("/admin");
 
-  const currentLanguage =
-    i18n.language.startsWith('ar') ? 'ar' : 'en';
+const currentLanguage =
+  (i18n.language || "en").startsWith("ar") ? "ar" : "en";
 
   React.useEffect(() => {
 
@@ -199,7 +198,6 @@ function AppContent() {
 
   <Route path="stages" element={<Stages />} />
 <Route path="tasks-licenses" element={<TasksLicenses />} />
-  <Route path="market-rules" element={<MarketRules />} />
   <Route path="notifications" element={<Notifications />} />
   <Route path="settings" element={<Settings />} />
 </Route>

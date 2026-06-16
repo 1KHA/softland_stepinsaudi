@@ -5,7 +5,7 @@ import React, {
 import CompanyHeader from "../components/CompanyHeader";
 import { useNavigate } from 'react-router-dom';
 
-import { useTranslation } from '../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 export default function CompanyDashboard() {
@@ -75,6 +75,8 @@ if (
         setCompanyStages(
           stagesResponse.data.stages
         );
+
+        console.log(companyStages);
 
         // tasks
         const tasksResponse =
@@ -191,9 +193,15 @@ return (
                 {t('dashboard.currentStage')}
               </p>
 
-              <h2 className="text-2xl font-bold text-[#1E3A5F]">
-                {currentStage}
-              </h2>
+<h2 className="text-2xl font-bold text-[#1E3A5F]">
+  {i18n.language.startsWith("ar")
+    ? (
+        companyStages.find(
+          (s: any) => s.stage_name === currentStage
+        )?.stage_name_ar || currentStage
+      )
+    : currentStage}
+</h2>
 
             </div>
 
@@ -239,7 +247,9 @@ return (
                   }`}
                 >
 
-                  {stage.stage_name}
+{i18n.language.startsWith("ar")
+  ? (stage.stage_name_ar || stage.stage_name)
+  : stage.stage_name}
 
                   {
                     stage.status ===
@@ -269,9 +279,11 @@ return (
 
                 <div>
 
-                  <h3 className="text-[#1E3A5F] text-xl font-bold">
-                    {task.title}
-                  </h3>
+<h3 className="text-[#1E3A5F] text-xl font-bold">
+  {i18n.language.startsWith("ar")
+    ? (task.title_ar || task.title)
+    : task.title}
+</h3>
 
                 </div>
 
@@ -287,13 +299,13 @@ return (
       : "bg-red-100 text-red-700"
   }`}
 >
-  {task.status}
+{t(`status.${task.status}`)}
 </span>
 
                 <button
   onClick={() => navigate(`/company-task/${task.id}`)}
 className="bg-[#C5A55A] text-white px-5 py-2 rounded-xl hover:bg-[#B18F46] transition">
-  View
+{t("view")}
 </button>
 
                 </div>
@@ -313,11 +325,11 @@ className="bg-[#C5A55A] text-white px-5 py-2 rounded-xl hover:bg-[#B18F46] trans
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl">
       <h2 className="text-3xl font-bold text-green-600 mb-4">
-        🎉 Congratulations!
+🎉 {t("dashboard.approvedTitle")}
       </h2>
 
       <p className="text-gray-600 mb-6">
-        Your company has successfully completed all onboarding stages and has been approved.
+{t("dashboard.approvedMessage")}
       </p>
 
       <button
@@ -330,7 +342,7 @@ onClick={() => {
   setShowApprovedPopup(false);
 }}        className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700"
       >
-        OK
+        {t("ok")}
       </button>
     </div>
   </div>

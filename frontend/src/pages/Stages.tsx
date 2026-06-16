@@ -11,22 +11,28 @@ import { motion, Reorder, AnimatePresence } from 'framer-motion';
 interface Stage {
   id: string;
   name: string;
+  name_ar: string;
   description: string;
+  description_ar: string;
   order: number;
   workflow_phase: string;
 }
 export const Stages: React.FC = () => {
-  const { t } = useAppContext();
+const { t, language } = useAppContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
 const [formData, setFormData] = useState({
   name: '',
+  name_ar: '',
   description: '',
+  description_ar: '',
   workflow_phase: 'PROCESSING'
 });
 const [errors, setErrors] = useState<{
   name?: string;
+  name_ar?: string;
   description?: string;
+  description_ar?: string;
   workflow_phase?: string;
 }>({});
   const [errorMessage, setErrorMessage] = useState('');
@@ -41,7 +47,9 @@ useEffect(() => {
 const mappedStages = data.stages.map((stage: any) => ({
   id: String(stage.id),
   name: stage.name,
+  name_ar: stage.name_ar || '',
   description: stage.description || '',
+  description_ar: stage.description_ar || '',
   order: stage.stage_order,
   workflow_phase: stage.workflow_phase
 }));
@@ -57,7 +65,9 @@ const mappedStages = data.stages.map((stage: any) => ({
       setSelectedStage(stage);
 setFormData({
   name: stage.name,
+  name_ar: (stage as any).name_ar || '',
   description: stage.description,
+  description_ar: (stage as any).description_ar || '',
   workflow_phase: (stage as any).workflow_phase || 'PROCESSING'
 });
 
@@ -65,7 +75,9 @@ setFormData({
       setSelectedStage(null);
 setFormData({
   name: '',
+  name_ar: '',
   description: '',
+  description_ar: '',
   workflow_phase: 'PROCESSING'
 });
     }
@@ -80,13 +92,29 @@ setFormData({
   };
 
   const handleSave = () => {
-    const newErrors: { name?: string; description?: string } = {};
-    if (!formData.name.trim()) {
-      newErrors.name = t('fieldRequired');
-    }
-    if (!formData.description.trim()) {
-      newErrors.description = t('fieldRequired');
-    }
+const newErrors: {
+  name?: string;
+  name_ar?: string;
+  description?: string;
+  description_ar?: string;
+} = {};    
+
+if (!formData.name.trim()) {
+  newErrors.name = t('fieldRequired');
+}
+
+if (!formData.name_ar.trim()) {
+  newErrors.name_ar = t('fieldRequired');
+}
+
+if (!formData.description.trim()) {
+  newErrors.description = t('fieldRequired');
+}
+
+if (!formData.description_ar.trim()) {
+  newErrors.description_ar = t('fieldRequired');
+}
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -101,7 +129,9 @@ if (selectedStage) {
     },
 body: JSON.stringify({
   name: formData.name,
+  name_ar: formData.name_ar,
   description: formData.description,
+  description_ar: formData.description_ar,
   workflow_phase: formData.workflow_phase
 })
   })
@@ -130,7 +160,9 @@ body: JSON.stringify({
 const mappedStages = data.stages.map((stage: any) => ({
   id: String(stage.id),
   name: stage.name,
+  name_ar: stage.name_ar || '',
   description: stage.description || '',
+  description_ar: stage.description_ar || '',
   order: stage.stage_order,
   workflow_phase: stage.workflow_phase
 }));
@@ -152,7 +184,9 @@ const mappedStages = data.stages.map((stage: any) => ({
   },
 body: JSON.stringify({
   name: formData.name,
+  name_ar: formData.name_ar,
   description: formData.description,
+  description_ar: formData.description_ar,
   workflow_phase: formData.workflow_phase
 })
 })
@@ -179,7 +213,9 @@ body: JSON.stringify({
 const mappedStages = data.stages.map((stage: any) => ({
   id: String(stage.id),
   name: stage.name,
+  name_ar: stage.name_ar || '',
   description: stage.description || '',
+  description_ar: stage.description_ar || '',
   order: stage.stage_order,
   workflow_phase: stage.workflow_phase
 }));
@@ -224,13 +260,15 @@ throw new Error(data.message);  }
 const mappedStages = data.stages.map((stage: any) => ({
   id: String(stage.id),
   name: stage.name,
+  name_ar: stage.name_ar || '',
   description: stage.description || '',
+  description_ar: stage.description_ar || '',
   order: stage.stage_order,
   workflow_phase: stage.workflow_phase
 }));
 
       setStages(mappedStages);
-      setSuccessMessage('Stage deleted successfully');
+      setSuccessMessage(t('stageDeletedSuccess'));
 
 setTimeout(() => {
   setSuccessMessage('');
@@ -249,9 +287,9 @@ setTimeout(() => {
           <h1 className="text-3xl font-bold text-navy dark:text-cream-dark mb-2">
             {t('stages')}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            Manage the onboarding pipeline and company progression stages.
-          </p>
+<p className="text-gray-500 dark:text-gray-400">
+  {t("stagesDescription" as any)}
+</p>
           {successMessage ? (
             
             <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800/30 dark:bg-green-900/20 dark:text-green-200">
@@ -300,8 +338,7 @@ onReorder={(newOrder) => {
 
   console.log('ORDER SAVED', data);
 
-  setSuccessMessage('Stage order saved successfully');
-
+setSuccessMessage(t('stageOrderSavedSuccess'));
   setTimeout(() => {
     setSuccessMessage('');
   }, 3000);
@@ -329,12 +366,17 @@ onReorder={(newOrder) => {
               </div>
 
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold text-navy dark:text-cream-dark mb-1">
-                  {t(stage.name.toLowerCase() as any) || stage.name}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                  {stage.description}
-                </p>
+<h3 className="text-lg font-semibold text-navy dark:text-cream-dark mb-1">
+  {language === "ar" && stage.name_ar
+    ? stage.name_ar
+    : stage.name}
+</h3>
+
+<p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+  {language === "ar" && stage.description_ar
+    ? stage.description_ar
+    : stage.description}
+</p>
               </div>
 
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -403,11 +445,30 @@ onReorder={(newOrder) => {
                   value={formData.name}
                   onChange={(e) => handleFormChange('name', e.target.value)}
                   className={`w-full px-4 py-2.5 rounded-xl border bg-transparent text-navy dark:text-cream-dark focus:outline-none focus:ring-1 transition-colors ${errors.name ? 'border-red-300 bg-red-50/40 text-red-700 focus:border-red-500 focus:ring-red-200 dark:border-red-500/50' : 'border-gray-200 dark:border-navy-light focus:border-gold focus:ring-gold'}`}
-                  placeholder="e.g. Registration" />
+                  placeholder={t("stagePlaceholder")} />
                   {errors.name ? (
                     <span className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.name}</span>
                   ) : null}
                 </div>
+
+                <div>
+<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+  {t("stageNameArabic" as any)}
+</label>
+
+  <input
+    type="text"
+    value={formData.name_ar}
+    onChange={(e) => handleFormChange("name_ar", e.target.value)}
+    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-navy-light bg-transparent text-navy dark:text-cream-dark"
+    placeholder={t("stageArabicPlaceholder" as any)}
+  />
+  {errors.name_ar ? (
+  <span className="text-xs text-red-600 dark:text-red-400 mt-1">
+    {errors.name_ar}
+  </span>
+) : null}
+</div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -418,15 +479,38 @@ onReorder={(newOrder) => {
                   onChange={(e) => handleFormChange('description', e.target.value)}
                   rows={4}
                   className={`w-full px-4 py-2.5 rounded-xl border bg-transparent text-navy dark:text-cream-dark focus:outline-none focus:ring-1 transition-colors resize-none ${errors.description ? 'border-red-300 bg-red-50/40 text-red-700 focus:border-red-500 focus:ring-red-200 dark:border-red-500/50' : 'border-gray-200 dark:border-navy-light focus:border-gold focus:ring-gold'}`}
-                  placeholder="Brief description of the stage..." />
+                  placeholder={t("stageDescriptionPlaceholder")} />
                   {errors.description ? (
                     <span className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.description}</span>
                   ) : null}
                 </div>
                 <div>
-  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-    Workflow Phase
-  </label>
+
+                  <div>
+<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+  {t("descriptionArabic" as any)}
+</label>
+
+  <textarea
+    value={formData.description_ar}
+    onChange={(e) =>
+      handleFormChange("description_ar", e.target.value)
+    }
+    rows={4}
+    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-navy-light bg-transparent text-navy dark:text-cream-dark resize-none"
+placeholder={t("stageArabicDescriptionPlaceholder" as any)}
+  />
+
+  {errors.description_ar ? (
+  <span className="text-xs text-red-600 dark:text-red-400 mt-1">
+    {errors.description_ar}
+  </span>
+) : null}
+</div>
+
+<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+  {t("workflowPhase")}
+</label>
 
   <select
     value={formData.workflow_phase}
@@ -435,10 +519,10 @@ onReorder={(newOrder) => {
     }
     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-navy-light"
   >
-    <option value="REGISTRATION">Registration</option>
-    <option value="UNDER_REVIEW">Under Review</option>
-    <option value="PROCESSING">Processing</option>
-    <option value="FINAL_APPROVAL">Final Approval</option>
+<option value="REGISTRATION">{t("registrationPhase")}</option>
+<option value="UNDER_REVIEW">{t("underReviewPhase")}</option>
+<option value="PROCESSING">{t("processingPhase")}</option>
+<option value="FINAL_APPROVAL">{t("finalApprovalPhase")}</option>
   </select>
 </div>
               </div>

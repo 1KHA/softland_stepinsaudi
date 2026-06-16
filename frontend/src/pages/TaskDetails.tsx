@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import CompanyHeader from "../components/CompanyHeader";
+import { useTranslation } from "react-i18next";
 
 export default function TaskDetails() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
 
   const [selectedFiles, setSelectedFiles] = useState<{
@@ -45,11 +47,13 @@ return (
       <div className="flex items-center justify-between mb-8">
   <div>
     <h1 className="text-4xl font-bold text-[#1E3A5F]">
-      {task.title}
-    </h1>
+{i18n.language.startsWith("ar")
+  ? (task.title_ar || task.title)
+  : task.title}
+      </h1>
 
     <p className="text-gray-500 mt-2">
-      Review task details and upload the required documents.
+{t("task.reviewAndUpload")}
     </p>
   </div>
 
@@ -57,7 +61,7 @@ return (
     onClick={() => navigate(-1)}
     className="bg-[#C5A55A] hover:bg-[#B18F46] text-white px-6 py-3 rounded-xl transition"
   >
-    Back
+{t("back")}
   </button>
 </div>  
   
@@ -67,7 +71,7 @@ return (
 <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#ECE7DD]">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-gray-500 mb-2">Current Status</p>
+              <p className="text-gray-500 mb-2">{t("task.currentStatus")}</p>
 
 <span
   className={`px-4 py-2 rounded-full font-semibold ${
@@ -80,7 +84,7 @@ return (
       : "bg-blue-100 text-blue-700"
   }`}
 >
-  {task.status}
+{t(`status.${task.status}`)}
 </span>
             </div>
           </div>
@@ -89,16 +93,18 @@ return (
         {/* DESCRIPTION */}
 <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#ECE7DD]">
           <h2 className="text-2xl font-bold text-[#4B5563] mb-5">
-            What You Need To Do
+{t("task.whatYouNeedToDo")}
           </h2>
 
-          <p className="text-gray-600 leading-8">{task.description}</p>
+          <p className="text-gray-600 leading-8">{i18n.language.startsWith("ar")
+  ? (task.description_ar || task.description)
+  : task.description}</p>
         </div>
 
         {/* REQUIRED DOCUMENTS */}
 <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#ECE7DD]">
           <h2 className="text-2xl font-bold text-[#4B5563] mb-6">
-            Required Documents
+{t("task.requiredDocuments")}
           </h2>
 
           <div className="space-y-4">
@@ -109,8 +115,11 @@ return (
               >
                 <div>
 <p className="font-semibold text-[#1E3A5F]">
-  📄 {doc.document_name}
-</p>
+📄 {
+  i18n.language.startsWith("ar")
+    ? (doc.document_name_ar || doc.document_name)
+    : doc.document_name
+}</p>
                   {doc.status === "APPROVED" && (
                     <p className="text-xs text-green-600">Approved ✓</p>
                   )}
@@ -143,7 +152,7 @@ return (
         {/* UPLOAD SECTION */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#ECE7DD]">
           <h2 className="text-2xl font-bold text-[#4B5563] mb-6">
-            Upload Documents
+{t("task.uploadDocuments")}
           </h2>
 
           <div className="space-y-4">
@@ -159,9 +168,11 @@ return (
                   className="bg-[#FCFCFC] border border-dashed border-[#C5A55A] rounded-2xl p-5 flex justify-between items-center hover:bg-[#FFFCF6] transition"
                 >
                   <div>
-                    <p className="font-semibold">
-                      {doc.document_name}
-                    </p>
+<p className="font-semibold">
+  {i18n.language.startsWith("ar")
+    ? (doc.document_name_ar || doc.document_name)
+    : doc.document_name}
+</p>
 
                     {doc.status === "NEEDS_RESUBMISSION" && (
                       <p className="text-red-600 text-sm">
@@ -199,11 +210,11 @@ return (
 {showSuccess && (
   <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-4">
     <h3 className="font-semibold text-green-700">
-      ✅ Documents submitted successfully
+{t("task.documentsSubmitted")}
     </h3>
 
     <p className="mt-1 text-sm text-green-600">
-      Your documents have been uploaded and are now under review.
+{t("task.documentsUnderReview")}
     </p>
   </div>
 )}
@@ -220,7 +231,7 @@ return (
 className="bg-[#C5A55A] hover:bg-[#B18F46] transition text-white px-8 py-3 rounded-xl font-semibold shadow-md"
                 onClick={async () => {
                   if (Object.keys(selectedFiles).length === 0) {
-                    alert("Please select files");
+alert(t("task.selectFiles"));
                     return;
                   }
 
@@ -276,7 +287,7 @@ setShowSuccess(true);
                   }
                 }}
               >
-                Submit Task
+{t("task.submitTask")}
               </button>
             )}
             </div>

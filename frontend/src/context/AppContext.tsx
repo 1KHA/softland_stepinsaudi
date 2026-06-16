@@ -13,15 +13,28 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('en');
-  const [theme, setTheme] = useState<Theme>('light');
-  useEffect(() => {
-    const root = document.documentElement;
-    root.dir = language === 'ar' ? 'rtl' : 'ltr';
-    root.className = `${language === 'ar' ? 'rtl' : 'ltr'} ${theme}`;
-  }, [language, theme]);
-  const toggleLanguage = () =>
-  setLanguage((prev) => prev === 'en' ? 'ar' : 'en');
+const [language, setLanguage] = useState<Language>(() => {
+  const saved = localStorage.getItem("language");
+  return saved === "ar" ? "ar" : "en";
+});
+
+const [theme, setTheme] = useState<Theme>('light');
+useEffect(() => {
+  const root = document.documentElement;
+
+  root.dir = language === "ar" ? "rtl" : "ltr";
+  root.lang = language;
+  root.className = `${language === "ar" ? "rtl" : "ltr"} ${theme}`;
+
+  localStorage.setItem("language", language);
+}, [language, theme]);
+const toggleLanguage = () => {
+  setLanguage((prev) => {
+    const newLanguage = prev === "en" ? "ar" : "en";
+    localStorage.setItem("language", newLanguage);
+    return newLanguage;
+  });
+};
   const toggleTheme = () =>
   setTheme((prev) => prev === 'light' ? 'dark' : 'light');
   const t = (key: TranslationKey) => {

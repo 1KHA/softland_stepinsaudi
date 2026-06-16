@@ -1,6 +1,5 @@
 import i18n from 'i18next';
-import { initReactI18next } from '../node_modules/react-i18next';
-
+import { initReactI18next } from 'react-i18next';
 const resources = {
   en: {
     translation: {
@@ -159,16 +158,75 @@ const resources = {
         and: 'and',
         privacy: 'Privacy Policy'
       },
-      dashboard: {
-  dashboard: 'Dashboard',
+
+      profile: {
+  savedSuccessfully: "Changes saved successfully",
+  updatedSuccessfully: "Company information has been updated.",
+  companyProfile: "Company Profile",
+  manageCompanyInformation: "Manage your company information",
+  editingMode: "Editing Mode",
+  viewMode: "View Mode",
+  companyLogo: "Company Logo",
+  companyName: "Company Name",
+  companyManager: "Company Manager",
+  country: "Country",
+  sector: "Sector",
+  numberOfBranches: "Number Of Branches",
+  contactNumber: "Contact Number",
+  companyEmail: "Company Email",
+  companyDescription: "Company Description",
+  companyFounders: "Company Founders",
+  addFounder: "Add Founder",
+  saveChanges: "Save Changes"
+},
+
+licensesPage: {
+  title: "Licenses",
+  subtitle: "View and download your issued licenses.",
+  noLicenses: "No licenses available",
+  noLicensesDescription:
+    "Issued licenses will appear here once uploaded by the administrator.",
+  finalLicenseIssued: "Final License Issued"
+},
+
+download: "Download",
+    licenses: "Licenses",
+companyHeader: {
+  subtitle: "Saudi market entry simplified"
+},
+
+"status": {
+  "PENDING": "Pending",
+  "IN_PROGRESS": "In Progress",
+  "COMPLETED": "Completed",
+  "REJECTED": "Rejected"
+},
+
+"task": {
+    currentStatus: "Current Status",
+  requiredDocuments: "Required Documents",
+  "reviewAndUpload": "Review task details and upload the required documents.",
+    "whatYouNeedToDo": "What You Need To Do",
+    "submitTask": "Submit Task",
+      "uploadDocuments": "upload Documents "
+},
+ notifications: "Notifications", 
+"back":"back",
+"view": "View", 
+"ok": "OK",
+
+dashboard: {
+  dashboard: "Dashboard",
+  currentStage: "Current Stage",
   profile: 'My Profile',
   progress: 'Progress Tracking',
   notifications: 'Notifications',
   welcome: 'Welcome back',
   title: 'Company Dashboard',
   editProfile: 'Edit Profile',
+  "approvedTitle": "Congratulations!",
+  "approvedMessage": "Your company has successfully completed all onboarding stages and has been approved.",
   uploadDocuments: 'Upload Documents',
-  currentStage: 'Current Stage',
   licensing: 'Licensing',
   registration: 'Registration',
   compliance: 'Compliance',
@@ -217,19 +275,12 @@ const resources = {
         noRequests: 'No requests assigned to you',
         noNotifications: 'No notifications',
         notificationsWillAppear: 'Notifications will appear here when there are updates',
-        status: {
-          underReview: 'Under Review',
-          approved: 'Approved',
-          rejected: 'Rejected',
-          needsCompletion: 'Needs Completion',
-          submitted: 'Submitted',
-          pending: 'Pending',
-          inProgress: 'In Progress',
-          completed: 'Completed',
-          locked: 'Locked',
-          needsResubmission: 'Needs Re-upload',
-          all: 'All'
-        },
+status: {
+  PENDING: "Pending",
+  IN_PROGRESS: "In Progress",
+  COMPLETED: "Completed",
+  REJECTED: "Rejected"
+},
         requests: {
           title: 'Requests List',
           subtitle: 'All company requests assigned to you',
@@ -362,12 +413,34 @@ const resources = {
             rejected: 'Rejections',
             resubmit: 'Resubmissions'
           },
+
+          notificationsPage: {
+  subtitle: "Stay updated with the latest status of your documents and requests.",
+  noNotifications: "No notifications yet",
+  noNotificationsDescription: "We'll notify you whenever there is an update on your requests or documents.",
+  documentNeedsReupload: "Document Needs Re-upload",
+  documentApproved: "Document Approved",
+  licenseIssued: "License Issued",
+  systemNotification: "System Notification"
+},
+
           types: {
             REQUEST_APPROVED: 'Request Approved',
             REQUEST_REJECTED: 'Request Rejected',
             RESUBMISSION_REQUESTED: 'Resubmission Requested',
             INFO: 'Info'
           },
+
+          uploadFinalLicense: "Upload Final License",
+selectFileFirst: "Please select a file first",
+finalLicenseUploaded: "Final license uploaded successfully",
+uploadFailed: "Upload failed",
+documentApproved: "Document approved successfully",
+documentApproveFailed: "Failed to approve document",
+documentNeedsResubmission: "Document marked for resubmission",
+documentUpdateFailed: "Failed to update document",
+
+
           summary: {
             approvals: 'Approvals',
             rejections: 'Rejections',
@@ -535,16 +608,89 @@ const resources = {
         and: 'و',
         privacy: 'سياسة الخصوصية'
       },
+
+      profile: {
+  savedSuccessfully: "تم حفظ التعديلات بنجاح",
+  updatedSuccessfully: "تم تحديث معلومات الشركة.",
+  companyProfile: "الملف الشخصي للشركة",
+  manageCompanyInformation: "إدارة معلومات شركتك",
+  editingMode: "وضع التعديل",
+  viewMode: "وضع العرض",
+  companyLogo: "شعار الشركة",
+  companyName: "اسم الشركة",
+  companyManager: "مدير الشركة",
+  country: "الدولة",
+  sector: "القطاع",
+  numberOfBranches: "عدد الفروع",
+  contactNumber: "رقم التواصل",
+  companyEmail: "البريد الإلكتروني للشركة",
+  companyDescription: "وصف الشركة",
+  companyFounders: "مؤسسو الشركة",
+  addFounder: "إضافة مؤسس",
+  saveChanges: "حفظ التعديلات"
+},
+
+licensesPage: {
+  title: "التراخيص",
+  subtitle: "استعرض وقم بتنزيل التراخيص الصادرة لشركتك.",
+  noLicenses: "لا توجد تراخيص متاحة",
+  noLicensesDescription:
+    "ستظهر التراخيص هنا بعد رفعها من قبل المسؤول.",
+  finalLicenseIssued: "تم إصدار الترخيص النهائي"
+},
+
+download: "تنزيل",
+    licenses: "تراخيص",
+notifications: "الإشعارات",
+
+
+      "status": {
+  "PENDING": "قيد الانتظار",
+  "IN_PROGRESS": "قيد التنفيذ",
+  "COMPLETED": "مكتمل",
+  "UNDER_REVIEW": "قيد المراجعة",
+    "NEEDS_RESUBMISSION": "إعادة رفع مطلوبة",
+  "REJECTED": "مرفوض"
+
+},
+
+notificationsPage: {
+  subtitle: "ابقَ على اطلاع بآخر تحديثات مستنداتك وطلباتك.",
+  noNotifications: "لا توجد إشعارات حتى الآن",
+  noNotificationsDescription: "سنقوم بإشعارك عند وجود أي تحديث على طلباتك أو مستنداتك.",
+  documentNeedsReupload: "المستند يحتاج إلى إعادة رفع",
+  documentApproved: "تمت الموافقة على المستند",
+  licenseIssued: "تم إصدار الترخيص",
+  systemNotification: "إشعار من النظام"
+},
+
+companyHeader: {
+  subtitle: "تبسيط دخول السوق السعودي"
+},
+"task": {
+    currentStatus: "الحالة الحالية",
+  requiredDocuments: "المستندات المطلوبة",
+  "reviewAndUpload": "راجع تفاصيل المهمة وارفع المستندات المطلوبة",
+    "whatYouNeedToDo": "ما الذي يجب عليك القيام به",
+    "submitTask": "إرسال المهمة",
+      "uploadDocuments": "رفع المستندات"
+},
+  
+"back":"رجوع",
+"ok": "حسناً",
+"view": "عرض",
       dashboard: {
 dashboard: 'لوحة التحكم',
+  currentStage: 'المرحلة الحالية',
 profile: 'ملفي الشخصي',
 progress: 'تتبع التقدم',
 notifications: 'الإشعارات',
   welcome: 'أهلاً بعودتك',
   title: 'لوحة تحكم الشركة',
   editProfile: 'تعديل الملف',
+  "approvedTitle": "تهانينا!",
+  "approvedMessage": "تم إكمال جميع مراحل الانضمام بنجاح وتمت الموافقة على شركتك.",
   uploadDocuments: 'رفع مستندات',
-  currentStage: 'المرحلة الحالية',
   licensing: 'التراخيص',
   registration: 'التسجيل',
   compliance: 'الامتثال',
@@ -564,6 +710,16 @@ notifications: 'الإشعارات',
     }
   }
       },
+
+uploadFinalLicense: "رفع الترخيص النهائي",
+selectFileFirst: "يرجى اختيار ملف أولاً",
+finalLicenseUploaded: "تم رفع الترخيص النهائي بنجاح",
+uploadFailed: "فشل في رفع الملف",
+documentApproved: "تم اعتماد المستند بنجاح",
+documentApproveFailed: "فشل اعتماد المستند",
+documentNeedsResubmission: "تم طلب إعادة رفع المستند",
+documentUpdateFailed: "فشل تحديث المستند",
+
       employee: {
         welcome: '\u0645\u0631\u062d\u0628\u0627\u064b',
         dashboard: '\u0644\u0648\u062d\u0629 \u062a\u062d\u0643\u0645 \u0627\u0644\u0645\u0648\u0638\u0641',
@@ -758,8 +914,8 @@ notifications: 'الإشعارات',
 
 i18n.use(initReactI18next).init({
   resources,
-  lng: 'en',
-  fallbackLng: 'en',
+  lng: localStorage.getItem("language") || "en",
+  fallbackLng: "en",
   interpolation: {
     escapeValue: false
   }

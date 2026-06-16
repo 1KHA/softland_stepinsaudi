@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS stages (
 `);
 
 
+
 db.run(`
 CREATE TABLE IF NOT EXISTS tasks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,6 +109,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   FOREIGN KEY (sector_id) REFERENCES sectors(id)
 )
 `);
+
+
 
 db.run(`
 CREATE TABLE IF NOT EXISTS company_stages (

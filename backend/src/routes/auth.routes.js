@@ -179,11 +179,11 @@ db.all(
         (user_id, message, type, is_read)
         VALUES (?, ?, ?, 0)
         `,
-        [
-          admin.id,
-          `A new company (${company_name}) has registered.`,
-          "NEW_COMPANY"
-        ]
+[
+  admin.id,
+  `newCompanyRegisteredDesc|${company_name}`,
+  "NEW_COMPANY"
+]
       );
     });
   }

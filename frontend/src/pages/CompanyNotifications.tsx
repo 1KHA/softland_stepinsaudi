@@ -6,7 +6,10 @@ import {
   AlertTriangle
 } from "lucide-react";
 import CompanyHeader from "../components/CompanyHeader";
+import { useTranslation } from "react-i18next";
+
 export default function CompanyNotifications() {
+    const { t, i18n } = useTranslation();
     const [notifications, setNotifications] = useState<any[]>([]);
 
 useEffect(() => {
@@ -58,30 +61,30 @@ useEffect(() => {
 
   <div>
     <h1 className="text-4xl font-bold text-[#1E3A5F]">
-      Notifications
+{t("notifications")}
     </h1>
 
-    <p className="text-gray-500 mt-2">
-      Stay updated with the latest status of your documents and requests.
-    </p>
+<p className="text-gray-500 mt-2">
+  {t("notificationsPage.subtitle")}
+</p>
   </div>
 </div>
 
   <div className="bg-[#C5A55A] text-white px-4 py-2 rounded-full font-semibold">
-    {notifications.length} Notifications
+{notifications.length} {t("notifications")}
   </div>
 </div>
 
 <div className="mt-8 space-y-4">
   {notifications.length === 0 ? (
 <div className="border-2 border-dashed border-[#E5E5E5] rounded-3xl p-12 text-center">
-  <h3 className="text-xl font-semibold text-[#1E3A5F]">
-    No notifications yet
-  </h3>
+<h3 className="text-xl font-semibold text-[#1E3A5F]">
+  {t("notificationsPage.noNotifications")}
+</h3>
 
-  <p className="text-gray-500 mt-2">
-    We'll notify you whenever there is an update on your requests or documents.
-  </p>
+<p className="text-gray-500 mt-2">
+  {t("notificationsPage.noNotificationsDescription")}
+</p>
 </div>
   ) : (
     notifications.map((item: any) => {
@@ -129,25 +132,34 @@ className={`w-14 h-14 rounded-full flex items-center justify-center ${
           <div className="flex-1">
 <h3 className="text-lg font-bold text-[#1E3A5F]">
 {rejected
-  ? "Document Needs Re-upload"
+  ? t("notificationsPage.documentNeedsReupload")
   : approved
-  ? "Document Approved"
+  ? t("notificationsPage.documentApproved")
   : licenseIssued
-  ? "License Issued"
-  : "System Notification"}
+  ? t("notificationsPage.licenseIssued")
+  : t("notificationsPage.systemNotification")}
             </h3>
 
-            <p className="text-gray-600 mt-2">
-              {item.message}
-            </p>
+<p className="text-gray-600 mt-2">
+  {i18n.language.startsWith("ar")
+    ? (item.message_ar || item.message)
+    : item.message}
+</p>
 
-            <p className="text-xs text-gray-400 mt-3">
-{new Date(item.created_at).toLocaleDateString("en-GB")} •{" "}
-{new Date(item.created_at).toLocaleTimeString("en-US", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: true,
-})}            </p>
+<p className="text-xs text-gray-400 mt-3">
+  {new Date(item.created_at).toLocaleDateString(
+    i18n.language.startsWith("ar") ? "ar-SA" : "en-GB"
+  )}{" "}
+  •{" "}
+  {new Date(item.created_at).toLocaleTimeString(
+    i18n.language.startsWith("ar") ? "ar-SA" : "en-US",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }
+  )}
+</p>
           </div>
         </div>
       );
