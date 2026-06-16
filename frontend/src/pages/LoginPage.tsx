@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, Phone, Building2, UserCog, Globe2, BriefcaseBusiness, FileText, Users, GitBranch, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from '../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 export function LoginPage() {
@@ -71,12 +71,16 @@ console.log(
 "LOGIN RESPONSE =",
 data
 );
-
+console.log("ROLE =", data.user?.role);
 // دخول بـ OTP
 if (
 res.ok
 &&
+(
 data.requiresOTP
+||
+data.requireOTP
+)
 ) {
 
 navigate(

@@ -1,10 +1,13 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 export default function CompanyHeader() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t, i18n } = useTranslation();
+const isArabic = i18n.language.startsWith("ar");
 
   const [unreadCount, setUnreadCount] = useState(0);
 const handleLogout = async () => {
@@ -57,21 +60,21 @@ useEffect(() => {
 
   fetchUnreadCount();
 }, [location.pathname]);
-  const navItems = [
+const navItems = [
   {
-    label: "Dashboard",
+    label: t("dashboard.dashboard"),
     path: "/company-dashboard",
   },
   {
-    label: "My Profile",
+    label: t("dashboard.profile"),
     path: "/company-profile",
   },
   {
-    label: "Licenses",
+    label: t("dashboard.licensing"),
     path: "/company-licenses",
   },
   {
-    label: "Notifications",
+    label: t("dashboard.notifications"),
     path: "/company-notifications",
   },
 ];
@@ -95,8 +98,8 @@ className="w-12 h-12 object-contain"          />
             </h3>
 
 <p className="text-xs text-[#8E8E8E]">
-                  Saudi market entry simplified
-            </p>
+  {t("companyHeader.subtitle")}
+</p>
           </div>
         </div>
 
@@ -161,6 +164,18 @@ Logout
 
 </button>
         </div>
+        <button
+onClick={() => {
+  const newLang = isArabic ? "en" : "ar";
+
+  localStorage.setItem("language", newLang);
+
+  i18n.changeLanguage(newLang);
+}}
+  className="px-4 py-2 rounded-xl border border-[#ECE7DD] text-sm font-semibold text-[#1E3A5F] hover:bg-[#F7F3EE]"
+>
+  🌐 {isArabic ? "EN" : "AR"}
+</button>
       </div>
     </div>
   );

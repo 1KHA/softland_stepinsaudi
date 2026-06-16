@@ -29,61 +29,75 @@ useEffect(() => {
   fetchNotifications();
 }, []);
 
+const getNotificationTitle = (type: string) => {
+  switch (type) {
+    case "DOCUMENT":
+      return t("newDocumentUploaded");
+    case "REQUEST_APPROVED":
+      return t("requestApproved");
+    case "REQUEST_REJECTED":
+      return t("requestRejected");
+    case "RESUBMISSION_REQUESTED":
+      return t("resubmissionRequested");
+    case "NEW_COMPANY":
+      return t("newCompanyRegistered");
+    default:
+      return type;
+  }
+};
+
+const getNotificationDescription = (type: string) => {
+  switch (type) {
+    case "DOCUMENT":
+      return t("documentUploadedDesc");
+    case "REQUEST_APPROVED":
+      return t("requestApprovedDesc");
+    case "REQUEST_REJECTED":
+      return t("requestRejectedDesc");
+    case "RESUBMISSION_REQUESTED":
+      return t("resubmissionRequestedDesc");
+    case "NEW_COMPANY":
+      return t("newCompanyRegisteredDesc");
+    default:
+      return "";
+  }
+};
+
 const fetchNotifications = async () => {
   try {
     const token = localStorage.getItem("token");
 
-const response = await fetch(
-  "http://localhost:3000/companies/notifications",
-  {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  }
-);
+    const response = await fetch(
+      "http://localhost:3000/companies/notifications",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
 
-const data = await response.json();
+    const data = await response.json();
 
-console.log("Notifications API:", data);
+    console.log("Notifications API:", data);
 
-setNotifications(
-  (data.notifications || []).map((item: any) => ({
-    id: String(item.id),
-title:
-  item.type === "DOCUMENT"
-    ? "New document uploaded"
-    : item.type === "REQUEST_APPROVED"
-    ? "Request approved"
-    : item.type === "REQUEST_REJECTED"
-    ? "Request rejected"
-    : item.type === "RESUBMISSION_REQUESTED"
-    ? "Resubmission requested"
-    : item.type === "NEW_COMPANY"
-    ? "New company registered"
-    : item.type,
-    
-    description: item.message,
-    timestamp: item.created_at,
-    read: item.is_read === 1,
-type:
-  item.type === "DOCUMENT"
-    ? "document"
-    : item.type === "REQUEST_APPROVED"
-    ? "approved"
-    : item.type === "REQUEST_REJECTED"
-    ? "rejected"
-    : item.type === "RESUBMISSION_REQUESTED"
-    ? "alert"
-    : item.type === "STAGE_CHANGED"
-    ? "stage"
-    : "alert"  }))
-);
+    setNotifications(
+      (data.notifications || []).map((item: any) => ({
+        id: String(item.id),
+
+        type: item.type,
+
+        description: item.message, // 🔥 خليها كذا من الباك
+
+        timestamp: item.created_at,
+
+        read: item.is_read === 1,
+      }))
+    );
+
   } catch (error) {
     console.error(error);
   }
-}; 
-
-  
+};
   const filteredNotifications = notifications.filter((n) => {
     if (filter === 'unread') return !n.read;
     if (filter === 'read') return n.read;
@@ -192,8 +206,7 @@ type:
             {t('notifications')}
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Manage and view all your system alerts and updates.
-          </p>
+            {t("notificationsDescription")}          </p>
         </div>
         <button
           onClick={markAllAsRead}
@@ -264,17 +277,18 @@ type:
                     <div className="flex justify-between items-start gap-4 mb-1">
                       <h3
                     className={`text-base font-semibold truncate ${!notification.read ? 'text-navy dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
-                    
-                        {notification.title}
+                 {getNotificationTitle(notification.type)}
                       </h3>
-                      <span className="text-xs font-medium text-gray-400 whitespace-nowrap mt-1">
-                        {notification.timestamp}
-                      </span>
+<span className="text-xs font-medium text-gray-400 whitespace-nowrap mt-1">
+  {new Date(notification.timestamp).toLocaleString(
+    language === "ar" ? "ar-SA" : "en-US"
+  )}
+</span>
                     </div>
                     <p
                   className={`text-sm ${!notification.read ? 'text-gray-600 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
                   
-                      {notification.description}
+                      {getNotificationDescription(notification.type)}
                     </p>
                   </div>
                 </motion.div>
@@ -293,10 +307,10 @@ type:
                   <BellIcon size={24} className="text-gray-400" />
                 </div>
                 <h3 className="text-lg font-medium text-navy dark:text-cream-dark mb-1">
-                  No notifications
+                 {t("noNotifications")} 
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm">
-                  You're all caught up! Check back later for updates.
+                 {t("noNotificationsDescription")}
                 </p>
               </motion.div>
             }

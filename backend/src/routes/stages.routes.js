@@ -8,7 +8,9 @@ router.get('/', (req, res) => {
 SELECT
   id,
   name,
+  name_ar,
   description,
+  description_ar,
   stage_order,
   workflow_phase,
   weight,
@@ -40,7 +42,9 @@ ORDER BY stage_order ASC
 router.post('/', (req, res) => {
 const {
   name,
+  name_ar,
   description,
+  description_ar,
   workflow_phase
 } = req.body;
 
@@ -90,22 +94,24 @@ const {
 INSERT INTO stages
 (
   name,
+  name_ar,
   description,
+  description_ar,
   stage_order,
   weight,
   is_active,
   workflow_phase
-
 )
-            VALUES (?, ?, ?, ?, ?, ?)           `,
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)           `,
 [
   name,
+  name_ar || null,
   description,
+  description_ar || null,
   nextOrder,
   25,
   1,
   workflow_phase || "PROCESSING"
-
 ],
             function (err) {
               if (err) {
@@ -194,7 +200,9 @@ const { id } = req.params;
 
 const {
   name,
+  name_ar,
   description,
+  description_ar,
   workflow_phase
 } = req.body;
 
@@ -262,13 +270,17 @@ function updateStage() {
 UPDATE stages
 SET
   name = ?,
+  name_ar = ?,
   description = ?,
+  description_ar = ?,
   workflow_phase = ?
 WHERE id = ?
         `,
-        [
+[
   name,
+  name_ar || null,
   description,
+  description_ar || null,
   workflow_phase,
   id
 ],

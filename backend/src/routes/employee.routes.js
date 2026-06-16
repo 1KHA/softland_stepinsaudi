@@ -58,16 +58,17 @@ router.get('/dashboard/stats', authMiddleware, employeeOrAdmin, (req, res) => {
 
 db.all(
   `
-  SELECT
-    s.id,
-    s.name,
-    COUNT(cs.company_id) as total
-  FROM stages s
-  LEFT JOIN company_stages cs
-    ON s.id = cs.stage_id
-    AND cs.status = 'IN_PROGRESS'
-  GROUP BY s.id
-  ORDER BY s.stage_order
+SELECT
+  s.id,
+  s.name,
+  s.name_ar,
+  COUNT(cs.company_id) as total
+FROM stages s
+LEFT JOIN company_stages cs
+  ON s.id = cs.stage_id
+  AND cs.status = 'IN_PROGRESS'
+GROUP BY s.id
+ORDER BY s.stage_order
   `,
   [],
   (err, stageStats) => {
@@ -107,27 +108,44 @@ router.get('/requests', authMiddleware, employeeOrAdmin, (req, res) => {
   const employeeId = req.user.id;
   const isAdmin = req.user.role === 'ADMIN';
 
-  let query = `
-    SELECT
-      c.id,
-      c.name AS company_name,
-      c.status,
-      c.created_at,
-      c.assigned_employee_id,
-      u.name AS assigned_employee_name,
-      s.name_en AS sector_name,
-      (
-        SELECT st2.name
-        FROM company_stages cs2
-        JOIN stages st2 ON cs2.stage_id = st2.id
-        WHERE cs2.company_id = c.id AND cs2.status = 'IN_PROGRESS'
-        LIMIT 1
-      ) AS current_stage_name
-    FROM companies c
-    LEFT JOIN users u ON c.assigned_employee_id = u.id
-    LEFT JOIN sectors s ON c.sector_id = s.id
-    WHERE 1=1
-  `;
+let query = `
+  SELECT
+    c.id,
+    c.name AS company_name,
+    c.status,
+    c.created_at,
+    c.assigned_employee_id,
+    u.name AS assigned_employee_name,
+    s.name_en AS sector_name,
+    s.name_ar AS sector_name_ar,
+
+    (
+      SELECT st2.name
+      FROM company_stages cs2
+      JOIN stages st2
+        ON cs2.stage_id = st2.id
+      WHERE cs2.company_id = c.id
+        AND cs2.status = 'IN_PROGRESS'
+      LIMIT 1
+    ) AS current_stage_name,
+
+    (
+      SELECT st2.name_ar
+      FROM company_stages cs2
+      JOIN stages st2
+        ON cs2.stage_id = st2.id
+      WHERE cs2.company_id = c.id
+        AND cs2.status = 'IN_PROGRESS'
+      LIMIT 1
+    ) AS current_stage_name_ar
+
+  FROM companies c
+  LEFT JOIN users u
+    ON c.assigned_employee_id = u.id
+  LEFT JOIN sectors s
+    ON c.sector_id = s.id
+  WHERE 1 = 1
+`;
 
   const params = [];
 
@@ -173,7 +191,11 @@ router.get('/requests/:id', authMiddleware, employeeOrAdmin, (req, res) => {
       if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
 
       db.all(
-        `SELECT cs.*, st.name AS stage_name, st.stage_order
+        `SELECT
+  cs.*,
+  st.name AS stage_name,
+  st.name_ar AS stage_name_ar,
+  st.stage_order
          FROM company_stages cs
          JOIN stages st ON cs.stage_id = st.id
          WHERE cs.company_id = ?
@@ -186,6 +208,7 @@ router.get('/requests/:id', authMiddleware, employeeOrAdmin, (req, res) => {
             `SELECT
   ct.*,
   t.title AS task_title,
+  t.title_ar AS task_title_ar,
   t.task_type
 FROM company_tasks ct
 JOIN tasks t
@@ -299,7 +322,7 @@ router.put('/requests/:id/approve', authMiddleware, employeeOrAdmin, (req, res) 
                 `INSERT INTO notifications
                  (user_id, message, type, related_company_id)
                  SELECT u.id,
-                        'Your request has been approved successfully.',
+                        'requestApprovedDesc',
                         'REQUEST_APPROVED',
                         ?
                  FROM users u
@@ -607,7 +630,7 @@ db.run(
   )
   SELECT
     u.id,
-    'Your document has been approved successfully.',
+  "documentUploadedDesc",
     'DOCUMENT_APPROVED',
     ?
   FROM users u
@@ -896,10 +919,8 @@ db.run(
   WHERE u.company_id = ?
     AND u.role = 'CLIENT'
   `,
-  [
-    `Please re-upload the requested document. Reason: ${
-      reason || "Please review the uploaded document."
-    }`,
+[
+  `resubmissionRequestedDesc|${reason || "Please review the uploaded document."}`,
     row.company_id,
     row.company_id,
   ]
@@ -1309,7 +1330,7 @@ router.post(
         )
         SELECT
           u.id,
-          'A new license has been issued successfully.',
+'licenseIssuedDesc',
           'LICENSE_ISSUED',
           ?
         FROM users u

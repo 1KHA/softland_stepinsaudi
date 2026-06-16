@@ -152,13 +152,13 @@ const mappedUsers = data.users
     status: String(user.status || 'ACTIVE').toLowerCase()
   }));
 
-console.log('Mapped Users:', mappedUsers);
+
 
 setUsers(mappedUsers);
 
   } catch (error) {
 
-    console.error(error);
+ 
 
   }
 
@@ -410,7 +410,7 @@ let backendRole = 'ADMIN';
       }, 4000);
     } catch (error) {
       console.error(error);
-      alert('Error saving user');
+    alert(t('errorSavingUser'));
     }
   };
 
@@ -437,7 +437,7 @@ let backendRole = 'ADMIN';
     );
     setDeleteUserId(null);
 
-setSuccessMessage("User deleted successfully.");
+setSuccessMessage(t('userDeletedSuccess'));
 
 setTimeout(() => {
   setSuccessMessage("");
@@ -486,7 +486,7 @@ const filteredUsers = users.filter((user) => {
             {t('users')}
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Manage system users, roles, and access permissions.
+            {t("usersDescription")}
           </p>
           {successMessage ? (
             <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800/30 dark:bg-green-900/20 dark:text-green-200">
@@ -506,7 +506,7 @@ const filteredUsers = users.filter((user) => {
 <div className="mb-4">
   <input
     type="text"
-    placeholder="Search users..."
+    placeholder={t("searchUsers")}
     value={searchTerm}
     onChange={(e) => setSearchTerm(e.target.value)}
     className="w-full rounded-xl border border-gray-200 px-4 py-3"
@@ -524,7 +524,7 @@ const filteredUsers = users.filter((user) => {
         : 'bg-gray-100'
     }`}
   >
-    All
+  {t("all")}
   </button>
 
   <button
@@ -536,7 +536,7 @@ const filteredUsers = users.filter((user) => {
         : 'bg-gray-100'
     }`}
   >
-    Admin
+   {t("admin")}
   </button>
 
   <button
@@ -548,7 +548,7 @@ const filteredUsers = users.filter((user) => {
         : 'bg-gray-100'
     }`}
   >
-    Managers
+   {t("manager")}
   </button>
 
 </div>
@@ -592,7 +592,11 @@ const filteredUsers = users.filter((user) => {
                     <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
                     
-                      {t(user.role as any)}
+                    {user.role === "admin"
+  ? t("admin")
+  : user.role === "manager"
+  ? t("manager")
+  : t("employee")}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
@@ -602,7 +606,9 @@ const filteredUsers = users.filter((user) => {
                     <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${user.status?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                     
-                      {t(user.status?.toLowerCase() as any)}
+                     {user.status === "active"
+  ? t("active")
+  : t("inactive")}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -624,7 +630,7 @@ const filteredUsers = users.filter((user) => {
 onChange={() => {
 
   if (user.id === currentUser.id) {
-    alert("لا يمكنك تعطيل حسابك");
+alert(t("cannotDisableSelf"));
     return;
   }
 
@@ -649,7 +655,7 @@ onChange={() => {
                         type="button"
 onClick={() => {
   if (user.id === currentUser.id) {
-    alert("You cannot delete your own account.");
+    alert(t("cannotDeleteSelf"));
     return;
   }
 
@@ -672,27 +678,27 @@ onClick={() => {
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
     <div className="bg-white dark:bg-navy-card rounded-2xl p-6 w-[420px] shadow-xl">
       <h2 className="text-xl font-bold mb-3">
-        Delete User
+        {t("deleteUser")}
       </h2>
 
       <p className="mb-6 text-gray-600 dark:text-gray-300">
-        Are you sure you want to permanently delete this user and all related company data?
+      {t("deleteUserConfirmation")}
       </p>
 
       <div className="flex justify-end gap-3">
-        <button
-          onClick={() => setDeleteUserId(null)}
-          className="px-4 py-2 border rounded-xl"
-        >
-          Cancel
-        </button>
+<button
+  onClick={() => setDeleteUserId(null)}
+  className="px-4 py-2 border rounded-xl"
+>
+  {t("cancel")}
+</button>
 
-        <button
-          onClick={() => handleDeleteUser(deleteUserId)}
-          className="px-4 py-2 bg-red-600 text-white rounded-xl"
-        >
-          Delete
-        </button>
+<button
+  onClick={() => handleDeleteUser(deleteUserId)}
+  className="px-4 py-2 bg-red-600 text-white rounded-xl"
+>
+  {t("delete")}
+</button>
       </div>
     </div>
   </div>
@@ -703,10 +709,12 @@ onClick={() => {
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-navy-light p-6">
               <div>
                 <h2 className="text-2xl font-semibold text-navy dark:text-cream-dark">
-                  {isEditMode ? 'Edit User' : 'Add User'}
+                 {isEditMode ? t("editUser") : t("addUser")}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {isEditMode ? 'Update user details' : 'Create a new user'}
+                  {isEditMode
+  ? t("updateUserDetails")
+  : t("createNewUser")}
                 </p>
               </div>
               <button
@@ -722,7 +730,7 @@ onClick={() => {
                   label={t('name')}
                   value={formState.name}
                   onChange={(value) => handleFormChange('name', value)}
-                  placeholder="Enter name"
+                  placeholder={t("enterName")}
                   error={formErrors.name}
                 />
                 <FormField
@@ -730,7 +738,7 @@ onClick={() => {
                   value={formState.email}
                   onChange={(value) => handleFormChange('email', value)}
                   type="email"
-                  placeholder="Enter email"
+                  placeholder={t("enterEmail")}
                   error={formErrors.email}
                 />
                 <FormField
@@ -738,7 +746,7 @@ onClick={() => {
                   value={formState.password}
                   onChange={(value) => handleFormChange('password', value)}
                   type="password"
-                  placeholder="Enter password"
+                  placeholder={t("enterPassword")}
                   error={formErrors.password}
                 />
                 <FormField
@@ -781,7 +789,9 @@ onClick={() => {
                 <button
                   type="submit"
                   className="rounded-2xl bg-gold px-5 py-3 text-sm font-medium text-white hover:bg-gold-dark transition-colors">
-                  {isEditMode ? 'Save Changes' : 'Create User'}
+                  {isEditMode
+  ? t("saveChanges")
+  : t("createUser")}
                 </button>
               </div>
             </form>

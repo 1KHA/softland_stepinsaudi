@@ -2,7 +2,11 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import CompanyHeader from "../components/CompanyHeader";
 import { FileCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 export default function CompanyLicenses() {
+  const { t, i18n } = useTranslation();
+
   const [licenses, setLicenses] = useState<any[]>([]);
 
   useEffect(() => {
@@ -38,29 +42,29 @@ export default function CompanyLicenses() {
 
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-4xl font-bold text-[#1E3A5F]">
-                  Licenses
-                </h1>
+<h1 className="text-4xl font-bold text-[#1E3A5F]">
+  {t("licensesPage.title")}
+</h1>
 
-                <p className="text-gray-500 mt-2">
-                  View and download your issued licenses.
-                </p>
+<p className="text-gray-500 mt-2">
+  {t("licensesPage.subtitle")}
+</p>
               </div>
 
               <div className="bg-[#C5A55A] text-white px-4 py-2 rounded-full font-semibold">
-                {licenses.length} Licenses
+{`${licenses.length} ${t("licenses")}`}
               </div>
             </div>
 
             {licenses.length === 0 ? (
               <div className="border-2 border-dashed border-[#E5E5E5] rounded-3xl p-12 text-center">
-                <h3 className="text-xl font-semibold text-[#1E3A5F]">
-                  No licenses available
-                </h3>
+<h3 className="text-xl font-semibold text-[#1E3A5F]">
+  {t("licensesPage.noLicenses")}
+</h3>
 
-                <p className="text-gray-500 mt-2">
-                  Issued licenses will appear here once uploaded by the administrator.
-                </p>
+<p className="text-gray-500 mt-2">
+  {t("licensesPage.noLicensesDescription")}
+</p>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 gap-6">
@@ -72,13 +76,15 @@ export default function CompanyLicenses() {
 <div className="flex items-center gap-2">
   <FileCheck size={24} className="text-[#C5A55A]" />
 
-  <h2 className="text-xl font-bold text-[#1E3A5F]">
-    {license.license_name}
-  </h2>
+<h2 className="text-xl font-bold text-[#1E3A5F]">
+  {i18n.language.startsWith("ar")
+    ? (license.license_name_ar || license.license_name)
+    : license.license_name}
+</h2>
 </div>
 
                     <p className="text-gray-500 mt-2">
-Final License Issued
+{t("licensesPage.finalLicenseIssued")}
                     </p>
 
                     <p className="text-sm text-gray-400 mt-4">
@@ -94,7 +100,7 @@ Final License Issued
                         rel="noreferrer"
                         className="flex-1 text-center bg-[#1E3A5F] text-white py-3 rounded-xl hover:opacity-90"
                       >
-                        View
+                        {t("licensesPage.finalLicenseIssued")}
                       </a>
 
                       <a
@@ -102,7 +108,7 @@ Final License Issued
                         download
                         className="flex-1 text-center bg-[#C5A55A] text-white py-3 rounded-xl hover:opacity-90"
                       >
-                        Download
+                         {t("download")}
                       </a>
                     </div>
                   </div>

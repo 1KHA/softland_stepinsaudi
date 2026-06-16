@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { useTranslation } from '../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function Navbar() {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const isArabic = i18n.language.startsWith('ar');
+  const isArabic = (i18n.language || 'en').startsWith('ar');
   const navLinks = [
     { name: t('nav.home'), href: '#home' },
     { name: t('nav.about'), href: '#about' },

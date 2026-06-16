@@ -119,13 +119,13 @@ const fetchNotifications = async () => {
 
     const data = await response.json();
 
-    if (data.success) {
+if (data.success) {
+  console.log(data.notifications);
 
-      setNotifications(
-        data.notifications.slice(0, 3)
-      );
-
-    }
+  setNotifications(
+    data.notifications.slice(0, 3)
+  );
+}
 
   } catch (error) {
 
@@ -168,8 +168,11 @@ const dashboardStats = [
 
 const stages = stageStats.map((stage) => ({
   id: stage.id,
-  label: stage.name,
-  total: stage.total
+  label:
+    language === "ar"
+      ? (stage.name_ar || stage.name)
+      : stage.name,
+  total: stage.total,
 }));
 
   const [recentRequests, setRecentRequests] =
@@ -268,7 +271,7 @@ const stages = stageStats.map((stage) => ({
             {t('onboardingProgress')}
           </h2>
 <span className="text-sm font-semibold text-gold">
-  Active Companies: {stats.activeCompanies}
+  {t("activeCompanies")}: {stats.activeCompanies}
 </span>
         </div>
 
@@ -330,7 +333,6 @@ style={{
                   <th className="px-6 py-4 font-medium">{t('id')}</th>
                   <th className="px-6 py-4 font-medium">{t('company')}</th>
                   <th className="px-6 py-4 font-medium">{t('stage')}</th>
-                  <th className="px-6 py-4 font-medium">{t('employee')}</th>
                   <th className="px-6 py-4 font-medium">{t('status')}</th>
                 </tr>
               </thead>
@@ -348,12 +350,12 @@ style={{
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
                       {req.company_name}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                      {req.current_stage_name}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                      {req.assigned_employee_name}
-                    </td>
+<td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+  {language === "ar"
+    ? (req.current_stage_name_ar || req.current_stage_name)
+    : req.current_stage_name}
+</td>
+
                     <td className="px-6 py-4">
                       <span
                       className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(req.status)}`}>
@@ -407,15 +409,29 @@ style={{
                     <Icon size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy dark:text-cream-dark truncate">
-                      {notif.message}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                      {notif.type}
-                    </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                      {notif.created_at}
-                    </p>
+<p className="text-sm font-semibold text-navy dark:text-cream-dark truncate">
+{notif.message === "A company has uploaded new documents for review."
+  ? t("documentUploadedDesc")
+  : notif.message.startsWith("A new company")
+  ? t("newCompanyRegisteredDesc")
+  : notif.message === "Request approved."
+  ? t("requestApprovedDesc")
+  : notif.message === "Request rejected."
+  ? t("requestRejectedDesc")
+  : notif.message.includes("Please re-upload")
+  ? t("resubmissionRequestedDesc")
+  : notif.message}
+</p>
+
+<p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+  {t(notif.type as any)}
+</p>
+
+<p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+  {new Date(notif.created_at).toLocaleString(
+    language === "ar" ? "ar-SA" : "en-US"
+  )}
+</p>
                   </div>
                   <div className="flex items-center text-gray-300 dark:text-gray-600 group-hover:text-gold transition-colors">
                     {isRtl ?

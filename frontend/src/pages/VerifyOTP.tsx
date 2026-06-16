@@ -213,9 +213,41 @@ navigate(
 
 else {
 
+const role =
+data.user?.role;
+
+console.log(
+"OTP ROLE =",
+role
+);
+
+if (
+role === "ADMIN"
+) {
+
+navigate(
+"/admin"
+);
+
+}
+
+else if (
+role === "CLIENT"
+) {
+
 navigate(
 "/company-dashboard"
 );
+
+}
+
+else {
+
+navigate(
+"/employee-dashboard"
+);
+
+}
 
 }
 

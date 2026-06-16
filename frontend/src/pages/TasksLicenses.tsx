@@ -9,29 +9,36 @@ import {
 interface Task {
   id: number;
   title: string;
+  title_ar: string;
   description: string;
+  description_ar: string;
   stage_id: number;
   sector_id: number | null;
   task_type: 'file' | 'license';
   is_global: number;
   required: number;
-  stage_name?: string;
-  sector_name?: string;
+  stage_name: string;
+stage_name_ar?: string;
+
+sector_name: string;
+sector_name_ar?: string;
 }
 
 interface Stage {
   id: number;
   name: string;
+  name_ar?: string;
 }
 
 interface Sector {
   id: number;
   name_en: string;
+  name_ar?: string;
 }
 
 export const TasksLicenses: React.FC = () => {
 
-  const { t } = useAppContext();
+const { t, language } = useAppContext();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
@@ -47,7 +54,9 @@ const [successMessage, setSuccessMessage] = useState('');
 
 const [formData, setFormData] = useState<{
   title: string;
+  title_ar: string;
   description: string;
+  description_ar: string;
   stage_id: string;
   sector_id: string;
   task_type: 'file' | 'license';
@@ -56,7 +65,9 @@ const [formData, setFormData] = useState<{
   documents: string[];
 }>({
   title: '',
+  title_ar: '',
   description: '',
+  description_ar: '',
   stage_id: '',
   sector_id: 'all',
   task_type: 'file',
@@ -115,7 +126,7 @@ const [newDocument, setNewDocument] =
       );
 
       loadData();
-setSuccessMessage('Task deleted successfully.');
+setSuccessMessage(t("taskDeleted"));
 
 setTimeout(() => {
   setSuccessMessage('');
@@ -134,7 +145,9 @@ setTimeout(() => {
 
 setFormData({
   title: '',
+  title_ar: '',
   description: '',
+  description_ar: '',
   stage_id: '',
   sector_id: 'all',
   task_type: 'file',
@@ -153,7 +166,9 @@ setFormData({
 
 setFormData({
   title: task.title,
+  title_ar: (task as any).title_ar || '',
   description: task.description,
+  description_ar: (task as any).description_ar || '',
   stage_id: String(task.stage_id),
   sector_id: task.sector_id
     ? String(task.sector_id)
@@ -175,20 +190,22 @@ setFormData({
 
 const payload = {
   title: formData.title,
+  title_ar: formData.title_ar,
   description: formData.description,
+  description_ar: formData.description_ar,
   stage_id: Number(formData.stage_id),
 
-sector_id:
-  formData.sector_id === 'all'
-    ? 1
-    : Number(formData.sector_id),
+  sector_id:
+    formData.sector_id === 'all'
+      ? 5
+      : Number(formData.sector_id),
 
-  task_type: formData.task_type,
+  task_type: formData.task_type, // ✅ أضفه هنا
 
-is_global:
-  formData.sector_id === '1'
-    ? 1
-    : 0,
+  is_global:
+    formData.sector_id === '5'
+      ? 1
+      : 0,
 
   required: formData.required,
 
@@ -207,7 +224,7 @@ is_global:
           body: JSON.stringify(payload)
         }
       );
-setSuccessMessage('Task updated successfully.');
+setSuccessMessage(t("taskUpdated"));
 
 setTimeout(() => {
   setSuccessMessage('');
@@ -224,7 +241,7 @@ setTimeout(() => {
           body: JSON.stringify(payload)
         }
       );
-setSuccessMessage('Task added successfully.');
+setSuccessMessage(t("taskAdded"));
 
 setTimeout(() => {
   setSuccessMessage('');
@@ -250,13 +267,12 @@ setTimeout(() => {
 
         <div>
 
-          <h1 className="text-3xl font-bold text-navy dark:text-cream-dark">
-            Tasks & Licenses
-          </h1>
-
-          <p className="text-gray-500">
-            Manage onboarding files and licenses
-          </p>
+<h1>{t("tasksLicenses")}</h1>
+<p>
+  {language === "ar"
+    ? "إدارة المهام والملفات والتراخيص"
+    : "Manage onboarding files and licenses"}
+</p>
 
 {successMessage && (
   <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
@@ -271,7 +287,7 @@ setTimeout(() => {
 
           <PlusIcon size={18} />
 
-          Add Task
+{t("addTask")}
 
         </button>
 
@@ -288,27 +304,27 @@ setTimeout(() => {
               <tr className="border-b">
 
                 <th className="p-4 text-left">
-                  Title
+                  {t("title")}
                 </th>
 
                 <th className="p-4 text-left">
-                  Type
+                  {t("licenseType")}
                 </th>
 
                 <th className="p-4 text-left">
-                  Stage
+                  {t("stage")}
                 </th>
 
                 <th className="p-4 text-left">
-                  Sector
+                  {t("sector")}
                 </th>
 
                 <th className="p-4 text-left">
-                  Scope
+                  {t("scope")}
                 </th>
 
                 <th className="p-4 text-center">
-                  Actions
+                  {t("actions")}
                 </th>
 
               </tr>
@@ -343,13 +359,17 @@ setTimeout(() => {
 
                       <div>
 
-                        <div className="font-semibold">
-                          {task.title}
-                        </div>
+<div className="font-semibold">
+  {language === "ar"
+    ? (task.title_ar || task.title)
+    : task.title}
+</div>
 
-                        <div className="text-sm text-gray-500">
-                          {task.description}
-                        </div>
+<div className="text-sm text-gray-500">
+  {language === "ar"
+    ? (task.description_ar || task.description)
+    : task.description}
+</div>
 
                       </div>
 
@@ -357,25 +377,30 @@ setTimeout(() => {
 
                     <td className="p-4">
 
-                      {task.task_type === 'file'
-                        ? 'File'
-                        : 'License'}
+                     {task.task_type === "file"
+  ? t("file")
+  : t("license")}
 
                     </td>
+<td className="p-4">
+  {language === "ar"
+    ? (task.stage_name_ar || task.stage_name)
+    : task.stage_name}
+</td>
 
-                    <td className="p-4">
-                      {task.stage_name}
-                    </td>
-
-                    <td className="p-4">
-                      {task.sector_name || '-'}
-                    </td>
+<td className="p-4">
+  {language === "ar"
+    ? (task.sector_name_ar || task.sector_name)
+    : (task.sector_name || "-")}
+</td>
 
                     <td className="p-4">
 
                       {task.is_global
-                        ? 'All Companies'
-                        : 'Sector Specific'}
+  ? t("allSectors")
+  : language === "ar"
+    ? "قطاع محدد"
+    : "Sector Specific"}
 
                     </td>
 
@@ -427,9 +452,7 @@ setTimeout(() => {
 
             <h2 className="text-2xl font-bold mb-6">
 
-              {editingTask
-                ? 'Edit Task'
-                : 'Add Task'}
+             {t(editingTask ? 'editTask' : 'addTask')}
 
             </h2>
 
@@ -437,7 +460,7 @@ setTimeout(() => {
 
               <input
                 type="text"
-                placeholder="Title"
+                placeholder={t('title')}
                 value={formData.title}
                 onChange={(e) =>
                   setFormData({
@@ -448,8 +471,21 @@ setTimeout(() => {
                 className="w-full border rounded-xl px-4 py-3"
               />
 
+              <input
+  type="text"
+  placeholder={t('titleArabic')}
+  value={formData.title_ar}
+  onChange={(e) =>
+    setFormData({
+      ...formData,
+      title_ar: e.target.value
+    })
+  }
+  className="w-full border rounded-xl px-4 py-3"
+/>
+
               <textarea
-                placeholder="Description"
+                placeholder={t('description')}
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({
@@ -460,6 +496,17 @@ setTimeout(() => {
                 className="w-full border rounded-xl px-4 py-3"
               />
 
+<textarea
+  placeholder={t('descriptionArabic')}
+  value={formData.description_ar}
+  onChange={(e) =>
+    setFormData({
+      ...formData,
+      description_ar: e.target.value
+    })
+  }
+  className="w-full border rounded-xl px-4 py-3"
+/>
               <select
                 value={formData.task_type}
                 onChange={(e) =>
@@ -474,13 +521,13 @@ setTimeout(() => {
                 }
                 className="w-full border rounded-xl px-4 py-3">
 
-                <option value="file">
-                  File
-                </option>
+<option value="file">
+  {t('file')}
+</option>
 
-                <option value="license">
-                  License
-                </option>
+<option value="license">
+  {t('license')}
+</option>
 
               </select>
 
@@ -495,7 +542,7 @@ setTimeout(() => {
                 className="w-full border rounded-xl px-4 py-3">
 
                 <option value="">
-                  Select Stage
+                  {t('selectStage')}
                 </option>
 
                 {stages.map((stage) => (
@@ -504,7 +551,9 @@ setTimeout(() => {
                     key={stage.id}
                     value={stage.id}>
 
-                    {stage.name}
+                    {language === 'ar'
+  ? (stage as any).name_ar
+  : stage.name}
 
                   </option>
 
@@ -528,7 +577,9 @@ setTimeout(() => {
       key={sector.id}
       value={sector.id}>
 
-      {sector.name_en}
+      {language === 'ar'
+  ? (sector as any).name_ar
+  : sector.name_en}
 
     </option>
 
@@ -541,7 +592,9 @@ setTimeout(() => {
   <div>
 
     <label className="font-medium mb-2 block">
-      Required Documents
+      {language === 'ar'
+  ? 'المستندات المطلوبة'
+  : 'Required Documents'}
     </label>
 
     <div className="flex gap-2 mb-3">
@@ -552,7 +605,11 @@ setTimeout(() => {
         onChange={(e) =>
           setNewDocument(e.target.value)
         }
-        placeholder="Document name"
+placeholder={
+  language === 'ar'
+    ? 'اسم المستند'
+    : 'Document name'
+}
         className="flex-1 border rounded-xl px-4 py-2"
       />
 
@@ -576,8 +633,7 @@ setTimeout(() => {
         }}
         className="px-4 py-2 bg-gold text-white rounded-xl">
 
-        Add
-
+{language === 'ar' ? 'إضافة' : 'Add'}
       </button>
 
     </div>
@@ -636,7 +692,7 @@ setTimeout(() => {
                   }
                 />
 
-                Required
+                {t('required')}
 
               </label>
 
@@ -650,16 +706,14 @@ setTimeout(() => {
                 }
                 className="px-5 py-2 rounded-xl border">
 
-                Cancel
-
+{t('cancel')}
               </button>
 
               <button
                 onClick={handleSave}
                 className="px-5 py-2 rounded-xl bg-gold text-white">
 
-                Save
-
+{t('save')}
               </button>
 
             </div>

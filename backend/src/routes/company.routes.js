@@ -116,28 +116,28 @@ router.get(
 
     db.all(
       `
-      SELECT
-        cs.*,
-        s.name AS stage_name
-      FROM company_stages cs
-      JOIN stages s
-      ON cs.stage_id = s.id
+SELECT
+  cs.*,
+  s.name AS stage_name,
+  COALESCE(s.name_ar, s.name) AS stage_name_ar
+FROM company_stages cs
+JOIN stages s
+ON cs.stage_id = s.id
       WHERE cs.company_id = ?
       ORDER BY s.stage_order ASC
       `,
       [companyId],
       (err, rows) => {
 
-        if (err) {
+if (err) {
 
-          console.log(err);
+  return res.status(500).json({
+    success: false,
+    error: JSON.stringify(err),
+    message: err.message
+  });
 
-          return res.status(500).json({
-            success: false,
-            message: 'Error fetching stages'
-          });
-
-        }
+}
 
         res.json({
           success: true,
@@ -160,27 +160,27 @@ router.get(
 
     db.all(
       `
-      SELECT
-        ct.*,
-        t.title
-      FROM company_tasks ct
-      JOIN tasks t
-      ON ct.task_id = t.id
+SELECT
+  ct.*,
+  t.title,
+  t.title_ar
+FROM company_tasks ct
+JOIN tasks t
+ON ct.task_id = t.id
       WHERE ct.company_id = ?
       `,
       [companyId],
       (err, rows) => {
 
-        if (err) {
+       if (err) {
 
-          console.log(err);
+  return res.status(500).json({
+    success: false,
+    error: JSON.stringify(err),
+    message: err.message
+  });
 
-          return res.status(500).json({
-            success: false,
-            message: 'Error fetching tasks'
-          });
-
-        }
+}
 console.log("COMPANY TASKS:");
 console.log(rows);
         res.json({
@@ -387,7 +387,7 @@ db.all(
         `,
         [
           admin.id,
-          `A company has uploaded new documents for review.`,
+          `documentUploadedDesc|${req.user.company_name}`,
           "DOCUMENT"
         ]
       );
@@ -424,7 +424,9 @@ router.get("/tasks/:id", (req, res) => {
 SELECT
   company_tasks.*,
   tasks.title,
+  tasks.title_ar,
   tasks.description,
+  tasks.description_ar,
   tasks.task_type
 FROM company_tasks
 JOIN tasks
@@ -450,6 +452,7 @@ db.all(
   `
 SELECT
   trd.document_name,
+  trd.document_name_ar,
   td.status,
   td.rejection_reason
 FROM task_required_documents trd
@@ -471,28 +474,35 @@ WHERE trd.task_id = ?
       });
     }
 
-    res.json({
-      id: row.id,
-      title: row.title,
-      status: row.status,
+res.json({
+  id: row.id,
 
-      description:
-        row.description ||
-        "Complete all required documents for this task.",
+  title: row.title,
+  title_ar: row.title_ar,
 
-requiredDocuments:
-  row.task_type === "file"
-    ? [{
-        document_name: row.title,
-        status: row.status,
-        rejection_reason: null
-      }]
-    : docs.map((d) => ({
-        document_name: d.document_name,
-        status: d.status || "PENDING",
-        rejection_reason: d.rejection_reason
-      }))
-    });
+  status: row.status,
+
+  description:
+    row.description ||
+    "Complete all required documents for this task.",
+
+  description_ar: row.description_ar,
+
+  requiredDocuments:
+    row.task_type === "file"
+      ? [{
+          document_name: row.title,
+          document_name_ar: row.title_ar,
+          status: row.status,
+          rejection_reason: null
+        }]
+      : docs.map((d) => ({
+  document_name: d.document_name,
+  document_name_ar: d.document_name_ar,
+  status: d.status || "PENDING",
+  rejection_reason: d.rejection_reason
+}))
+});
 
   }
 );

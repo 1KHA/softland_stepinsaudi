@@ -1,6 +1,6 @@
 import React from 'react';
 import { Languages } from 'lucide-react';
-import { useTranslation } from '../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 
 type LanguageSwitcherProps = {
   compact?: boolean;
@@ -8,7 +8,8 @@ type LanguageSwitcherProps = {
 
 export function LanguageSwitcher({ compact = false }: LanguageSwitcherProps) {
   const { i18n, t } = useTranslation();
-  const currentLanguage = i18n.language.startsWith('ar') ? 'ar' : 'en';
+const currentLanguage =
+  i18n.language?.startsWith('ar') ? 'ar' : 'en';
 
   const toggleLanguage = () => {
     i18n.changeLanguage(currentLanguage === 'ar' ? 'en' : 'ar');

@@ -8,16 +8,18 @@ router.get('/', (req, res) => {
   const { stage_id, sector_id } = req.query;
 
   let query = `
-    SELECT
-      t.*,
-      s.name AS stage_name,
-      sec.name_en AS sector_name
-    FROM tasks t
-    LEFT JOIN stages s
-      ON t.stage_id = s.id
-    LEFT JOIN sectors sec
-      ON t.sector_id = sec.id
-    WHERE 1 = 1
+SELECT
+  t.*,
+  s.name AS stage_name,
+  s.name_ar AS stage_name_ar,
+  sec.name_en AS sector_name,
+  sec.name_ar AS sector_name_ar
+FROM tasks t
+LEFT JOIN stages s
+  ON t.stage_id = s.id
+LEFT JOIN sectors sec
+  ON t.sector_id = sec.id
+WHERE 1 = 1
   `;
 
   const params = [];
@@ -61,11 +63,13 @@ router.get('/', (req, res) => {
 // CREATE TASK
 router.post('/', (req, res) => {
 
-  const {
+const {
   stage_id,
   sector_id,
   title,
+  title_ar,
   description,
+  description_ar,
   required,
   task_type,
   is_global
@@ -92,25 +96,29 @@ router.post('/', (req, res) => {
 
       db.run(
         `
-        INSERT INTO tasks
+INSERT INTO tasks
 (
   stage_id,
   sector_id,
   title,
+  title_ar,
   description,
+  description_ar,
   required,
   task_order,
   is_active,
   task_type,
   is_global
 )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
 [
   stage_id,
   sector_id,
   title,
+  title_ar,
   description,
+  description_ar,
   required ? 1 : 0,
   nextOrder,
   1,
@@ -259,15 +267,17 @@ router.put('/:id', (req, res) => {
 
   const { id } = req.params;
 
-  const {
-    stage_id,
-    sector_id,
-    title,
-    description,
-    required,
-    task_type,
-    is_global
-  } = req.body;
+const {
+  stage_id,
+  sector_id,
+  title,
+  title_ar,
+  description,
+  description_ar,
+  required,
+  task_type,
+  is_global
+} = req.body;
 
   console.log(
   'UPDATE REQUEST',
@@ -280,26 +290,30 @@ router.put('/:id', (req, res) => {
   db.run(
     `
     UPDATE tasks
-    SET
-      stage_id = ?,
-      sector_id = ?,
-      title = ?,
-      description = ?,
-      required = ?,
-      task_type = ?,
-      is_global = ?
+SET
+  stage_id = ?,
+  sector_id = ?,
+  title = ?,
+  title_ar = ?,
+  description = ?,
+  description_ar = ?,
+  required = ?,
+  task_type = ?,
+  is_global = ?
     WHERE id = ?
     `,
-    [
-      stage_id,
-      sector_id,
-      title,
-      description,
-      required ? 1 : 0,
-      task_type,
-      is_global,
-      id
-    ],
+[
+  stage_id,
+  sector_id,
+  title,
+  title_ar,
+  description,
+  description_ar,
+  required ? 1 : 0,
+  task_type,
+  is_global,
+  id
+],
     function(err) {
 
       if (err) {

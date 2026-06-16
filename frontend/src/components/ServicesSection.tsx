@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Building2, FileCheck, HeadphonesIcon } from 'lucide-react';
-import { useTranslation } from '../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { SectionHeader } from './SectionHeader';
 
 export function ServicesSection() {

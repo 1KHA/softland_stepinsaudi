@@ -104,13 +104,13 @@ const formatLastUpdated = (dateString: string) => {
     date.toDateString() === now.toDateString();
 
   if (isToday) {
-    return `Today • ${date.toLocaleTimeString(
-      isRtl ? "ar-SA" : "en-US",
-      {
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    )}`;
+return `${t("today")} • ${date.toLocaleTimeString(
+  isRtl ? "ar-SA" : "en-US",
+  {
+    hour: "2-digit",
+    minute: "2-digit",
+  }
+)}`;
   }
 
   return date.toLocaleString(
@@ -147,9 +147,9 @@ const getStatusColor = (status: string) => {
           <h1 className="text-3xl font-bold text-navy dark:text-cream-dark mb-2">
             {t('requests')}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            Manage and process company requests and applications.
-          </p>
+<p className="text-gray-500 dark:text-gray-400">
+  {t("requestsDescription")}
+</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto relative">
@@ -257,9 +257,13 @@ const getStatusColor = (status: string) => {
               <tr className="bg-gray-50/50 dark:bg-navy-light/20 text-gray-500 dark:text-gray-400 text-sm border-b border-gray-100 dark:border-navy-light">
                 <th className="px-6 py-4 font-medium">{t('id')}</th>
                 <th className="px-6 py-4 font-medium">{t('company')}</th>
-                <th className="px-6 py-4 font-medium">Stage</th>
+                <th className="px-6 py-4 font-medium">
+                {t("stage")}
+                </th>
                 <th className="px-6 py-4 font-medium">{t('status')}</th>
-                <th className="px-6 py-4 font-medium">Updated</th>
+                <th className="px-6 py-4 font-medium">
+                {t("updated")}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-navy-light text-sm">
@@ -282,8 +286,11 @@ const getStatusColor = (status: string) => {
                     {request.company_name}
                   </td>
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                    {request.current_stage_name}
+                  {language === "ar"
+                  ? (request.current_stage_name_ar || request.current_stage_name)
+                  : request.current_stage_name}
                   </td>
+                  
                   <td className="px-6 py-4">
                     <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
