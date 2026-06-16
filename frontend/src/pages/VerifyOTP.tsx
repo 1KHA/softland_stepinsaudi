@@ -15,7 +15,7 @@ const [otp, setOtp] = useState("");
 const [loading, setLoading] = useState(false);
 const [sending, setSending] = useState(false);
 
-const [seconds, setSeconds] = useState(35);
+const [seconds, setSeconds] = useState(120);
 
 const isLogin =
 location.state?.isLogin;
@@ -80,7 +80,7 @@ async () => {
 if (!otp) {
 
 alert(
-"ادخلي رمز التحقق"
+"أدخل رمز التحقق"
 );
 
 return;
@@ -372,7 +372,7 @@ res.ok
 ) {
 
 setSeconds(
-35
+120
 );
 
 alert(

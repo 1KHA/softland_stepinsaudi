@@ -26,7 +26,7 @@ const continueToOTP =
 if (!password) {
 
 alert(
-"ادخلي كلمة المرور الجديدة"
+"أدخل كلمة المرور الجديدة"
 );
 
 return;
@@ -106,7 +106,7 @@ New Password
 
 <p className="text-gray-500 mt-2">
 
-أدخلي كلمة المرور الجديدة
+أدخل كلمة المرور الجديدة
 
 </p>
 
