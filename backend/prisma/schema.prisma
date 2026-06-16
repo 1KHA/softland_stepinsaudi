@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model companies {
+  id                   Int              @id @default(autoincrement())
+  name                 String
+  manager_name         String
+  country              String
+  sector_id            Int
+  description          String?
+  logo_url             String?
+  branches_count       Int?
+  phone                String?
+  email                String?
+  assigned_employee_id Int?
+  status               String?          @default("UNDER_REVIEW")
+  created_at           DateTime?        @default(now())
+  profile_file_url     String?
+  company_stages       company_stages[]
+  company_tasks        company_tasks[]
+  founders             founders[]
+  notifications        notifications[]
+  users                users[]
+}
+
+model company_stages {
+  id            Int             @id @default(autoincrement())
+  company_id    Int
+  stage_id      Int
+  status        String?         @default("LOCKED")
+  progress      Int?            @default(0)
+  started_at    DateTime?
+  completed_at  DateTime?
+  stages        stages          @relation(fields: [stage_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companies     companies       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  company_tasks company_tasks[]
+}
+
+model company_tasks {
+  id                   Int              @id @default(autoincrement())
+  company_id           Int
+  task_id              Int
+  company_stage_id     Int
+  status               String?          @default("PENDING")
+  assigned_employee_id Int?
+  completed_at         DateTime?
+  requires_documents   Int?             @default(1)
+  requires_license     Int?             @default(0)
+  admin_note           String?
+  users                users?           @relation(fields: [assigned_employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  company_stages       company_stages   @relation(fields: [company_stage_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tasks                tasks            @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companies            companies        @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  task_documents       task_documents[]
+}
+
+model founders {
+  id         Int        @id @default(autoincrement())
+  company_id Int?
+  full_name  String
+  companies  companies? @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model notifications {
+  id                 Int        @id @default(autoincrement())
+  user_id            Int
+  message            String
+  type               String?    @default("INFO")
+  related_company_id Int?
+  is_read            Int?       @default(0)
+  created_at         DateTime?  @default(now())
+  message_ar         String?
+  companies          companies? @relation(fields: [related_company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model otp_requests {
+  id           Int       @id @default(autoincrement())
+  email        String
+  otp          String
+  type         String
+  payload      String?
+  expires_at   DateTime
+  resend_after DateTime
+  created_at   DateTime? @default(now())
+}
+
+model sectors {
+  id      Int     @id @default(autoincrement())
+  name_en String?
+  name_ar String?
+  tasks   tasks[]
+}
+
+model stages {
+  id             Int              @id @default(autoincrement())
+  name           String
+  stage_order    Int
+  weight         Int?             @default(25)
+  is_active      Int?             @default(1)
+  description    String?
+  workflow_phase String?          @default("PROCESSING")
+  name_ar        String?
+  description_ar String?
+  company_stages company_stages[]
+  tasks          tasks[]
+}
+
+model task_documents {
+  id                                      Int           @id @default(autoincrement())
+  company_task_id                         Int
+  file_name                               String
+  file_url                                String
+  status                                  String?       @default("PENDING")
+  uploaded_by                             Int?
+  uploaded_at                             DateTime?     @default(now())
+  reviewed_by                             Int?
+  reviewed_at                             DateTime?
+  rejection_reason                        String?
+  task_id                                 Int?
+  assigned_employee_id                    Int?
+  required_document_name                  String?
+  is_final_license                        Int?          @default(0)
+  users_task_documents_reviewed_byTousers users?        @relation("task_documents_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_task_documents_uploaded_byTousers users?        @relation("task_documents_uploaded_byTousers", fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  company_tasks                           company_tasks @relation(fields: [company_task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model task_required_documents {
+  id               Int     @id @default(autoincrement())
+  task_id          Int
+  document_name    String
+  is_required      Int?    @default(1)
+  document_name_ar String?
+}
+
+model tasks {
+  id             Int             @id @default(autoincrement())
+  stage_id       Int
+  sector_id      Int
+  title          String
+  description    String?
+  required       Int?            @default(1)
+  task_order     Int?            @default(1)
+  is_active      Int?            @default(1)
+  task_type      String?         @default("task")
+  is_global      Int?            @default(0)
+  title_ar       String?
+  description_ar String?
+  company_tasks  company_tasks[]
+  sectors        sectors         @relation(fields: [sector_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stages         stages          @relation(fields: [stage_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  id                                               Int              @id @default(autoincrement())
+  name                                             String
+  email                                            String           @unique(map: "sqlite_autoindex_users_1")
+  password                                         String
+  role                                             String
+  company_id                                       Int?
+  created_at                                       DateTime?        @default(now())
+  status                                           String?          @default("ACTIVE")
+  company_tasks                                    company_tasks[]
+  notifications                                    notifications[]
+  task_documents_task_documents_reviewed_byTousers task_documents[] @relation("task_documents_reviewed_byTousers")
+  task_documents_task_documents_uploaded_byTousers task_documents[] @relation("task_documents_uploaded_byTousers")
+  companies                                        companies?       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
