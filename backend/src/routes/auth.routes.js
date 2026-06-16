@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const upload = require("../middleware/upload");
 
 const authMiddleware = require('../middleware/authMiddleware');
 const checkOwnership = require('../middleware/ownership');
@@ -82,7 +83,13 @@ function findUserByEmail(email, callback) {
 
 // ================= REGISTER WITH COMPANY =================
 
-router.post('/register-with-company', async (req, res) => {
+router.post(
+  '/register-with-company',
+  upload.fields([
+    { name: "logo", maxCount: 1 },
+    { name: "companyProfile", maxCount: 1 }
+  ]),
+  async (req, res) => {
 
   try {
 
@@ -145,98 +152,90 @@ router.post('/register-with-company', async (req, res) => {
           );
 
         }
-const otp =
-generateOTP();
+const otp = generateOTP();
+
+// نحفظ بيانات التسجيل مع اسم ملف اللوقو
+const payload = {
+  ...req.body,
+  logo_url: req.files?.logo?.[0]?.filename || null,
+};
 
 db.run(
-`
-DELETE FROM otp_requests
-WHERE email = ?
-AND type = 'REGISTER'
-`,
-[email]
+  `
+  DELETE FROM otp_requests
+  WHERE email = ?
+  AND type = 'REGISTER'
+  `,
+  [email]
 );
 
 db.run(
-`
-INSERT INTO otp_requests
-(
-email,
-otp,
-type,
-payload,
-expires_at,
-resend_after
-)
-VALUES
-(
-?,
-?,
-?,
-?,
-?,
-?
-)
-`,
-[
-email,
-otp,
-'REGISTER',
+  `
+  INSERT INTO otp_requests
+  (
+    email,
+    otp,
+    type,
+    payload,
+    expires_at,
+    resend_after
+  )
+  VALUES
+  (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+  )
+  `,
+  [
+    email,
+    otp,
+    "REGISTER",
+    JSON.stringify(payload),
+    getExpiry(),
+    getResendTime(),
+  ],
 
-JSON.stringify(
-req.body
-),
+  async (otpErr) => {
 
-getExpiry(),
+    if (otpErr) {
 
-getResendTime()
-],
+      console.log(otpErr);
 
-async (otpErr) => {
+      return sendError(
+        res,
+        500,
+        "OTP error"
+      );
 
-if (otpErr) {
+    }
 
-console.log(
-otpErr
-);
+    try {
 
-return sendError(
-res,
-500,
-'OTP error'
-);
+      await sendOTP(email, otp);
 
-}
+      return sendSuccess(
+        res,
+        "OTP sent",
+        {
+          requiresOTP: true
+        }
+      );
 
-try {
+    } catch {
 
-await sendOTP(
-email,
-otp
-);
+      return sendError(
+        res,
+        500,
+        "Email failed"
+      );
 
-return sendSuccess(
-res,
-'OTP sent',
-{
-requiresOTP:
-true
-}
-);
+    }
 
-}
-
-catch {
-
-return sendError(
-res,
-500,
-'Email failed'
-);
-
-}
-
-}
+  }
 );
 
 return;
@@ -1934,6 +1933,7 @@ sector_id,
 description,
 phone,
 email,
+logo_url,
 status
 )
 VALUES
@@ -1945,31 +1945,20 @@ VALUES
 ?,
 ?,
 ?,
+?,
 ?
 )
 `,
 [
-data.company_name,
-
-data.manager_name
-||
-data.name,
-
-data.country,
-
-data.sector_id,
-
-data.description
-||
-"",
-
-data.phone
-||
-"",
-
-data.email,
-
-"PENDING"
+  data.company_name,
+  data.manager_name || data.name,
+  data.country,
+  data.sector_id,
+  data.description || "",
+  data.phone || "",
+  data.email,
+  data.logo_url || null,
+  "PENDING"
 ],
 
 function (

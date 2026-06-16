@@ -620,27 +620,43 @@ if (taskRow.task_type === "file") {
     `,
     [doc.company_task_id]
   );
-db.run(
+db.get(
   `
-  INSERT INTO notifications (
-    user_id,
-    message,
-    type,
-    related_company_id
-  )
-  SELECT
-    u.id,
-  "documentUploadedDesc",
-    'DOCUMENT_APPROVED',
-    ?
-  FROM users u
-  WHERE u.company_id = ?
-    AND u.role = 'CLIENT'
+  SELECT name
+  FROM companies
+  WHERE id = ?
   `,
-  [
-    doc.company_id,
-    doc.company_id,
-  ]
+  [doc.company_id],
+  (errName, company) => {
+
+    const companyName =
+      company?.name || "Unknown Company";
+
+    db.run(
+      `
+      INSERT INTO notifications (
+        user_id,
+        message,
+        type,
+        related_company_id
+      )
+      SELECT
+        u.id,
+        ?,
+        'DOCUMENT_APPROVED',
+        ?
+      FROM users u
+      WHERE u.company_id = ?
+        AND u.role = 'CLIENT'
+      `,
+      [
+        `Company "${companyName}" uploaded documents.`,
+        doc.company_id,
+        doc.company_id
+      ]
+    );
+
+  }
 );
 } else {
 

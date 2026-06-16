@@ -4,7 +4,7 @@ const resources = {
   en: {
     translation: {
       common: {
-        brand: 'STEPIN',
+        brand: 'StepIn',
         switchLanguage: 'Switch language',
         english: 'EN',
         arabic: 'AR',
@@ -192,23 +192,26 @@ licensesPage: {
 download: "Download",
     licenses: "Licenses",
 companyHeader: {
-  subtitle: "Saudi market entry simplified"
+  subtitle: "Your First Steps Toward Sustainable Success"
 },
 
 "status": {
   "PENDING": "Pending",
+  "UNDER_REVIEW": "Under Review",
   "IN_PROGRESS": "In Progress",
   "COMPLETED": "Completed",
+  "APPROVED": "Approved",
   "REJECTED": "Rejected"
 },
-
 "task": {
     currentStatus: "Current Status",
   requiredDocuments: "Required Documents",
   "reviewAndUpload": "Review task details and upload the required documents.",
     "whatYouNeedToDo": "What You Need To Do",
     "submitTask": "Submit Task",
-      "uploadDocuments": "upload Documents "
+      "uploadDocuments": "upload Documents ",
+      "documentsSubmitted": "Documents submitted successfully",
+"documentsUnderReview": "Your documents are currently under review"
 },
  notifications: "Notifications", 
 "back":"back",
@@ -246,7 +249,21 @@ dashboard: {
     }
   }
       },
-      employee: {
+
+
+"notificationsPage": {
+  "subtitle": "Stay updated with the latest changes to your documents and applications.",
+  "noNotifications": "No notifications yet",
+  "noNotificationsDescription": "You'll receive notifications here whenever there are updates to your applications or documents.",
+  "documentNeedsReupload": "Document requires re-upload",
+  "documentApproved": "Document approved",
+  "licenseIssued": "License issued",
+  "systemNotification": "System notification"
+},
+
+
+
+employee: {
         welcome: 'Welcome back',
         dashboard: 'Employee Dashboard',
         dashboardSubtitle: 'Manage and follow up on assigned company requests',
@@ -276,11 +293,19 @@ dashboard: {
         noNotifications: 'No notifications',
         notificationsWillAppear: 'Notifications will appear here when there are updates',
 status: {
-  PENDING: "Pending",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  REJECTED: "Rejected"
+  pending: "Pending",
+  underReview: "Under Review",
+  inProgress: "In Progress",
+  approved: "Approved",
+  completed: "Completed",
+  rejected: "Rejected",
+  needsCompletion: "Needs Completion",
+  needsResubmission: "Needs Resubmission",
+  locked: "Locked",
+  submitted: "Submitted"
 },
+"cancel": "Cancel",
+
         requests: {
           title: 'Requests List',
           subtitle: 'All company requests assigned to you',
@@ -454,7 +479,7 @@ documentUpdateFailed: "Failed to update document",
   ar: {
     translation: {
       common: {
-        brand: 'سوفت لاندينج',
+        brand: "STEPIN",
         switchLanguage: 'تبديل اللغة',
         english: 'EN',
         arabic: 'AR',
@@ -653,6 +678,7 @@ notifications: "الإشعارات",
   "REJECTED": "مرفوض"
 
 },
+"cancel": "إلغاء",
 
 notificationsPage: {
   subtitle: "ابقَ على اطلاع بآخر تحديثات مستنداتك وطلباتك.",
@@ -665,7 +691,7 @@ notificationsPage: {
 },
 
 companyHeader: {
-  subtitle: "تبسيط دخول السوق السعودي"
+  subtitle: "خطواتك الأولى نحو نجاحٍ مستدام"
 },
 "task": {
     currentStatus: "الحالة الحالية",
@@ -673,7 +699,9 @@ companyHeader: {
   "reviewAndUpload": "راجع تفاصيل المهمة وارفع المستندات المطلوبة",
     "whatYouNeedToDo": "ما الذي يجب عليك القيام به",
     "submitTask": "إرسال المهمة",
-      "uploadDocuments": "رفع المستندات"
+      "uploadDocuments": "رفع المستندات",
+      "documentsSubmitted": "تم إرسال المستندات بنجاح",
+"documentsUnderReview": "المستندات قيد المراجعة حالياً"
 },
   
 "back":"رجوع",

@@ -293,7 +293,7 @@ return (
                     <div className="mb-10">
 
                         <label className="block text-gray-600 mb-3">
-                            Company Logo
+                            <label>{t("profile.companyLogo")}</label>
                         </label>
 
                         <div className="flex items-center gap-5">
@@ -551,7 +551,7 @@ return (
       onClick={handleCancel}
       className="bg-white border border-gray-300 px-8 py-4 rounded-2xl hover:bg-gray-50"
     >
-      {t("cancel")}
+{t("cancel")}
     </button>
 
   </div>

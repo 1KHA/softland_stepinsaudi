@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { LogOut } from "lucide-react";
 import axios from "axios";
 export default function CompanyHeader() {
   const navigate = useNavigate();
@@ -144,24 +145,18 @@ const active =
             );
           })}
           <button
-onClick={handleLogout}
-className="
-ml-4
-px-5
-py-2.5
-rounded-xl
-text-sm
-font-semibold
-border
-border-red-200
-text-red-500
-hover:bg-red-50
-transition
-"
+  onClick={handleLogout}
+  title={t("logout")}
+  className={`
+    ${isArabic ? "ml-4" : "mr-4"}
+    p-2
+    rounded-xl
+    text-red-500
+    hover:bg-red-50
+    transition
+  `}
 >
-
-Logout
-
+  <LogOut className="w-6 h-6" />
 </button>
         </div>
         <button
