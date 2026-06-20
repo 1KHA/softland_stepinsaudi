@@ -1,247 +1,132 @@
-const db = require('../db');
+const prisma = require('../prisma/client');
 
-const generateWorkflow = (companyId, sectorId) => {
-console.log('Generate workflow started ✅');
-console.log(companyId, sectorId);
-    return new Promise((resolve, reject) => {
+const generateWorkflow = async (companyId, sectorId) => {
+  console.log('Generate workflow started ✅');
+  console.log(companyId, sectorId);
 
-        // get all active stages
-        db.all(
-            `
-            SELECT *
-            FROM stages
-            WHERE is_active = 1
-            ORDER BY stage_order ASC
-            `,
-            [],
-            (err, stages) => {
+  // get all active stages
+  const stages = await prisma.stages.findMany({
+    where: { is_active: 1 },
+    orderBy: { stage_order: 'asc' }
+  });
 
-                if (err) {
-                    return reject(err);
-                }
+  if (!stages.length) {
+    console.log('No stages found ❌');
+    throw new Error('No stages found');
+  }
 
-if (!stages.length) {
+  let completedStages = 0;
+  let noTasksRejected = false;
 
-    console.log(
-        'No stages found ❌'
-    );
+  for (let index = 0; index < stages.length; index++) {
+    const stage = stages[index];
 
-    return reject(
-        new Error(
-            'No stages found'
-        )
-    );
+    // first stage unlocked
+    let status = 'LOCKED';
+    if (index === 0) {
+      status = 'COMPLETED';
+    }
+    if (index === 1) {
+      status = 'IN_PROGRESS';
+    }
 
-}
-
-                let completedStages = 0;
-
-                stages.forEach((stage, index) => {
-
-                    // first stage unlocked
-                    let status = 'LOCKED';
-                    if (index === 0) {
-                   status = 'COMPLETED';
-
-                  }
-
-                  if (index === 1) {
-                  status = 'IN_PROGRESS';
-                  }
-
-                    db.run(
-                        `
-                        INSERT INTO company_stages
-                        (
-                            company_id,
-                            stage_id,
-                            status
-                        )
-                        VALUES (?, ?, ?)
-                        `,
-                        [
-                            companyId,
-                            stage.id,
-                            status
-                        ],
-                        function (err) {
-
-                            if (err) {
-                                return reject(err);
-                            }
-
-                            const companyStageId = this.lastID;
-
-                            // fetch tasks for this stage + sector
-                            db.all(
-                                `
-                                SELECT *
-FROM tasks
-WHERE stage_id = ?
-AND (
-  sector_id = ?
-  OR sector_id = 5
-)
-AND is_active = 1
-ORDER BY task_order ASC
-                                `,
-                                [
-                                    stage.id,
-                                    sectorId
-                                ],
-                                (err, tasks) => {
-
-                                    if (err) {
-                                        return reject(err);
-                                    }
-
-                            if (!tasks.length) {
-
-                            console.log(
-                           `No tasks found for stage ${stage.id}`
-                            );
-
-                         completedStages++;
-
-                         if (
-                          completedStages === stages.length
-                          ) {
-
-                         return reject(
-                         new Error(
-                         "No tasks found for workflow generation"
-                         )
-                         );
-
-                         }
-
-                         return;
-                        }
-
-                                    let completedTasks = 0;
-
-                                    tasks.forEach((task) => {
-
-                                        db.run(
-                                            `
-                                            INSERT INTO company_tasks
-                                            (
-                                                company_id,
-                                                task_id,
-                                                company_stage_id,
-                                                status
-                                            )
-                                            VALUES (?, ?, ?, ?)
-                                            `,
-                                            [
-                                                companyId,
-                                                task.id,
-                                                companyStageId,
-                                                'PENDING'
-                                            ],
-                                            (err) => {
-
-                                                if (err) {
-                                                    return reject(err);
-                                                }
-
-                                                completedTasks++;
-
-                                                if (
-                                                    completedTasks === tasks.length
-                                                ) {
-
-                                                    completedStages++;
-
-                                                    if (
-                                                        completedStages === stages.length
-                                                    ) {
-                                                        resolve();
-                                                    }
-                                                }
-                                            }
-                                        );
-                                    });
-                                }
-                            );
-                        }
-                    );
-                });
-            }
-        );
+    const companyStage = await prisma.company_stages.create({
+      data: {
+        company_id: companyId,
+        stage_id: stage.id,
+        status
+      }
     });
+
+    const companyStageId = companyStage.id;
+
+    // fetch tasks for this stage + sector
+    const tasks = await prisma.tasks.findMany({
+      where: {
+        stage_id: stage.id,
+        is_active: 1,
+        OR: [
+          { sector_id: sectorId },
+          { sector_id: 5 }
+        ]
+      },
+      orderBy: { task_order: 'asc' }
+    });
+
+    if (!tasks.length) {
+      console.log(`No tasks found for stage ${stage.id}`);
+
+      completedStages++;
+
+      if (completedStages === stages.length) {
+        throw new Error('No tasks found for workflow generation');
+      }
+
+      continue;
+    }
+
+    let completedTasks = 0;
+
+    for (const task of tasks) {
+      await prisma.company_tasks.create({
+        data: {
+          company_id: companyId,
+          task_id: task.id,
+          company_stage_id: companyStageId,
+          status: 'PENDING'
+        }
+      });
+
+      completedTasks++;
+
+      if (completedTasks === tasks.length) {
+        completedStages++;
+      }
+    }
+  }
+
+  // resolves once every stage has been processed (matches original Promise resolve semantics)
 };
-const updateCompanyStatus = (companyId) => {
-    return new Promise((resolve, reject) => {
 
-        db.all(
-            `
-            SELECT status
-            FROM company_stages
-            WHERE company_id = ?
-            `,
-            [companyId],
-            (err, stages) => {
+const updateCompanyStatus = async (companyId) => {
 
-                if (err) {
-                    return reject(err);
-                }
+  const stages = await prisma.company_stages.findMany({
+    where: { company_id: companyId },
+    select: { status: true }
+  });
 
-                // إذا كل المراحل مكتملة
-                const allCompleted =
-                    stages.length > 0 &&
-                    stages.every(
-                        stage => stage.status === "COMPLETED"
-                    );
+  // إذا كل المراحل مكتملة
+  const allCompleted =
+    stages.length > 0 &&
+    stages.every(stage => stage.status === "COMPLETED");
 
-                let newStatus = "PENDING";
+  let newStatus = "PENDING";
 
-                if (allCompleted) {
-                    newStatus = "APPROVED";
-                } else {
+  if (allCompleted) {
+    newStatus = "APPROVED";
+  } else {
 
-                    const completedCount =
-                        stages.filter(
-                            s => s.status === "COMPLETED"
-                        ).length;
+    const completedCount =
+      stages.filter(s => s.status === "COMPLETED").length;
 
-                    if (completedCount <= 1) {
-                        // التسجيل فقط مكتمل
-                        newStatus = "PENDING";
-                    } else {
-                        // بدأ تنفيذ بقية المراحل
-                        newStatus = "IN_PROGRESS";
-                    }
-                }
+    if (completedCount <= 1) {
+      // التسجيل فقط مكتمل
+      newStatus = "PENDING";
+    } else {
+      // بدأ تنفيذ بقية المراحل
+      newStatus = "IN_PROGRESS";
+    }
+  }
 
-                db.run(
-                    `
-                    UPDATE companies
-                    SET status = ?
-                    WHERE id = ?
-                    `,
-                    [
-                        newStatus,
-                        companyId
-                    ],
-                    (err2) => {
+  await prisma.companies.update({
+    where: { id: companyId },
+    data: { status: newStatus }
+  });
 
-                        if (err2) {
-                            return reject(err2);
-                        }
-
-                        resolve(newStatus);
-
-                    }
-                );
-
-            }
-        );
-
-    });
+  return newStatus;
 };
 
 module.exports = {
-    generateWorkflow,
-    updateCompanyStatus
+  generateWorkflow,
+  updateCompanyStatus
 };

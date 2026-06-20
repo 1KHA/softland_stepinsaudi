@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const db = require('../db');
+const prisma = require('../prisma/client');
 const upload = require("../middleware/upload");
 
 const authMiddleware = require('../middleware/authMiddleware');
@@ -65,20 +65,19 @@ function sendError(res, status, message, data = {}) {
   });
 }
 
+// Prisma + PostgreSQL unique-constraint violation code (was SQLITE_CONSTRAINT)
 function isDuplicateEmailError(err) {
-  return err && err.code === 'SQLITE_CONSTRAINT';
+  return err && err.code === 'P2002';
 }
 
 function isValidPhone(phone) {
   return PHONE_REGEX.test(String(phone || ''));
 }
 
-function findUserByEmail(email, callback) {
-  db.get(
-    `SELECT * FROM users WHERE email = ?`,
-    [email],
-    callback
-  );
+async function findUserByEmail(email) {
+  return prisma.users.findUnique({
+    where: { email }
+  });
 }
 
 // ================= REGISTER WITH COMPANY =================
@@ -127,81 +126,58 @@ router.post(
     }
 
     // check existing email
-    findUserByEmail(
-      email,
-      async (err, existingUser) => {
+    let existingUser;
+    try {
+      existingUser = await findUserByEmail(email);
+    } catch (err) {
+      console.error("DB ERROR:", err);
 
-        if (err) {
+      return sendError(
+        res,
+        500,
+        "Database error"
+      );
+    }
 
-          console.error("DB ERROR:", err);
+    if (existingUser) {
 
-          return sendError(
-            res,
-            500,
-            "Database error"
-          );
+      return sendError(
+        res,
+        400,
+        'Email already exists'
+      );
 
+    }
+
+    const otp = generateOTP();
+
+    // نحفظ بيانات التسجيل مع اسم ملف اللوقو
+    const payload = {
+      ...req.body,
+      logo_url: req.files?.logo?.[0]?.filename || null,
+    };
+
+    try {
+
+      await prisma.otp_requests.deleteMany({
+        where: {
+          email,
+          type: 'REGISTER'
         }
+      });
 
-        if (existingUser) {
-
-          return sendError(
-            res,
-            400,
-            'Email already exists'
-          );
-
+      await prisma.otp_requests.create({
+        data: {
+          email,
+          otp,
+          type: "REGISTER",
+          payload: JSON.stringify(payload),
+          expires_at: new Date(getExpiry()),
+          resend_after: new Date(getResendTime())
         }
-const otp = generateOTP();
+      });
 
-// نحفظ بيانات التسجيل مع اسم ملف اللوقو
-const payload = {
-  ...req.body,
-  logo_url: req.files?.logo?.[0]?.filename || null,
-};
-
-db.run(
-  `
-  DELETE FROM otp_requests
-  WHERE email = ?
-  AND type = 'REGISTER'
-  `,
-  [email]
-);
-
-db.run(
-  `
-  INSERT INTO otp_requests
-  (
-    email,
-    otp,
-    type,
-    payload,
-    expires_at,
-    resend_after
-  )
-  VALUES
-  (
-    ?,
-    ?,
-    ?,
-    ?,
-    ?,
-    ?
-  )
-  `,
-  [
-    email,
-    otp,
-    "REGISTER",
-    JSON.stringify(payload),
-    getExpiry(),
-    getResendTime(),
-  ],
-
-  async (otpErr) => {
-
-    if (otpErr) {
+    } catch (otpErr) {
 
       console.log(otpErr);
 
@@ -235,207 +211,13 @@ db.run(
 
     }
 
-  }
-);
-
-return;
-        // hash password
-        const hashedPassword =
-          await bcrypt.hash(password, 10);
-
-        // create company
-        db.run(
-          `
-          INSERT INTO companies
-          (
-            name,
-            manager_name,
-            country,
-            sector_id,
-            description,
-            phone,
-            email,
-            status
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `,
-          [
-            company_name,
-            manager_name || name,
-            country,
-            sector_id,
-            description || "",
-            phone || "",
-            email,
-            "PENDING"
-          ],
-
-          function (err) {
-
-if (err) {
-
-  console.error(
-    "Company insert error:",
-    err
-  );
-
-  return sendError(
-    res,
-    500,
-    "Error creating company"
-  );
-
-}
-
-            const companyId = this.lastID;
-
-            // Send notification to all admins
-db.all(
-  `SELECT id FROM users WHERE role = 'ADMIN'`,
-  [],
-  (err, admins) => {
-    if (err) {
-      console.error("Failed to fetch admins:", err);
-      return;
-    }
-
-    admins.forEach((admin) => {
-      db.run(
-        `
-        INSERT INTO notifications
-        (user_id, message, type, is_read)
-        VALUES (?, ?, ?, 0)
-        `,
-[
-  admin.id,
-  `newCompanyRegisteredDesc|${company_name}`,
-  "NEW_COMPANY"
-]
-      );
-    });
-  }
-);
-
-            // generate workflow
-            generateWorkflow(companyId, sector_id)
-              .then(() => {
-                console.log("Workflow generated ✅");
-              })
-              .catch((err) => {
-                console.error(
-                  "Workflow generation failed ❌",
-                  err
-                );
-              });
-
-            // founders
-            if (
-              founders &&
-              Array.isArray(founders)
-            ) {
-
-              founders.forEach((founderName) => {
-
-                db.run(
-                  `
-                  INSERT INTO founders
-                  (company_id, full_name)
-                  VALUES (?, ?)
-                  `,
-                  [companyId, founderName]
-                );
-
-              });
-
-            }
-
-            // create user
-            db.run(
-              `
-              INSERT INTO users
-(
-  name,
-  email,
-  password,
-  role,
-  company_id,
-  status
-)
-VALUES (?, ?, ?, ?, ?, ?)
-              `,
-              [
-  name,
-  email,
-  hashedPassword,
-  "CLIENT",
-  companyId,
-  "ACTIVE"
-],
-
-              function (err) {
-
-                if (err) {
-
-                  console.error(
-                    "User insert error:",
-                    err
-                  );
-                  if (
-                    isDuplicateEmailError(err)
-                  ) {
-
-                    return sendError(
-                      res,
-                      400,
-                      "Email already exists"
-                    );
-
-                  }
-
-                  return sendError(
-                    res,
-                    500,
-                    "Error creating user"
-                  );
-
-                }
-
-                const token = jwt.sign(
-                  {
-                    id: this.lastID,
-                    role: 'CLIENT',
-                    company_id: companyId
-                  },
-                  process.env.JWT_SECRET || 'secret_key',
-                  {
-                    expiresIn: '7d'
-                  }
-                );
-
-                sendSuccess(
-                  res,
-                  'User & Company created ✅',
-                  {
-                    token,
-
-                    user: {
-                      id: this.lastID,
-                      name,
-                      email,
-                      role: 'CLIENT',
-                      company_id: companyId
-                    }
-                  }
-                );
-
-              }
-            );
-
-          }
-        );
-
-      }
-    );
+    // NOTE: the original code had an unconditional `return;` immediately after
+    // sending the OTP response above, which made all of the following
+    // company/user-creation logic in this route handler dead code (unreachable).
+    // That exact control flow (return after OTP send) is preserved here by the
+    // `return sendSuccess(...)` / `return sendError(...)` above already exiting
+    // the function, so the block below is intentionally never reached —
+    // identical behavior to the original file.
 
   } catch (err) {
 
@@ -474,25 +256,17 @@ res,
 
 }
 
-findUserByEmail(
+let user;
+try {
+  user = await findUserByEmail(email);
+} catch (err) {
+  console.error(err);
 
-email,
-
-async (
-err,
-user
-) => {
-
-if (err) {
-
-console.error(err);
-
-return sendError(
-res,
-500,
-'Database error'
-);
-
+  return sendError(
+    res,
+    500,
+    'Database error'
+  );
 }
 
 if (!user) {
@@ -538,47 +312,28 @@ res,
 const otp =
 generateOTP();
 
-// حذف أي OTP قديم
-db.run(
-`
-DELETE FROM otp_requests
-WHERE email = ?
-AND type = 'LOGIN'
-`,
-[email]
-);
+try {
 
-// حفظ OTP
-db.run(
-`
-INSERT INTO otp_requests
-(
-email,
-otp,
-type,
-expires_at,
-resend_after
-)
-VALUES
-(
-?,
-?,
-?,
-?,
-?
-)
-`,
-[
-email,
-otp,
-'LOGIN',
-getExpiry(),
-getResendTime()
-],
+  // حذف أي OTP قديم
+  await prisma.otp_requests.deleteMany({
+    where: {
+      email,
+      type: 'LOGIN'
+    }
+  });
 
-async (otpErr) => {
+  // حفظ OTP
+  await prisma.otp_requests.create({
+    data: {
+      email,
+      otp,
+      type: 'LOGIN',
+      expires_at: new Date(getExpiry()),
+      resend_after: new Date(getResendTime())
+    }
+  });
 
-if (otpErr) {
+} catch (otpErr) {
 
 console.log(otpErr);
 
@@ -624,14 +379,6 @@ res,
 
 }
 
-);
-
-}
-
-);
-
-}
-
 catch (error) {
 
 console.error(error);
@@ -673,35 +420,24 @@ res,
 
 }
 
-db.get(
+let otpRow;
+try {
 
-`
-SELECT *
-FROM otp_requests
-WHERE email = ?
-AND otp = ?
-AND type = 'LOGIN'
-`,
+  otpRow = await prisma.otp_requests.findFirst({
+    where: {
+      email,
+      otp,
+      type: 'LOGIN'
+    }
+  });
 
-[
-email,
-otp
-],
+} catch (err) {
 
-(
-err,
-otpRow
-) => {
-
-if (
-err
-) {
-
-return sendError(
-res,
-500,
-"Database error"
-);
+  return sendError(
+    res,
+    500,
+    "Database error"
+  );
 
 }
 
@@ -731,17 +467,14 @@ res,
 
 }
 
-findUserByEmail(
-
-email,
-
-async (
-err,
-user
-) => {
+let user;
+try {
+  user = await findUserByEmail(email);
+} catch (err) {
+  user = null;
+}
 
 if (
-err ||
 !user
 ) {
 
@@ -779,19 +512,18 @@ expiresIn:
 
 );
 
-db.run(
+try {
 
-`
-DELETE FROM otp_requests
-WHERE email = ?
-AND type = 'LOGIN'
-`,
+  await prisma.otp_requests.deleteMany({
+    where: {
+      email,
+      type: 'LOGIN'
+    }
+  });
 
-[
-email
-]
-
-);
+} catch (err) {
+  // matches original fire-and-forget behavior
+}
 
 return sendSuccess(
 
@@ -821,14 +553,6 @@ company_id:
 user.company_id
 
 }
-
-}
-
-);
-
-}
-
-);
 
 }
 
@@ -913,102 +637,82 @@ router.post(
         password
       } = req.body;
 
-      findUserByEmail(
-        email,
-        async (err, user) => {
+      let user;
+      try {
+        user = await findUserByEmail(email);
+      } catch (err) {
+        console.error(
+          "DB ERROR:",
+          err
+        );
 
-          if (err) {
+        return sendError(
+          res,
+          500,
+          "Database error"
+        );
+      }
 
-            console.error(
-              "DB ERROR:",
-              err
-            );
+      if (user) {
 
-            return sendError(
-              res,
-              500,
-              "Database error"
-            );
+        return sendError(
+          res,
+          400,
+          "Email already exists"
+        );
 
+      }
+
+      const hashedPassword =
+        await bcrypt.hash(password, 10);
+
+      try {
+
+        const newUser = await prisma.users.create({
+          data: {
+            name,
+            email,
+            password: hashedPassword,
+            role: "ADMIN",
+            company_id: null,
+            status: "ACTIVE"
           }
+        });
 
-          if (user) {
-
-            return sendError(
-              res,
-              400,
-              "Email already exists"
-            );
-
+        sendSuccess(
+          res,
+          "Admin created successfully 🔥",
+          {
+            admin_id: newUser.id
           }
+        );
 
-          const hashedPassword =
-            await bcrypt.hash(password, 10);
+      } catch (err) {
 
-          db.run(
-            `
-            INSERT INTO users
-(
-  name,
-  email,
-  password,
-  role,
-  company_id,
-  status
-)
-VALUES (?, ?, ?, ?, ?, ?)
-            `,
-            [
-  name,
-  email,
-  hashedPassword,
-  "ADMIN",
-  null,
-  "ACTIVE"
-],
+        if (
+          isDuplicateEmailError(err)
+        ) {
 
-            function (err) {
-
-              if (err) {
-
-                if (
-                  isDuplicateEmailError(err)
-                ) {
-
-                  return sendError(
-                    res,
-                    400,
-                    "Email already exists"
-                  );
-
-                }
-
-                console.error(
-                  "Admin insert error:",
-                  err
-                );
-
-                return sendError(
-                  res,
-                  500,
-                  "Error creating admin"
-                );
-
-              }
-
-              sendSuccess(
-                res,
-                "Admin created successfully 🔥",
-                {
-                  admin_id: this.lastID
-                }
-              );
-
-            }
+          return sendError(
+            res,
+            400,
+            "Email already exists"
           );
 
         }
-      );
+
+        console.error(
+          "Admin insert error:",
+          err
+        );
+
+        return sendError(
+          res,
+          500,
+          "Error creating admin"
+        );
+
+      }
 
     } catch (err) {
 
@@ -1057,100 +761,81 @@ router.post(
 
       }
 
-      findUserByEmail(
-        email,
-        async (findErr, existingUser) => {
+      let existingUser;
+      try {
+        existingUser = await findUserByEmail(email);
+      } catch (findErr) {
+        console.error(
+          "DB ERROR:",
+          findErr
+        );
 
-          if (findErr) {
+        return sendError(
+          res,
+          500,
+          "Database error"
+        );
+      }
 
-            console.error(
-              "DB ERROR:",
-              findErr
-            );
+      if (existingUser) {
 
-            return sendError(
-              res,
-              500,
-              "Database error"
-            );
+        return sendError(
+          res,
+          400,
+          "Email already exists"
+        );
 
+      }
+
+      const hashedPassword =
+        await bcrypt.hash(password, 10);
+
+      try {
+
+        const newEmployee = await prisma.users.create({
+          data: {
+            name,
+            email,
+            password: hashedPassword,
+            role: "EMPLOYEE",
+            company_id: companyId
           }
+        });
 
-          if (existingUser) {
-
-            return sendError(
-              res,
-              400,
-              "Email already exists"
-            );
-
+        sendSuccess(
+          res,
+          "Employee created ✅",
+          {
+            employee_id: newEmployee.id
           }
+        );
 
-          const hashedPassword =
-            await bcrypt.hash(password, 10);
+      } catch (err) {
 
-          db.run(
-            `
-            INSERT INTO users
-            (
-              name,
-              email,
-              password,
-              role,
-              company_id
-            )
-            VALUES (?, ?, ?, ?, ?)
-            `,
-            [
-              name,
-              email,
-              hashedPassword,
-              "EMPLOYEE",
-              companyId
-            ],
+        if (
+          isDuplicateEmailError(err)
+        ) {
 
-            function (err) {
-
-              if (err) {
-
-                if (
-                  isDuplicateEmailError(err)
-                ) {
-
-                  return sendError(
-                    res,
-                    400,
-                    "Email already exists"
-                  );
-
-                }
-
-                console.error(
-                  "User insert error:",
-                  err
-                );
-
-                return sendError(
-                  res,
-                  500,
-                  "Error creating employee"
-                );
-
-              }
-
-              sendSuccess(
-                res,
-                "Employee created ✅",
-                {
-                  employee_id: this.lastID
-                }
-              );
-
-            }
+          return sendError(
+            res,
+            400,
+            "Email already exists"
           );
 
         }
-      );
+
+        console.error(
+          "User insert error:",
+          err
+        );
+
+        return sendError(
+          res,
+          500,
+          "Error creating employee"
+        );
+
+      }
 
     } catch (err) {
 
@@ -1173,7 +858,7 @@ router.get(
   "/users/employees",
   authMiddleware,
   checkRole(["ADMIN", "CLIENT"]),
-  (req, res) => {
+  async (req, res) => {
 
     const companyId =
       req.user.role === "ADMIN"
@@ -1190,46 +875,43 @@ router.get(
 
     }
 
-    db.all(
-      `
-      SELECT
-        id,
-        name,
-        email,
-        role
-      FROM users
-      WHERE company_id = ?
-      AND role = 'EMPLOYEE'
-      `,
-      [companyId],
+    try {
 
-      (err, rows) => {
-
-        if (err) {
-
-          console.error(
-            "Employees fetch error:",
-            err
-          );
-
-          return sendError(
-            res,
-            500,
-            "Error fetching employees"
-          );
-
+      const rows = await prisma.users.findMany({
+        where: {
+          company_id: Number(companyId),
+          role: 'EMPLOYEE'
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true
         }
+      });
 
-        sendSuccess(
-          res,
-          "Employees fetched successfully",
-          {
-            employees: rows
-          }
-        );
+      sendSuccess(
+        res,
+        "Employees fetched successfully",
+        {
+          employees: rows
+        }
+      );
 
-      }
-    );
+    } catch (err) {
+
+      console.error(
+        "Employees fetch error:",
+        err
+      );
+
+      return sendError(
+        res,
+        500,
+        "Error fetching employees"
+      );
+
+    }
 
   }
 );
@@ -1252,77 +934,73 @@ const {
   status
 } = req.body;
 
-let finalPassword = null;
+let finalPassword = undefined;
 
 if (password && password.trim() !== "") {
   finalPassword = await bcrypt.hash(password, 10);
 }
 
-db.run(
-  `
-  UPDATE users
-  SET
-    name = ?,
-    email = ?,
-    password = COALESCE(?, password),
-    company_id = ?,
-    status = ?
-  WHERE id = ?
-  `,
-  [
-    name,
-    email,
-    finalPassword,
-    company_id,
-    status,
-    id
-  ],
+try {
 
-function (err) {
-  if (err) {
-    console.error(err);
+  await prisma.users.update({
+    where: { id: Number(id) },
+    data: {
+      name,
+      email,
+      // COALESCE(?, password): only overwrite when a new password was hashed
+      ...(finalPassword !== undefined ? { password: finalPassword } : {}),
+      company_id,
+      status
+    }
+  });
 
-    return res.status(500).json({
-      success: false,
-      message: "Error updating user"
-    });
+} catch (err) {
+  console.error(err);
+
+  return res.status(500).json({
+    success: false,
+    message: "Error updating user"
+  });
+}
+
+// إذا كان المستخدم Client حدّث إيميل الشركة أيضاً
+try {
+
+  const user = await prisma.users.findUnique({
+    where: { id: Number(id) },
+    select: { role: true, company_id: true }
+  });
+
+  if (
+    user &&
+    user.role === "CLIENT" &&
+    user.company_id
+  ) {
+    try {
+      await prisma.companies.update({
+        where: { id: user.company_id },
+        data: { email }
+      });
+    } catch (err) {
+      // matches original fire-and-forget behavior
+    }
   }
 
-  // إذا كان المستخدم Client حدّث إيميل الشركة أيضاً
-  db.get(
-    `
-    SELECT role, company_id
-    FROM users
-    WHERE id = ?
-    `,
-    [id],
-    (findErr, user) => {
+  res.json({
+    success: true,
+    message: "User updated successfully"
+  });
 
-      if (
-        !findErr &&
-        user &&
-        user.role === "CLIENT" &&
-        user.company_id
-      ) {
-        db.run(
-          `
-          UPDATE companies
-          SET email = ?
-          WHERE id = ?
-          `,
-          [email, user.company_id]
-        );
-      }
+} catch (findErr) {
 
-      res.json({
-        success: true,
-        message: "User updated successfully"
-      });
+  // original ignored findErr (only checked `!findErr && user && ...`)
+  // and always responded 200 regardless of this lookup's outcome
+  res.json({
+    success: true,
+    message: "User updated successfully"
+  });
 
-    }
-  );
 }
-);
 
     } catch (error) {
 
@@ -1349,92 +1027,83 @@ router.delete(
 
       const { id } = req.params;
 
-      db.get(
-        `
-        SELECT role, company_id
-        FROM users
-        WHERE id = ?
-        `,
-        [id],
+      let user;
+      try {
 
-        (err, user) => {
+        user = await prisma.users.findUnique({
+          where: { id: Number(id) },
+          select: { role: true, company_id: true }
+        });
 
-          if (err || !user) {
-            return res.status(404).json({
-              success: false,
-              message: "User not found"
-            });
-          }
+      } catch (err) {
+        user = null;
+      }
 
-          // إذا كان Client احذف كل بيانات الشركة أولاً
-          if (user.role === "CLIENT" && user.company_id) {
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
+        });
+      }
 
-            const companyId = user.company_id;
+      // إذا كان Client احذف كل بيانات الشركة أولاً
+      if (user.role === "CLIENT" && user.company_id) {
 
-            db.run(
-  `
-  DELETE FROM task_documents
-  WHERE company_task_id IN (
-    SELECT id
-    FROM company_tasks
-    WHERE company_id = ?
-  )
-  `,
-  [companyId]
-);
+        const companyId = user.company_id;
 
-  db.run(
-    `DELETE FROM company_tasks WHERE company_id = ?`,
-    [companyId]
-  ); 
+        try {
 
-              db.run(
-              `DELETE FROM company_stages WHERE company_id = ?`,
-              [companyId]
-            );
-
-            db.run(
-              `DELETE FROM founders WHERE company_id = ?`,
-              [companyId]
-            );
-
-            db.run(
-              `DELETE FROM companies WHERE id = ?`,
-              [companyId]
-            );
-          }
-
-          // حذف المستخدم
-          db.run(
-            `
-            DELETE FROM users
-            WHERE id = ?
-            `,
-            [id],
-
-            function (deleteErr) {
-
-              if (deleteErr) {
-
-                console.error(deleteErr);
-
-                return res.status(500).json({
-                  success: false,
-                  message: "Error deleting user"
-                });
-
+          await prisma.task_documents.deleteMany({
+            where: {
+              company_tasks: {
+                company_id: companyId
               }
-
-              res.json({
-                success: true,
-                message: "User deleted successfully"
-              });
-
             }
-          );
+          });
 
+          await prisma.company_tasks.deleteMany({
+            where: { company_id: companyId }
+          });
+
+          await prisma.company_stages.deleteMany({
+            where: { company_id: companyId }
+          });
+
+          await prisma.founders.deleteMany({
+            where: { company_id: companyId }
+          });
+
+          await prisma.companies.delete({
+            where: { id: companyId }
+          });
+
+        } catch (err) {
+          // matches original fire-and-forget cascade-delete behavior
         }
-      );
+      }
+
+      // حذف المستخدم
+      try {
+
+        await prisma.users.delete({
+          where: { id: Number(id) }
+        });
+
+        res.json({
+          success: true,
+          message: "User deleted successfully"
+        });
+
+      } catch (deleteErr) {
+
+        console.error(deleteErr);
+
+        return res.status(500).json({
+          success: false,
+          message: "Error deleting user"
+        });
+
+      }
 
     } catch (error) {
 
@@ -1454,78 +1123,78 @@ router.delete(
 router.put(
   "/users/:id/status",
   authMiddleware,
-  (req, res) => {
+  async (req, res) => {
 
     const { id } = req.params;
     const { status } = req.body;
 
-    db.run(
-      `
-      UPDATE users
-      SET status = ?
-      WHERE id = ?
-      `,
-      [status, id],
+    try {
 
-      function (err) {
+      await prisma.users.update({
+        where: { id: Number(id) },
+        data: { status }
+      });
 
-  if (err) {
+    } catch (err) {
 
-    console.error(err);
+      console.error(err);
 
-    return res.status(500).json({
-      success: false,
-      message: "Error updating status"
-    });
+      return res.status(500).json({
+        success: false,
+        message: "Error updating status"
+      });
 
-  }
+    }
 
-  // جلب معلومات المستخدم
-  db.get(
-    `
-    SELECT company_id, role
-    FROM users
-    WHERE id = ?
-    `,
-    [id],
-    (err2, user) => {
+    // جلب معلومات المستخدم
+    let user;
+    try {
 
-      if (err2 || !user) {
-        return res.json({
-          success: true,
-          message: "Status updated successfully"
-        });
-      }
+      user = await prisma.users.findUnique({
+        where: { id: Number(id) },
+        select: { company_id: true, role: true }
+      });
 
-      // إذا كان CLIENT فقط، غيّر حالة الشركة معه
-      if (user.role === "CLIENT") {
+    } catch (err2) {
 
-        db.run(
-          `
-          UPDATE companies
-          SET status = ?
-          WHERE id = ?
-          `,
-          [
-            status === "ACTIVE"
-              ? "UNDER_REVIEW"
-              : "DISABLED",
-            user.company_id
-          ]
-        );
-
-      }
-
-      res.json({
+      return res.json({
         success: true,
         message: "Status updated successfully"
       });
 
     }
-  );
 
-}
-    );
+    if (!user) {
+      return res.json({
+        success: true,
+        message: "Status updated successfully"
+      });
+    }
+
+    // إذا كان CLIENT فقط، غيّر حالة الشركة معه
+    if (user.role === "CLIENT") {
+
+      try {
+        await prisma.companies.update({
+          where: { id: user.company_id },
+          data: {
+            status:
+              status === "ACTIVE"
+                ? "UNDER_REVIEW"
+                : "DISABLED"
+          }
+        });
+      } catch (err) {
+        // matches original fire-and-forget behavior
+      }
+
+    }
+
+    res.json({
+      success: true,
+      message: "Status updated successfully"
+    });
+
   }
 );
 
@@ -1538,44 +1207,31 @@ router.get(
 
     try {
 
-      db.all(
-        `
-SELECT
-  u.id,
-  u.name,
-  u.email,
-  u.role,
-  u.status,
-  u.company_id,
-  c.name AS company
-FROM users u
-LEFT JOIN companies c
-ON u.company_id = c.id
-ORDER BY u.id DESC
-        `,
-
-        [],
-
-        (err, users) => {
-
-          if (err) {
-
-            console.error(err);
-
-            return res.status(500).json({
-              success: false,
-              message: "Error fetching users"
-            });
-
+      const rows = await prisma.users.findMany({
+        orderBy: { id: 'desc' },
+        include: {
+          companies: {
+            select: { name: true }
           }
-
-          res.json({
-            success: true,
-            users
-          });
-
         }
-      );
+      });
+
+      // flatten to match original: u.id, u.name, u.email, u.role, u.status,
+      // u.company_id, company (= c.name)
+      const users = rows.map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        status: u.status,
+        company_id: u.company_id,
+        company: u.companies ? u.companies.name : null
+      }));
+
+      res.json({
+        success: true,
+        users
+      });
 
     } catch (error) {
 
@@ -1583,7 +1239,7 @@ ORDER BY u.id DESC
 
       res.status(500).json({
         success: false,
-        message: "Server error"
+        message: "Error fetching users"
       });
 
     }
@@ -1601,69 +1257,30 @@ router.get(
 
     try {
       console.log("AUTH COMPANIES ROUTE");
-console.log("DB FILE=", db.filename);
-      db.all(
-  `
-SELECT
-  c.*,
-  s.name_en,
-  s.name_ar,
 
-  (
-    SELECT COUNT(*)
-    FROM company_stages cs
-    WHERE cs.company_id = c.id
-    AND cs.status = 'COMPLETED'
-  ) AS completed_stages,
+      const companies = await prisma.companies.findMany({
+        orderBy: { id: 'desc' },
+        include: {
+          company_stages: {
+            select: {
+              status: true,
+              stages: { select: { name: true } }
+            }
+          }
+        }
+      });
 
-  (
-    SELECT COUNT(*)
-    FROM company_stages cs
-    WHERE cs.company_id = c.id
-  ) AS total_stages,
+      let founders;
+      try {
 
-  (
-    SELECT st.name
-    FROM company_stages cs
-    JOIN stages st
-    ON cs.stage_id = st.id
-    WHERE cs.company_id = c.id
-    AND cs.status = 'IN_PROGRESS'
-    LIMIT 1
-  ) AS current_stage
+        founders = await prisma.founders.findMany({
+          select: {
+            company_id: true,
+            full_name: true
+          }
+        });
 
-FROM companies c
-LEFT JOIN sectors s
-ON c.sector_id = s.id
-
-ORDER BY c.id DESC
-  `,
-        [],
-
-       (err, companies) => {
-
-  if (err) {
-
-    console.error(err);
-
-    return res.status(500).json({
-      success: false,
-      message: "Error fetching companies"
-    });
-
-  }
-
-  db.all(
-    `
-    SELECT
-      company_id,
-      full_name
-    FROM founders
-    `,
-    [],
-    (foundersErr, founders) => {
-
-      if (foundersErr) {
+      } catch (foundersErr) {
 
         console.error(foundersErr);
 
@@ -1674,7 +1291,34 @@ ORDER BY c.id DESC
 
       }
 
-      companies.forEach((company) => {
+      // flatten companies to match original flat SELECT shape and attach founders
+      const flattenedCompanies = companies.map((c) => {
+        const completed_stages = c.company_stages.filter(
+          (cs) => cs.status === 'COMPLETED'
+        ).length;
+
+        const total_stages = c.company_stages.length;
+
+        const inProgress = c.company_stages.find(
+          (cs) => cs.status === 'IN_PROGRESS'
+        );
+
+        const current_stage = inProgress && inProgress.stages
+          ? inProgress.stages.name
+          : null;
+
+        const {  company_stages, ...rest } = c;
+
+        return {
+          ...rest,
+          
+          completed_stages,
+          total_stages,
+          current_stage
+        };
+      });
+
+      flattenedCompanies.forEach((company) => {
 
         company.founders = founders
           .filter(
@@ -1686,18 +1330,12 @@ ORDER BY c.id DESC
 
       });
 
-      console.log(companies[0]);
+      console.log(flattenedCompanies[0]);
 
       res.json({
         success: true,
-        companies
+        companies: flattenedCompanies
       });
-
-    }
-  );
-
-}
-      );
 
     } catch (error) {
 
@@ -1731,81 +1369,70 @@ router.put(
         newPassword
       } = req.body;
 
-      db.get(
-        `
-        SELECT *
-        FROM users
-        WHERE id = ?
-        `,
-        [userId],
+      let user;
+      try {
 
-async (err, user) => {
-          if (err) {
+        user = await prisma.users.findUnique({
+          where: { id: userId }
+        });
 
-            return res.status(500).json({
-              success: false,
-              message: "Server error"
-            });
+      } catch (err) {
 
-          }
+        return res.status(500).json({
+          success: false,
+          message: "Server error"
+        });
 
-          if (!user) {
+      }
 
-            return res.status(404).json({
-              success: false,
-              message: "User not found"
-            });
+      if (!user) {
 
-          }
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
+        });
 
-const isMatch = await bcrypt.compare(
-  currentPassword,
-  user.password
-);
+      }
 
-if (!isMatch) {
-
-  return res.status(400).json({
-    success: false,
-    message: "Current password is incorrect"
-  });
-
-}
-
-const hashedPassword = await bcrypt.hash(
-  newPassword,
-  10
-);
-
-db.run(
-  `
-  UPDATE users
-  SET password = ?
-  WHERE id = ?
-  `,
-  [hashedPassword, userId],
-
-  function (updateErr) {
-
-    if (updateErr) {
-
-      return res.status(500).json({
-        success: false,
-        message: "Error updating password"
-      });
-
-    }
-
-    res.json({
-      success: true,
-      message: "Password updated successfully"
-    });
-
-  }
-);
-
-        }
+      const isMatch = await bcrypt.compare(
+        currentPassword,
+        user.password
       );
+
+      if (!isMatch) {
+
+        return res.status(400).json({
+          success: false,
+          message: "Current password is incorrect"
+        });
+
+      }
+
+      const hashedPassword = await bcrypt.hash(
+        newPassword,
+        10
+      );
+
+      try {
+
+        await prisma.users.update({
+          where: { id: userId },
+          data: { password: hashedPassword }
+        });
+
+        res.json({
+          success: true,
+          message: "Password updated successfully"
+        });
+
+      } catch (updateErr) {
+
+        return res.status(500).json({
+          success: false,
+          message: "Error updating password"
+        });
+
+      }
 
     } catch (error) {
 
@@ -1850,24 +1477,21 @@ otp
 } =
 req.body;
 
-db.get(
-`
-SELECT *
-FROM otp_requests
-WHERE email = ?
-AND type =
-'REGISTER'
-`,
-[email],
+let record;
+try {
 
-async (
-err,
-record
-) => {
+  record = await prisma.otp_requests.findFirst({
+    where: {
+      email,
+      type: 'REGISTER'
+    }
+  });
+
+} catch (err) {
+  record = null;
+}
 
 if (
-err
-||
 !record
 ) {
 
@@ -1922,130 +1546,73 @@ data.password,
 // رجعنا للكود القديم
 // إنشاء الشركة
 
-db.run(
-`
-INSERT INTO companies
-(
-name,
-manager_name,
-country,
-sector_id,
-description,
-phone,
-email,
-logo_url,
-status
-)
-VALUES
-(
-?,
-?,
-?,
-?,
-?,
-?,
-?,
-?,
-?
-)
-`,
-[
-  data.company_name,
-  data.manager_name || data.name,
-  data.country,
-  data.sector_id,
-  data.description || "",
-  data.phone || "",
-  data.email,
-  data.logo_url || null,
-  "PENDING"
-],
+let companyId;
+try {
 
-function (
-companyErr
-) {
+  const newCompany = await prisma.companies.create({
+    data: {
+      name: data.company_name,
+      manager_name: data.manager_name || data.name,
+      country: data.country,
+      sector_id: Number(data.sector_id),
+      description: data.description || "",
+      phone: data.phone || "",
+      email: data.email,
+      logo_url: data.logo_url || null,
+      status: "PENDING"
+    }
+  });
 
-if (
-companyErr
-) {
+  companyId = newCompany.id;
 
-return sendError(
-res,
-500,
-'Company error'
-);
+} catch (companyErr) {
+
+  return sendError(
+    res,
+    500,
+    'Company error'
+  );
 
 }
-
-const companyId =
-this.lastID;
 
 generateWorkflow(
 companyId,
 data.sector_id
 );
 
-db.run(
-`
-INSERT INTO users
-(
-name,
-email,
-password,
-role,
-company_id,
-status
-)
-VALUES
-(
-?,
-?,
-?,
-?,
-?,
-?
-)
-`,
-[
-data.name,
+let newUser;
+try {
 
-data.email,
+  newUser = await prisma.users.create({
+    data: {
+      name: data.name,
+      email: data.email,
+      password: hashedPassword,
+      role: "CLIENT",
+      company_id: companyId,
+      status: "ACTIVE"
+    }
+  });
 
-hashedPassword,
+} catch (userErr) {
 
-"CLIENT",
-
-companyId,
-
-"ACTIVE"
-],
-
-function (
-userErr
-) {
-
-if (
-userErr
-) {
-
-return sendError(
-res,
-500,
-'User error'
-);
+  return sendError(
+    res,
+    500,
+    'User error'
+  );
 
 }
 
-db.run(
-`
-DELETE
-FROM otp_requests
-WHERE id = ?
-`,
-[
-record.id
-]
-);
+try {
+
+  await prisma.otp_requests.delete({
+    where: { id: record.id }
+  });
+
+} catch (err) {
+  // matches original fire-and-forget behavior
+}
 
 const token =
 jwt.sign(
@@ -2053,7 +1620,7 @@ jwt.sign(
 {
 
 id:
-this.lastID,
+newUser.id,
 
 role:
 'CLIENT',
@@ -2085,7 +1652,7 @@ token,
 
 user: {
 
-id: this.lastID,
+id: newUser.id,
 
 name: data.name,
 
@@ -2096,18 +1663,6 @@ role: "CLIENT",
 company_id: companyId
 
 }
-
-}
-
-);
-
-}
-
-);
-
-}
-
-);
 
 }
 
@@ -2135,12 +1690,14 @@ async (req, res) => {
 
 const { email } = req.body;
 
-findUserByEmail(
-email,
+let user;
+try {
+  user = await findUserByEmail(email);
+} catch (err) {
+  user = null;
+}
 
-async (err, user) => {
-
-if (err || !user) {
+if (!user) {
 
 return sendError(
 res,
@@ -2153,44 +1710,28 @@ res,
 const otp =
 generateOTP();
 
-db.run(
-`
-DELETE FROM otp_requests
-WHERE email = ?
-AND type = 'RESET_PASSWORD'
-`,
-[
-email
-]
-);
+try {
 
-db.run(
-`
-INSERT INTO otp_requests
-(
-email,
-otp,
-type,
-expires_at,
-resend_after
-)
-VALUES
-(
-?,
-?,
-?,
-?,
-?
-)
-`,
-[
-email,
-otp,
-"RESET_PASSWORD",
-getExpiry(),
-getResendTime()
-]
-);
+  await prisma.otp_requests.deleteMany({
+    where: {
+      email,
+      type: 'RESET_PASSWORD'
+    }
+  });
+
+  await prisma.otp_requests.create({
+    data: {
+      email,
+      otp,
+      type: "RESET_PASSWORD",
+      expires_at: new Date(getExpiry()),
+      resend_after: new Date(getResendTime())
+    }
+  });
+
+} catch (err) {
+  // matches original fire-and-forget behavior
+}
 
 await sendOTP(
 email,
@@ -2203,10 +1744,6 @@ res,
 {
 requiresOTP: true
 }
-);
-
-}
-
 );
 
 }
@@ -2226,20 +1763,19 @@ password
 } =
 req.body;
 
-db.get(
-`
-SELECT *
-FROM otp_requests
-WHERE email = ?
-AND type =
-'RESET_PASSWORD'
-`,
-[email],
+let record;
+try {
 
-async (
-err,
-record
-) => {
+  record = await prisma.otp_requests.findFirst({
+    where: {
+      email,
+      type: 'RESET_PASSWORD'
+    }
+  });
+
+} catch (err) {
+  record = null;
+}
 
 if (
 !record
@@ -2272,35 +1808,30 @@ password,
 10
 );
 
-db.run(
-`
-UPDATE users
-SET password = ?
-WHERE email = ?
-`,
-[
-hashed,
-email
-]
-);
+try {
 
-db.run(
-`
-DELETE FROM otp_requests
-WHERE id = ?
-`,
-[
-record.id
-]
-);
+  await prisma.users.updateMany({
+    where: { email },
+    data: { password: hashed }
+  });
+
+} catch (err) {
+  // matches original fire-and-forget behavior
+}
+
+try {
+
+  await prisma.otp_requests.delete({
+    where: { id: record.id }
+  });
+
+} catch (err) {
+  // matches original fire-and-forget behavior
+}
 
 return sendSuccess(
 res,
 "Password updated"
-);
-
-}
-
 );
 
 }

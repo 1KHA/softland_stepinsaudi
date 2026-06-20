@@ -1,82 +1,71 @@
-const db = require("../db");
+const prisma = require('../prisma/client');
 
-const updateCompanyStatus = (companyId) => {
-  return new Promise((resolve, reject) => {
+// NOTE: This service is not currently imported by any route file.
+// employee.routes.js imports updateCompanyStatus from workflow.service.js instead.
+// Converted to Prisma for completeness / to remove the remaining SQLite dependency,
+// but it is dead code as of this migration. Confirm with the team whether this file
+// is still needed before deleting it in a future cleanup pass.
 
-    db.all(
-      `
-SELECT
-  cs.status,
-  s.workflow_phase
-FROM company_stages cs
-JOIN stages s
-  ON cs.stage_id = s.id
-WHERE cs.company_id = ?
-      `,
-      [companyId],
-      (err, stages) => {
+const updateCompanyStatus = async (companyId) => {
 
-        if (err) {
-          return reject(err);
-        }
+  const stages = await prisma.company_stages.findMany({
+    where: { company_id: companyId },
+    include: {
+      stages: {
+        select: { workflow_phase: true }
+      }
+    }
+  });
 
-        if (!stages.length) {
-          return resolve();
-        }
-
-    
-
-       // جميع المراحل مكتملة
-const allCompleted = stages.every(
-  (stage) => stage.status === "COMPLETED"
-);
-
-if (allCompleted) {
-  db.run(
-    `
-    UPDATE companies
-    SET status = 'APPROVED'
-    WHERE id = ?
-    `,
-    [companyId]
-  );
-
-  return resolve();
-}
-
-// المرحلة النشطة الحالية
-const activeStage = stages.find(
-  (stage) => stage.status === "IN_PROGRESS"
-);
-
-if (activeStage) {
-
-  let companyStatus = "IN_PROGRESS";
-
-  if (activeStage.workflow_phase === "REGISTRATION") {
-    companyStatus = "PENDING";
-  } else if (activeStage.workflow_phase === "UNDER_REVIEW") {
-    companyStatus = "UNDER_REVIEW";
-  } else if (activeStage.workflow_phase === "PROCESSING") {
-    companyStatus = "IN_PROGRESS";
-  } else if (activeStage.workflow_phase === "FINAL_APPROVAL") {
-    companyStatus = "APPROVED";
+  if (!stages.length) {
+    return;
   }
 
-  db.run(
-    `
-    UPDATE companies
-    SET status = ?
-    WHERE id = ?
-    `,
-    [companyStatus, companyId]
-  );
-}
+  // flatten to match original flat SELECT shape: { status, workflow_phase }
+  const flatStages = stages.map((cs) => ({
+    status: cs.status,
+    workflow_phase: cs.stages ? cs.stages.workflow_phase : null
+  }));
 
-resolve();
-      }
-    );
-  });
+  // جميع المراحل مكتملة
+  const allCompleted = flatStages.every(
+    (stage) => stage.status === "COMPLETED"
+  );
+
+  if (allCompleted) {
+    await prisma.companies.update({
+      where: { id: companyId },
+      data: { status: 'APPROVED' }
+    });
+
+    return;
+  }
+
+  // المرحلة النشطة الحالية
+  const activeStage = flatStages.find(
+    (stage) => stage.status === "IN_PROGRESS"
+  );
+
+  if (activeStage) {
+
+    let companyStatus = "IN_PROGRESS";
+
+    if (activeStage.workflow_phase === "REGISTRATION") {
+      companyStatus = "PENDING";
+    } else if (activeStage.workflow_phase === "UNDER_REVIEW") {
+      companyStatus = "UNDER_REVIEW";
+    } else if (activeStage.workflow_phase === "PROCESSING") {
+      companyStatus = "IN_PROGRESS";
+    } else if (activeStage.workflow_phase === "FINAL_APPROVAL") {
+      companyStatus = "APPROVED";
+    }
+
+    await prisma.companies.update({
+      where: { id: companyId },
+      data: { status: companyStatus }
+    });
+  }
+
 };
 
 module.exports = {

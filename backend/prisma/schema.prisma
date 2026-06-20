@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -37,8 +37,8 @@ model company_stages {
   progress      Int?            @default(0)
   started_at    DateTime?
   completed_at  DateTime?
-  stages        stages          @relation(fields: [stage_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   companies     companies       @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stages        stages          @relation(fields: [stage_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   company_tasks company_tasks[]
 }
 
@@ -54,9 +54,9 @@ model company_tasks {
   requires_license     Int?             @default(0)
   admin_note           String?
   users                users?           @relation(fields: [assigned_employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companies            companies        @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   company_stages       company_stages   @relation(fields: [company_stage_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   tasks                tasks            @relation(fields: [task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  companies            companies        @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   task_documents       task_documents[]
 }
 
@@ -127,9 +127,9 @@ model task_documents {
   assigned_employee_id                    Int?
   required_document_name                  String?
   is_final_license                        Int?          @default(0)
+  company_tasks                           company_tasks @relation(fields: [company_task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_task_documents_reviewed_byTousers users?        @relation("task_documents_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_task_documents_uploaded_byTousers users?        @relation("task_documents_uploaded_byTousers", fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  company_tasks                           company_tasks @relation(fields: [company_task_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model task_required_documents {

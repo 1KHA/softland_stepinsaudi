@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/upload");
-const db = require('../db');
+const prisma = require('../prisma/client');
 const authMiddleware = require("../middleware/authMiddleware");
 const checkOwnership = require("../middleware/ownership");
 
@@ -24,7 +24,7 @@ router.post(
 );
 
 
-router.put('/assign/:id', authMiddleware, (req, res) => {
+router.put('/assign/:id', authMiddleware, async (req, res) => {
 
   // L-02: only ADMIN may reassign companies to employees
   if (req.user.role !== 'ADMIN') {
@@ -37,29 +37,24 @@ router.put('/assign/:id', authMiddleware, (req, res) => {
   const { id } = req.params;
   const { assigned_employee_id } = req.body;
 
-  db.run(
-    `
-    UPDATE companies
-    SET assigned_employee_id = ?
-    WHERE id = ?
-    `,
-    [assigned_employee_id, id],
-    function(err) {
+  try {
 
-      if (err) {
-        return res.status(500).json({
-          success: false,
-          error: err.message
-        });
-      }
+    await prisma.companies.update({
+      where: { id: Number(id) },
+      data: { assigned_employee_id }
+    });
 
-      res.json({
-        success: true,
-        message: 'Employee assigned'
-      });
+    res.json({
+      success: true,
+      message: 'Employee assigned'
+    });
 
-    }
-  );
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
 
 });
 
@@ -110,42 +105,48 @@ router.put(
 router.get(
   '/:companyId/stages',
   authMiddleware,
-  (req, res) => {
+  async (req, res) => {
 
     const { companyId } = req.params;
 
-    db.all(
-      `
-SELECT
-  cs.*,
-  s.name AS stage_name,
-  COALESCE(s.name_ar, s.name) AS stage_name_ar
-FROM company_stages cs
-JOIN stages s
-ON cs.stage_id = s.id
-      WHERE cs.company_id = ?
-      ORDER BY s.stage_order ASC
-      `,
-      [companyId],
-      (err, rows) => {
+    try {
 
-if (err) {
+      const rows = await prisma.company_stages.findMany({
+        where: { company_id: Number(companyId) },
+        include: {
+          stages: {
+            select: { name: true, name_ar: true }
+          }
+        },
+        orderBy: {
+          stages: { stage_order: 'asc' }
+        }
+      });
 
-  return res.status(500).json({
-    success: false,
-    error: JSON.stringify(err),
-    message: err.message
-  });
+      // flatten to match original: cs.*, stage_name, stage_name_ar (COALESCE(name_ar, name))
+      const flattened = rows.map((cs) => {
+        const { stages, ...rest } = cs;
+        return {
+          ...rest,
+          stage_name: stages ? stages.name : null,
+          stage_name_ar: stages
+            ? (stages.name_ar || stages.name)
+            : null
+        };
+      });
 
-}
+      res.json({
+        success: true,
+        stages: flattened
+      });
 
-        res.json({
-          success: true,
-          stages: rows
-        });
-
-      }
-    );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        error: JSON.stringify(err),
+        message: err.message
+      });
+    }
 
   }
 );
@@ -154,42 +155,46 @@ if (err) {
 router.get(
   '/:companyId/tasks',
   authMiddleware,
-  (req, res) => {
+  async (req, res) => {
 
     const { companyId } = req.params;
 
-    db.all(
-      `
-SELECT
-  ct.*,
-  t.title,
-  t.title_ar
-FROM company_tasks ct
-JOIN tasks t
-ON ct.task_id = t.id
-      WHERE ct.company_id = ?
-      `,
-      [companyId],
-      (err, rows) => {
+    try {
 
-       if (err) {
+      const rows = await prisma.company_tasks.findMany({
+        where: { company_id: Number(companyId) },
+        include: {
+          tasks: {
+            select: { title: true, title_ar: true }
+          }
+        }
+      });
 
-  return res.status(500).json({
-    success: false,
-    error: JSON.stringify(err),
-    message: err.message
-  });
+      // flatten to match original: ct.*, title, title_ar
+      const flattened = rows.map((ct) => {
+        const { tasks, ...rest } = ct;
+        return {
+          ...rest,
+          title: tasks ? tasks.title : null,
+          title_ar: tasks ? tasks.title_ar : null
+        };
+      });
 
-}
-console.log("COMPANY TASKS:");
-console.log(rows);
-        res.json({
-          success: true,
-          tasks: rows
-        });
+      console.log("COMPANY TASKS:");
+      console.log(flattened);
 
-      }
-    );
+      res.json({
+        success: true,
+        tasks: flattened
+      });
+
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        error: JSON.stringify(err),
+        message: err.message
+      });
+    }
 
   }
 );
@@ -198,56 +203,39 @@ console.log(rows);
 router.get(
   "/:companyId/progress",
   authMiddleware,
-  (req, res) => {
+  async (req, res) => {
 
     const { companyId } = req.params;
 
-    db.all(
-      `
-      SELECT *
-      FROM company_stages cs
-      JOIN stages s
-      ON cs.stage_id = s.id
-      WHERE cs.company_id = ?
-      `,
-      [companyId],
-      (err, stages) => {
+    try {
 
-        if (err) {
+      const stages = await prisma.company_stages.findMany({
+        where: { company_id: Number(companyId) },
+        include: { stages: true }
+      });
 
-          console.log(err);
+      const totalStages = stages.length;
 
-          return res.status(500).json({
-            message: "Error calculating progress"
-          });
+      const completedStages = stages.filter(
+        (stage) => stage.status === "COMPLETED"
+      ).length;
 
-        }
+      const progress =
+        totalStages === 0
+          ? 0
+          : Math.round((completedStages / totalStages) * 100);
 
-const totalStages =
-  stages.length;
+      res.json({
+        progress
+      });
 
-const completedStages =
-  stages.filter(
-    (stage) =>
-      stage.status === "COMPLETED"
-  ).length;
+    } catch (err) {
+      console.log(err);
 
-const progress =
-  totalStages === 0
-    ? 0
-    : Math.round(
-        (completedStages / totalStages)
-        * 100
-      );
-
-        res.json({
-
-          progress
-
-        });
-
-      }
-    );
+      return res.status(500).json({
+        message: "Error calculating progress"
+      });
+    }
 
   }
 );
@@ -256,151 +244,123 @@ router.post(
   "/tasks/:taskId/upload",
   authMiddleware,
   upload.array("files"),
-  (req, res) => {
+  async (req, res) => {
 
-console.log("UPLOAD ROUTE HIT");
-console.log("TASK ID =", req.params.taskId);
+    console.log("UPLOAD ROUTE HIT");
+    console.log("TASK ID =", req.params.taskId);
+
     try {
 
       const { taskId } = req.params;
       const requiredDocumentNames =
-  req.body.required_document_name || [];
+        req.body.required_document_name || [];
 
-const documentNames = Array.isArray(requiredDocumentNames)
-  ? requiredDocumentNames
-  : [requiredDocumentNames];
+      const documentNames = Array.isArray(requiredDocumentNames)
+        ? requiredDocumentNames
+        : [requiredDocumentNames];
 
-console.log("TASK ID =", taskId);
-console.log("USER =", req.user);
+      console.log("TASK ID =", taskId);
+      console.log("USER =", req.user);
 
       if (!req.files || req.files.length === 0) {
-
         return res.status(400).json({
           message: "File is required"
         });
-
       }
 
-req.files.forEach((file, index) => {
+      for (let index = 0; index < req.files.length; index++) {
+        const file = req.files[index];
 
-  const fileUrl =
-    `http://localhost:3000/uploads/${file.filename}`;
+        const fileUrl =
+          `http://localhost:3000/uploads/${file.filename}`;
 
-  const documentName =
-    documentNames[index] || null;
+        const documentName =
+          documentNames[index] || null;
 
-  db.get(
-    `
-    SELECT id
-    FROM task_documents
-    WHERE company_task_id = ?
-      AND required_document_name = ?
-    `,
-    [taskId, documentName],
-    (err, existing) => {
+        try {
 
-      if (existing) {
+          const existing = await prisma.task_documents.findFirst({
+            where: {
+              company_task_id: Number(taskId),
+              required_document_name: documentName
+            },
+            select: { id: true }
+          });
 
-        db.run(
-          `
-          UPDATE task_documents
-          SET
-            file_name = ?,
-            file_url = ?,
-            uploaded_by = ?,
-            uploaded_at = CURRENT_TIMESTAMP,
-            status = 'PENDING',
-            rejection_reason = NULL,
-            reviewed_by = NULL,
-            reviewed_at = NULL
-          WHERE id = ?
-          `,
-          [
-            file.originalname,
-            fileUrl,
-            req.user.id,
-            existing.id
-          ]
-        );
+          if (existing) {
 
-      } else {
+            await prisma.task_documents.update({
+              where: { id: existing.id },
+              data: {
+                file_name: file.originalname,
+                file_url: fileUrl,
+                uploaded_by: req.user.id,
+                uploaded_at: new Date(),
+                status: 'PENDING',
+                rejection_reason: null,
+                reviewed_by: null,
+                reviewed_at: null
+              }
+            });
 
-        db.run(
-          `
-          INSERT INTO task_documents (
-            company_task_id,
-            file_name,
-            file_url,
-            uploaded_by,
-            required_document_name
-          )
-          VALUES (?, ?, ?, ?, ?)
-          `,
-          [
-            taskId,
-            file.originalname,
-            fileUrl,
-            req.user.id,
-            documentName
-          ]
-        );
+          } else {
 
+            await prisma.task_documents.create({
+              data: {
+                company_task_id: Number(taskId),
+                file_name: file.originalname,
+                file_url: fileUrl,
+                uploaded_by: req.user.id,
+                required_document_name: documentName
+              }
+            });
+
+          }
+
+        } catch (err) {
+          // matches original per-file silent failure behavior
+        }
       }
 
-    }
-  );
+      try {
+        await prisma.company_tasks.update({
+          where: { id: Number(taskId) },
+          data: { status: 'UNDER_REVIEW' }
+        });
+      } catch (err) {
+        // matches original fire-and-forget behavior
+      }
 
-});
+      (async () => {
+        try {
+          const admins = await prisma.users.findMany({
+            where: { role: 'ADMIN' },
+            select: { id: true }
+          });
 
-db.run(
-  `
-  UPDATE company_tasks
-  SET status = 'UNDER_REVIEW'
-  WHERE id = ?
-  `,
-  [taskId]
-);
+          for (const admin of admins) {
+            try {
+              await prisma.notifications.create({
+                data: {
+                  user_id: admin.id,
+                  message: `documentUploadedDesc|${req.user.company_name}`,
+                  type: "DOCUMENT",
+                  is_read: 0
+                }
+              });
+            } catch (err) {
+              // matches original per-notification silent failure behavior
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch admins:", err);
+        }
+      })();
 
-db.all(
-  `
-  SELECT id
-  FROM users
-  WHERE role = 'ADMIN'
-  `,
-  [],
-  (err, admins) => {
-
-    if (err || !admins) return;
-
-    admins.forEach((admin) => {
-
-      db.run(
-        `
-        INSERT INTO notifications
-        (
-          user_id,
-          message,
-          type,
-          is_read
-        )
-        VALUES (?, ?, ?, 0)
-        `,
-        [
-          admin.id,
-          `documentUploadedDesc|${req.user.company_name}`,
-          "DOCUMENT"
-        ]
-      );
-
-    });
-
-  }
-);
-
-return res.json({
-  message: "Files uploaded successfully",
-  filesCount: req.files.length
-});
+      return res.json({
+        message: "Files uploaded successfully",
+        filesCount: req.files.length
+      });
 
     } catch (error) {
 
@@ -415,138 +375,144 @@ return res.json({
   }
 );
 
-router.get("/tasks/:id", (req, res) => {
+router.get("/tasks/:id", async (req, res) => {
 
   const taskId = req.params.id;
 
-  db.get(
-    `
-SELECT
-  company_tasks.*,
-  tasks.title,
-  tasks.title_ar,
-  tasks.description,
-  tasks.description_ar,
-  tasks.task_type
-FROM company_tasks
-JOIN tasks
-ON company_tasks.task_id = tasks.id
-WHERE company_tasks.id = ?
-    `,
-    [taskId],
-    (err, row) => {
+  try {
 
-      if (err) {
-        return res.status(500).json(err);
+    const row = await prisma.company_tasks.findUnique({
+      where: { id: Number(taskId) },
+      include: {
+        tasks: {
+          select: {
+            title: true,
+            title_ar: true,
+            description: true,
+            description_ar: true,
+            task_type: true
+          }
+        }
       }
+    });
 
-      if (!row) {
-        return res.status(404).json({
-          message: "Task not found",
-        });
-      }
+    if (!row) {
+      return res.status(404).json({
+        message: "Task not found"
+      });
+    }
 
-console.log(row);
+    // flatten to match original join shape
+    const flatRow = {
+      ...row,
+      title: row.tasks ? row.tasks.title : null,
+      title_ar: row.tasks ? row.tasks.title_ar : null,
+      description: row.tasks ? row.tasks.description : null,
+      description_ar: row.tasks ? row.tasks.description_ar : null,
+      task_type: row.tasks ? row.tasks.task_type : null
+    };
+    delete flatRow.tasks;
 
-db.all(
-  `
-SELECT
-  trd.document_name,
-  trd.document_name_ar,
-  td.status,
-  td.rejection_reason
-FROM task_required_documents trd
-LEFT JOIN task_documents td
-  ON td.required_document_name = trd.document_name
- AND td.company_task_id = ?
-WHERE trd.task_id = ?
-  `,
-  [
-  row.id,      // company_task_id
-  row.task_id  // task_id
-],
+    console.log(flatRow);
 
-  (err, docs) => {
+    try {
 
-    if (err) {
+      const docs = await prisma.task_required_documents.findMany({
+        where: { task_id: flatRow.task_id }
+      });
+
+      const taskDocs = await prisma.task_documents.findMany({
+        where: { company_task_id: flatRow.id }
+      });
+
+      // original SQL: LEFT JOIN task_documents td
+      //   ON td.required_document_name = trd.document_name
+      //   AND td.company_task_id = ?
+      const docsJoined = docs.map((trd) => {
+        const matchingDoc = taskDocs.find(
+          (td) => td.required_document_name === trd.document_name
+        );
+
+        return {
+          document_name: trd.document_name,
+          document_name_ar: trd.document_name_ar,
+          status: matchingDoc ? matchingDoc.status : null,
+          rejection_reason: matchingDoc ? matchingDoc.rejection_reason : null
+        };
+      });
+
+      res.json({
+        id: flatRow.id,
+
+        title: flatRow.title,
+        title_ar: flatRow.title_ar,
+
+        status: flatRow.status,
+
+        description:
+          flatRow.description ||
+          "Complete all required documents for this task.",
+
+        description_ar: flatRow.description_ar,
+
+        requiredDocuments:
+          flatRow.task_type === "file"
+            ? [{
+                document_name: flatRow.title,
+                document_name_ar: flatRow.title_ar,
+                status: flatRow.status,
+                rejection_reason: null
+              }]
+            : docsJoined.map((d) => ({
+                document_name: d.document_name,
+                document_name_ar: d.document_name_ar,
+                status: d.status || "PENDING",
+                rejection_reason: d.rejection_reason
+              }))
+      });
+
+    } catch (err) {
       return res.status(500).json({
         message: "Error fetching documents"
       });
     }
 
-res.json({
-  id: row.id,
-
-  title: row.title,
-  title_ar: row.title_ar,
-
-  status: row.status,
-
-  description:
-    row.description ||
-    "Complete all required documents for this task.",
-
-  description_ar: row.description_ar,
-
-  requiredDocuments:
-    row.task_type === "file"
-      ? [{
-          document_name: row.title,
-          document_name_ar: row.title_ar,
-          status: row.status,
-          rejection_reason: null
-        }]
-      : docs.map((d) => ({
-  document_name: d.document_name,
-  document_name_ar: d.document_name_ar,
-  status: d.status || "PENDING",
-  rejection_reason: d.rejection_reason
-}))
-});
-
+  } catch (err) {
+    return res.status(500).json(err);
   }
-);
 
-}
-);
 });
+
 router.post(
   "/tasks/upload",
   upload.array("files"),
-  (req, res) => {
+  async (req, res) => {
 
     if (!req.files || req.files.length === 0) {
-
       return res.status(400).json({
         message: "No file uploaded",
       });
-
     }
 
     const companyTaskId =
       req.body.company_task_id;
 
-req.files.forEach((file, index) => {
+    for (let index = 0; index < req.files.length; index++) {
+      const file = req.files[index];
 
-  db.run(
-    `
-    INSERT INTO task_documents (
-      company_task_id,
-      file_name,
-      file_url,
-      required_document_name
-    )
-    VALUES (?, ?, ?, ?)
-    `,
-    [
-      companyTaskId,
-      file.originalname,
-      `/uploads/${file.filename}`,
-      req.body.required_document_name[index]
-    ]
-  );
-
-});
+      try {
+        await prisma.task_documents.create({
+          data: {
+            company_task_id: Number(companyTaskId),
+            file_name: file.originalname,
+            file_url: `/uploads/${file.filename}`,
+            required_document_name: req.body.required_document_name[index]
+          }
+        });
+      } catch (err) {
+        // matches original fire-and-forget behavior
+      }
+    }
 
     res.json({
       message:
@@ -560,150 +526,95 @@ req.files.forEach((file, index) => {
 router.put(
   "/tasks/:id/status",
   authMiddleware,
-  (req, res) => {
+  async (req, res) => {
 
     const taskId = req.params.id;
 
     const { status } = req.body;
 
-    db.run(
-      `
-      UPDATE company_tasks
-      SET status = ?
-      WHERE id = ?
-      `,
-      [status, taskId],
-      function (err) {
+    try {
 
-        if (err) {
+      await prisma.company_tasks.update({
+        where: { id: Number(taskId) },
+        data: { status }
+      });
 
-          return res.status(500).json(err);
+      // 🔥 fetch current task
+      const task = await prisma.company_tasks.findUnique({
+        where: { id: Number(taskId) }
+      });
+
+      if (!task) {
+        return res.status(500).json({
+          message: "Task fetch failed"
+        });
+      }
+
+      // 🔥 check remaining tasks in same stage
+      const tasks = await prisma.company_tasks.findMany({
+        where: { company_stage_id: task.company_stage_id }
+      });
+
+      const allCompleted = tasks.every(
+        (t) => t.status === "COMPLETED"
+      );
+
+      // 🔥 if all completed
+      if (allCompleted) {
+
+        // complete stage
+        await prisma.company_stages.update({
+          where: { id: task.company_stage_id },
+          data: { status: 'COMPLETED' }
+        });
+
+        // open next stage
+        const currentCompanyStage = await prisma.company_stages.findUnique({
+          where: { id: task.company_stage_id },
+          include: { stages: { select: { stage_order: true } } }
+        });
+
+        const nextStage = currentCompanyStage
+          ? await prisma.company_stages.findFirst({
+              where: {
+                company_id: task.company_id,
+                stages: {
+                  stage_order: { gt: currentCompanyStage.stages.stage_order }
+                }
+              },
+              include: { stages: { select: { stage_order: true } } },
+              orderBy: { stages: { stage_order: 'asc' } }
+            })
+          : null;
+
+        if (nextStage) {
+
+          // افتح المرحلة التالية
+          await prisma.company_stages.update({
+            where: { id: nextStage.id },
+            data: { status: 'IN_PROGRESS' }
+          });
+
+        } else {
+
+          // لا توجد مرحلة تالية => جميع المراحل اكتملت
+          await prisma.companies.update({
+            where: { id: task.company_id },
+            data: { status: 'APPROVED' }
+          });
 
         }
 
-        // 🔥 fetch current task
-        db.get(
-          `
-          SELECT *
-          FROM company_tasks
-          WHERE id = ?
-          `,
-          [taskId],
-          (err, task) => {
-
-            if (err || !task) {
-
-              return res.status(500).json({
-                message: "Task fetch failed"
-              });
-
-            }
-
-            // 🔥 check remaining tasks in same stage
-            db.all(
-              `
-              SELECT *
-              FROM company_tasks
-              WHERE company_stage_id = ?
-              `,
-              [task.company_stage_id],
-              (err, tasks) => {
-
-                if (err) {
-
-                  return res.status(500).json(err);
-
-                }
-
-                const allCompleted =
-                  tasks.every(
-                    (t) =>
-                      t.status === "COMPLETED"
-                  );
-
-                // 🔥 if all completed
-                if (allCompleted) {
-
-                  // complete stage
-                  db.run(
-                    `
-                    UPDATE company_stages
-                    SET status = 'COMPLETED'
-                    WHERE id = ?
-                    `,
-                    [task.company_stage_id]
-                  );
-
-                  // open next stage
-                  db.get(
-                    `
-                   SELECT
-                   cs.*,
-                   s.stage_order
-                   FROM company_stages cs
-                   JOIN stages s
-                   ON cs.stage_id = s.id
-                   WHERE cs.company_id = ?
-                   AND s.stage_order >
-                   (
-                   SELECT s2.stage_order
-                   FROM company_stages cs2
-                   JOIN stages s2
-                   ON cs2.stage_id = s2.id
-                   WHERE cs2.id = ?
-                   )
-                   ORDER BY s.stage_order ASC
-                   LIMIT 1
-                    `,
-                    [
-                      task.company_id,
-                      task.company_stage_id
-                    ],
-(err, nextStage) => {
-
-  if (nextStage) {
-
-    // افتح المرحلة التالية
-    db.run(
-      `
-      UPDATE company_stages
-      SET status = 'IN_PROGRESS'
-      WHERE id = ?
-      `,
-      [nextStage.id]
-    );
-
-  } else {
-
-    // لا توجد مرحلة تالية => جميع المراحل اكتملت
-    db.run(
-      `
-      UPDATE companies
-      SET status = 'APPROVED'
-      WHERE id = ?
-      `,
-      [task.company_id]
-    );
-
-  }
-
-}
-                  );
-                }
-                
-                res.json({
-                  message:
-                    "Task status updated"
-                });
-
-              }
-            );
-
-          }
-        );
-
       }
-    );
+
+      res.json({
+        message:
+          "Task status updated"
+      });
+
+    } catch (err) {
+      return res.status(500).json(err);
+    }
 
   }
 );
@@ -711,50 +622,38 @@ router.put(
 router.put(
   "/admin/tasks/:id/status",
   authMiddleware,
-  (req, res) => {
+  async (req, res) => {
 
     // admin only
     if (req.user.role !== "ADMIN") {
-
       return res.status(403).json({
         message: "Access denied"
       });
-
     }
 
     const taskId = req.params.id;
 
     const { status } = req.body;
 
-    db.run(
-      `
-      UPDATE company_tasks
-      SET status = ?
-      WHERE id = ?
-      `,
-      [status, taskId],
+    try {
 
-      function (err) {
+      await prisma.company_tasks.update({
+        where: { id: Number(taskId) },
+        data: { status }
+      });
 
-        if (err) {
+      res.json({
+        message:
+          "Task updated manually ✅"
+      });
 
-          console.log(err);
+    } catch (err) {
+      console.log(err);
 
-          return res.status(500).json({
-            message: "Update failed"
-          });
-
-        }
-
-        res.json({
-
-          message:
-            "Task updated manually ✅"
-
-        });
-
-      }
-    );
+      return res.status(500).json({
+        message: "Update failed"
+      });
+    }
 
   }
 );
@@ -765,32 +664,26 @@ router.put(
 router.get(
   "/notifications",
   authMiddleware,
-  (req, res) => {
+  async (req, res) => {
 
-    db.all(
-      `
-      SELECT *
-      FROM notifications
-      WHERE user_id = ?
-      ORDER BY created_at DESC
-      `,
-      [req.user.id],
-      (err, rows) => {
+    try {
 
-        if (err) {
-          return res.status(500).json({
-            success: false,
-            message: "Failed to fetch notifications"
-          });
-        }
+      const rows = await prisma.notifications.findMany({
+        where: { user_id: req.user.id },
+        orderBy: { created_at: 'desc' }
+      });
 
-        res.json({
-          success: true,
-          notifications: rows
-        });
+      res.json({
+        success: true,
+        notifications: rows
+      });
 
-      }
-    );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch notifications"
+      });
+    }
 
   }
 );
@@ -801,42 +694,53 @@ router.get(
 router.get(
   "/licenses",
   authMiddleware,
-  (req, res) => {
-    db.all(
-      `
-      SELECT
-        td.id,
-        td.file_name,
-        td.file_url,
-        td.uploaded_at,
-        t.title AS license_name
-      FROM task_documents td
-      JOIN company_tasks ct
-        ON td.company_task_id = ct.id
-      JOIN tasks t
-        ON ct.task_id = t.id
-      WHERE
-        ct.company_id = ?
-        AND td.is_final_license = 1
-      ORDER BY td.uploaded_at DESC
-      `,
-      [req.user.company_id],
-      (err, rows) => {
-        if (err) {
-          console.log(err);
+  async (req, res) => {
 
-          return res.status(500).json({
-            success: false,
-            message: "Failed to fetch licenses",
-          });
-        }
+    try {
 
-        res.json({
-          success: true,
-          licenses: rows,
-        });
-      }
-    );
+      const rows = await prisma.task_documents.findMany({
+        where: {
+          is_final_license: 1,
+          company_tasks: {
+            company_id: req.user.company_id
+          }
+        },
+        include: {
+          company_tasks: {
+            include: {
+              tasks: { select: { title: true } }
+            }
+          }
+        },
+        orderBy: { uploaded_at: 'desc' }
+      });
+
+      // flatten to match original: td.id, td.file_name, td.file_url, td.uploaded_at, license_name
+      const flattened = rows.map((td) => ({
+        id: td.id,
+        file_name: td.file_name,
+        file_url: td.file_url,
+        uploaded_at: td.uploaded_at,
+        license_name:
+          td.company_tasks && td.company_tasks.tasks
+            ? td.company_tasks.tasks.title
+            : null
+      }));
+
+      res.json({
+        success: true,
+        licenses: flattened,
+      });
+
+    } catch (err) {
+      console.log(err);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch licenses",
+      });
+    }
+
   }
 );
 
@@ -852,27 +756,26 @@ router.get(
 router.put(
   "/notifications/read",
   authMiddleware,
-  (req, res) => {
-    db.run(
-      `
-      UPDATE notifications
-      SET is_read = 1
-      WHERE user_id = ?
-      `,
-      [req.user.id],
-      function (err) {
-        if (err) {
-          return res.status(500).json({
-            success: false,
-            message: "Database error",
-          });
-        }
+  async (req, res) => {
 
-        return res.json({
-          success: true,
-        });
-      }
-    );
+    try {
+
+      await prisma.notifications.updateMany({
+        where: { user_id: req.user.id },
+        data: { is_read: 1 }
+      });
+
+      return res.json({
+        success: true,
+      });
+
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+      });
+    }
+
   }
 );
 
@@ -880,28 +783,28 @@ router.put(
 router.get(
   "/notifications/unread-count",
   authMiddleware,
-  (req, res) => {
-    db.get(
-      `
-      SELECT COUNT(*) AS count
-      FROM notifications
-      WHERE user_id = ?
-      AND is_read = 0
-      `,
-      [req.user.id],
-      (err, row) => {
-        if (err) {
-          return res.status(500).json({
-            success: false,
-          });
-        }
+  async (req, res) => {
 
-        res.json({
-          success: true,
-          count: row.count,
-        });
-      }
-    );
+    try {
+
+      const count = await prisma.notifications.count({
+        where: {
+          user_id: req.user.id,
+          is_read: 0
+        }
+      });
+
+      res.json({
+        success: true,
+        count
+      });
+
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+      });
+    }
+
   }
 );
 

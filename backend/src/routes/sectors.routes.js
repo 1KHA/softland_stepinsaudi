@@ -1,31 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const prisma = require('../prisma/client');
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
 
-  db.all(
-    `
-    SELECT *
-    FROM sectors
-    ORDER BY id
-    `,
-    [],
-    (err, rows) => {
+  try {
 
-      if (err) {
-        return res.status(500).json({
-          success: false
-        });
-      }
+    const rows = await prisma.sectors.findMany({
+      orderBy: { id: 'asc' }
+    });
 
-      res.json({
-        success: true,
-        sectors: rows
-      });
+    res.json({
+      success: true,
+      sectors: rows
+    });
 
-    }
-  );
+  } catch (err) {
+
+    return res.status(500).json({
+      success: false
+    });
+
+  }
 
 });
 
