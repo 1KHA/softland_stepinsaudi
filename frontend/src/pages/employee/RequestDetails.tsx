@@ -80,6 +80,7 @@ const [isProcessing, setIsProcessing] = useState(false);
   }))
 );
       console.log('NEW DATA', res.data);
+      console.log("COMPANY =", res.data.company);
       console.table(
   res.data.tasks.map((t: any) => ({
     task_title: t.task_title,
@@ -335,7 +336,9 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
                 <Building2 className="w-7 h-7 text-[#C5A55A]" />
               </div>
               <div>
-                <p className="font-bold text-[#1E3A5F] text-lg">{company.company_name}</p>
+<p className="font-bold text-[#1E3A5F] text-lg">
+  {company.name || "—"}
+</p>
                 <p className="text-sm text-gray-500">{company.sector_name || '—'}</p>
               </div>
             </div>

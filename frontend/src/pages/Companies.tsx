@@ -107,6 +107,7 @@ console.log('TOKEN =', token);
       );
 
       const data = await response.json();
+      console.log(data.companies[0]);
 
       setCompanies(
         (data.companies || []).map((company: any) => ({
@@ -136,9 +137,15 @@ founders: company.founders || [],
           address: company.country || '',
 sector_id: company.sector_id,
 sector:
-  language === 'ar'
-    ? company.name_ar
-    : company.name_en,
+  company.sector_id === 1
+    ? "Entrepreneurial"
+    : company.sector_id === 2
+    ? "Industrial"
+    : company.sector_id === 3
+    ? "Commercial"
+    : company.sector_id === 4
+    ? "Real Estate"
+    : "",
 
           email: company.email || '',
 

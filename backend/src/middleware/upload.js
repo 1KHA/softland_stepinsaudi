@@ -7,11 +7,14 @@ const storage = multer.diskStorage({
   },
 
   filename: (req, file, cb) => {
+console.log("ORIGINAL:", file.originalname);
 
     const originalName = Buffer.from(
       file.originalname,
       "latin1"
     ).toString("utf8");
+
+      console.log("CONVERTED:", originalName);
 
     const uniqueName =
       Date.now() + "-" + originalName;

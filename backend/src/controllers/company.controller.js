@@ -275,27 +275,54 @@ exports.updateCompany = async (req, res) => {
       console.log(err);
     }
 
-    if (sectorChanged) {
-      (async () => {
-        try {
-          await prisma.company_tasks.deleteMany({
-            where: { company_id: Number(companyId) }
-          });
+if (sectorChanged) {
 
-          await prisma.company_stages.deleteMany({
-            where: { company_id: Number(companyId) }
-          });
+  console.log("OLD SECTOR:", currentCompany.sector_id);
+  console.log("NEW SECTOR:", sector_id);
+  console.log("SECTOR CHANGED");
 
-          await generateWorkflow(
-            Number(companyId),
-            Number(sector_id)
-          );
+  try {
+const companyTasks = await prisma.company_tasks.findMany({
+  where: {
+    company_id: Number(companyId)
+  },
+  select: {
+    id: true
+  }
+});
 
-        } catch (err) {
-          console.log(err);
-        }
-      })();
+await prisma.task_documents.deleteMany({
+  where: {
+    company_task_id: {
+      in: companyTasks.map(t => t.id)
     }
+  }
+});
+    await prisma.company_tasks.deleteMany({
+      where: { company_id: Number(companyId) }
+    });
+
+    console.log("TASKS DELETED");
+
+    await prisma.company_stages.deleteMany({
+      where: { company_id: Number(companyId) }
+    });
+
+    console.log("STAGES DELETED");
+
+    await generateWorkflow(
+      Number(companyId),
+      Number(sector_id)
+    );
+
+    console.log("WORKFLOW GENERATED");
+
+  } catch (err) {
+
+    console.log("WORKFLOW ERROR:", err);
+
+  }
+}
 
     // delete old founders
     try {

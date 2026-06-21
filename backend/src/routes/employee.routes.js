@@ -259,6 +259,9 @@ router.get('/requests/:id', authMiddleware, employeeOrAdmin, async (req, res) =>
       };
     });
 
+    console.log("TASKS COUNT =", tasks.length);
+console.log("TASK IDS =", tasks.map(t => t.id));
+
     const taskIds = tasks.map(t => t.id);
     if (taskIds.length === 0) {
       return res.json({ success: true, company, stages, tasks, documents: [] });
@@ -275,7 +278,7 @@ router.get('/requests/:id', authMiddleware, employeeOrAdmin, async (req, res) =>
         }
       }
     });
-
+console.log("DOCUMENTS COUNT =", documentsRaw.length);
     const documents = documentsRaw.map((td) => {
       const { company_tasks: ct, ...rest } = td;
       return {
@@ -827,24 +830,65 @@ router.put('/documents/:id/reject', authMiddleware, employeeOrAdmin, async (req,
   const { id } = req.params;
   const { reason } = req.body;
 
-  try {
+ try {
 
-    await prisma.task_documents.update({
-      where: { id: Number(id) },
-      data: {
-        status: 'REJECTED',
-        reviewed_by: req.user.id,
-        reviewed_at: new Date(),
-        rejection_reason: reason || ''
+  await prisma.task_documents.update({
+    where: { id: Number(id) },
+    data: {
+      status: 'REJECTED',
+      reviewed_by: req.user.id,
+      reviewed_at: new Date(),
+      rejection_reason: reason || ''
+    }
+  });
+
+  const row = await prisma.task_documents.findUnique({
+    where: { id: Number(id) },
+    select: {
+      company_tasks: {
+        select: {
+          company_id: true
+        }
+      }
+    }
+  });
+
+  const companyId = row?.company_tasks?.company_id;
+
+  if (companyId) {
+
+    const clients = await prisma.users.findMany({
+      where: {
+        company_id: companyId,
+        role: 'CLIENT'
+      },
+      select: {
+        id: true
       }
     });
 
-    res.json({ success: true, message: 'Document rejected' });
+    for (const client of clients) {
 
-  } catch (err) {
-    return res.status(500).json({ success: false, message: 'DB error' });
+      await prisma.notifications.create({
+        data: {
+          user_id: client.id,
+          message: reason || "Document rejected",
+          type: "DOCUMENT_REJECTED",
+          related_company_id: companyId
+        }
+      });
+
+    }
+
   }
-});
+
+  res.json({
+    success: true,
+    message: 'Document rejected'
+  });
+
+} catch (err) {
+}});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REQUEST DOCUMENT RESUBMISSION
@@ -1302,16 +1346,39 @@ router.post(
             select: { id: true }
           });
 
+const licenseTask = await prisma.company_tasks.findUnique({
+  where: { id: Number(taskId) },
+  select: {
+    tasks: {
+      select: {
+        title: true,
+        title_ar: true
+      }
+    }
+  }
+});
+
+const licenseNameEn =
+  licenseTask?.tasks?.title || "";
+
+const licenseNameAr =
+  licenseTask?.tasks?.title_ar || "";
+  console.log("LICENSE TASK:", licenseTask);
+console.log("EN:", licenseNameEn);
+console.log("AR:", licenseNameAr);
+
           for (const u of clients) {
             try {
-              await prisma.notifications.create({
-                data: {
-                  user_id: u.id,
-                  message: 'licenseIssuedDesc',
-                  type: 'LICENSE_ISSUED',
-                  related_company_id: task.company_id
-                }
-              });
+
+await prisma.notifications.create({
+  data: {
+    user_id: u.id,
+    message: `LICENSE|${licenseNameEn}`,
+    message_ar: `LICENSE|${licenseNameAr}`,
+    type: "LICENSE_ISSUED",
+    related_company_id: task.company_id
+  }
+});
             } catch (err) {
               // matches original fire-and-forget behavior
             }

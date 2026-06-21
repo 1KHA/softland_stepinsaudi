@@ -14,6 +14,7 @@ export default function TaskDetails() {
 
   const [task, setTask] = useState<any>(null);
 const [showSuccess, setShowSuccess] = useState(false);
+const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -207,14 +208,26 @@ return (
               ))}
           </div>
 
+{showError && (
+  <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4">
+    <h3 className="font-semibold text-red-700">
+      {t("error")}
+    </h3>
+
+    <p className="mt-1 text-sm text-red-600">
+      {t("task.selectFiles")}
+    </p>
+  </div>
+)}
+
 {showSuccess && (
   <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-4">
     <h3 className="font-semibold text-green-700">
-{t("task.documentsSubmitted")}
+      {t("task.documentsSubmitted")}
     </h3>
 
     <p className="mt-1 text-sm text-green-600">
-{t("task.documentsUnderReview")}
+      {t("task.documentsUnderReview")}
     </p>
   </div>
 )}
@@ -230,10 +243,25 @@ return (
     <button
 className="bg-[#C5A55A] hover:bg-[#B18F46] transition text-white px-8 py-3 rounded-xl font-semibold shadow-md"
                 onClick={async () => {
-                  if (Object.keys(selectedFiles).length === 0) {
-alert(t("task.selectFiles"));
-                    return;
-                  }
+
+                  const requiredDocs = task.requiredDocuments.filter(
+  (doc: any) =>
+    doc.status === "PENDING" ||
+    doc.status === "NEEDS_RESUBMISSION"
+);
+
+if (Object.keys(selectedFiles).length === 0) {
+  setShowError(true);
+  return;
+}
+
+if (
+  Object.keys(selectedFiles).length <
+  requiredDocs.length
+) {
+  alert(t("task.uploadAllRequiredFiles"));
+  return;
+}
 
                   try {
                     const formData = new FormData();

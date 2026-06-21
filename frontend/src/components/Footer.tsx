@@ -19,8 +19,7 @@ export function Footer() {
   dir="ltr"
   className="text-sm leading-relaxed mb-6 text-left"
 >
-  STEPIN simplifies business setup,
-  licensing, and market entry in Saudi Arabia.
+{t('footer.description')}
 </p>
           </div>
 

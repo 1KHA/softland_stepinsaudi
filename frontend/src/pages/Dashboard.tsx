@@ -19,23 +19,49 @@ export const Dashboard: React.FC = () => {
   const { t, language } = useAppContext();
   const isRtl = language === 'ar';
 
-const [stats, setStats] = useState({
-  total: 0,
-  pending: 0,
-  approved: 0,
-  rejected: 0,
-  needsCompletion: 0,
-  activeCompanies: 0
-});
-const [stageStats, setStageStats] = useState<any[]>([]);
+    const getNotificationTitle = (type: string) => {
+  switch (type) {
+    case "DOCUMENT":
+      return t("newDocumentUploaded");
 
-useEffect(() => {
+    case "NEW_COMPANY":
+      return t("newCompanyRegistered");
 
-  fetchStats();
-  fetchRequests();
-  fetchNotifications();
+    case "REQUEST_APPROVED":
+      return t("requestApproved");
 
-}, []);
+    case "REQUEST_REJECTED":
+      return t("requestRejected");
+
+    case "RESUBMISSION_REQUESTED":
+      return t("resubmissionRequested");
+
+    default:
+      return type;
+  }
+};
+
+const getNotificationDescription = (
+  type: string,
+  description: string
+) => {
+  const isArabic = language === "ar";
+
+  switch (type) {
+    case "DOCUMENT":
+      return isArabic
+        ? `قامت شركة ${description} برفع مستند جديد للمراجعة`
+        : `Company ${description} uploaded a new document for review`;
+
+    case "NEW_COMPANY":
+      return isArabic
+        ? `تم تسجيل شركة جديدة: ${description}`
+        : `New company registered: ${description}`;
+
+    default:
+      return description;
+  }
+};
 
 const fetchStats = async () => {
 
@@ -102,6 +128,16 @@ const fetchRequests = async () => {
 
 };
 
+const [stats, setStats] = useState({
+  total: 0,
+  pending: 0,
+  approved: 0,
+  rejected: 0,
+  needsCompletion: 0,
+  activeCompanies: 0
+});
+const [stageStats, setStageStats] = useState<any[]>([]);
+
 const fetchNotifications = async () => {
 
   try {
@@ -119,13 +155,11 @@ const fetchNotifications = async () => {
 
     const data = await response.json();
 
-if (data.success) {
-  console.log(data.notifications);
-
-  setNotifications(
-    data.notifications.slice(0, 3)
-  );
-}
+    if (data.success) {
+      setNotifications(
+        data.notifications.slice(0, 3)
+      );
+    }
 
   } catch (error) {
 
@@ -134,6 +168,15 @@ if (data.success) {
   }
 
 };
+
+useEffect(() => {
+
+  fetchStats();
+  fetchRequests();
+  fetchNotifications();
+
+}, []);
+
 
 const dashboardStats = [
   {
@@ -396,53 +439,53 @@ style={{
             </button>
           </div>
           <div className="p-2 flex-1 overflow-y-auto">
-           {notifications.map((notif) => {
+{notifications.map((notif) => {
   const Icon = Bell;
+
   return (
-                <div
-                  key={notif.id}
-                  className="flex gap-4 p-4 hover:bg-gray-50 dark:hover:bg-navy-light/20 rounded-xl transition-colors cursor-pointer group">
-                  
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getNotificationIconColor(notif.type)}`}>
-                    
-                    <Icon size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-<p className="text-sm font-semibold text-navy dark:text-cream-dark truncate">
-{notif.message === "A company has uploaded new documents for review."
-  ? t("documentUploadedDesc")
-  : notif.message.startsWith("A new company")
-  ? t("newCompanyRegisteredDesc")
-  : notif.message === "Request approved."
-  ? t("requestApprovedDesc")
-  : notif.message === "Request rejected."
-  ? t("requestRejectedDesc")
-  : notif.message.includes("Please re-upload")
-  ? t("resubmissionRequestedDesc")
-  : notif.message}
-</p>
+    <div
+      key={notif.id}
+      className="flex gap-4 p-4 hover:bg-gray-50 dark:hover:bg-navy-light/20 rounded-xl transition-colors cursor-pointer group"
+    >
+      <div
+        className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getNotificationIconColor(
+          notif.type
+        )}`}
+      >
+        <Icon size={18} />
+      </div>
 
-<p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-  {t(notif.type as any)}
-</p>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-navy dark:text-cream-dark truncate">
+          {getNotificationTitle(notif.type)}
+        </p>
 
-<p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-  {new Date(notif.created_at).toLocaleString(
-    language === "ar" ? "ar-SA" : "en-US"
-  )}
-</p>
-                  </div>
-                  <div className="flex items-center text-gray-300 dark:text-gray-600 group-hover:text-gold transition-colors">
-                    {isRtl ?
-                    <ChevronLeftIcon size={16} /> :
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+          {getNotificationDescription(
+            notif.type,
+            notif.message?.includes("|")
+              ? notif.message.split("|")[1]
+              : notif.message
+          )}
+        </p>
 
-                    <ChevronRightIcon size={16} />
-                    }
-                  </div>
-                </div>);
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+          {new Date(notif.created_at).toLocaleString(
+            language === "ar" ? "ar-SA" : "en-US"
+          )}
+        </p>
+      </div>
 
-            })}
+      <div className="flex items-center text-gray-300 dark:text-gray-600 group-hover:text-gold transition-colors">
+        {isRtl ? (
+          <ChevronLeftIcon size={16} />
+        ) : (
+          <ChevronRightIcon size={16} />
+        )}
+      </div>
+    </div>
+  );
+})}
           </div>
         </motion.div>
       </div>

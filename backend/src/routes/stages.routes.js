@@ -101,23 +101,52 @@ router.post('/', async (req, res) => {
     // fire-and-forget: create LOCKED company_stages rows for every existing company
     (async () => {
       try {
-        const companies = await prisma.companies.findMany({
-          select: { id: true }
-        });
+const companies = await prisma.companies.findMany({
+  select: {
+    id: true,
+    sector_id: true
+  }
+});
 
-        for (const company of companies) {
-          try {
-            await prisma.company_stages.create({
-              data: {
-                company_id: company.id,
-                stage_id: stageId,
-                status: "LOCKED"
-              }
-            });
-          } catch (err) {
-            console.log(err);
-          }
+for (const company of companies) {
+  try {
+
+    const companyStage =
+      await prisma.company_stages.create({
+        data: {
+          company_id: company.id,
+          stage_id: stageId,
+          status: "LOCKED"
         }
+      });
+
+    const tasks = await prisma.tasks.findMany({
+      where: {
+        stage_id: stageId,
+        is_active: 1,
+        OR: [
+          { sector_id: company.sector_id },
+          { sector_id: 5 }
+        ]
+      }
+    });
+
+    for (const task of tasks) {
+      await prisma.company_tasks.create({
+        data: {
+          company_id: company.id,
+          task_id: task.id,
+          company_stage_id: companyStage.id,
+          status: "PENDING"
+        }
+      });
+    }
+
+
+  } catch (err) {
+    console.log(err);
+  }
+}
       } catch (err) {
         console.log(err);
       }
@@ -139,6 +168,7 @@ router.post('/', async (req, res) => {
 
 });
 
+
 router.put('/reorder', async (req, res) => {
   const { stages } = req.body;
   console.log('REORDER:', stages);
@@ -152,10 +182,10 @@ router.put('/reorder', async (req, res) => {
   for (let index = 0; index < stages.length; index++) {
     const stage = stages[index];
     try {
-      await prisma.stages.update({
-        where: { id: stage.id },
-        data: { stage_order: index + 1 }
-      });
+     await prisma.stages.update({
+  where: { id: Number(stage.id) },
+  data: { stage_order: index + 1 }
+});
     } catch (err) {
       console.log(err);
     }
@@ -276,15 +306,89 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    try {
-      await prisma.stages.delete({
-        where: { id: Number(id) }
-      });
-    } catch (err) {
-      return res.status(500).json({
-        success: false
-      });
+try {
+await prisma.company_tasks.deleteMany({
+  where: {
+    company_stages: {
+      stage_id: Number(id)
     }
+  }
+});
+
+await prisma.company_stages.deleteMany({
+  where: {
+    stage_id: Number(id)
+  }
+});
+
+  await prisma.company_stages.deleteMany({
+    where: { stage_id: Number(id) }
+  });
+
+  await prisma.stages.delete({
+    where: { id: Number(id) }
+  });
+
+  const companies = await prisma.companies.findMany({
+  select: { id: true }
+});
+
+for (const company of companies) {
+
+  const companyStages =
+    await prisma.company_stages.findMany({
+      where: {
+        company_id: company.id
+      },
+      include: {
+        stages: true
+      },
+      orderBy: {
+        stages: {
+          stage_order: "asc"
+        }
+      }
+    });
+
+  let foundCurrent = false;
+
+  for (const cs of companyStages) {
+
+    if (cs.status === "COMPLETED") {
+      continue;
+    }
+
+    if (!foundCurrent) {
+
+      await prisma.company_stages.update({
+        where: { id: cs.id },
+        data: { status: "IN_PROGRESS" }
+      });
+
+      foundCurrent = true;
+
+    } else {
+
+      await prisma.company_stages.update({
+        where: { id: cs.id },
+        data: { status: "LOCKED" }
+      });
+
+    }
+
+  }
+}
+
+} catch (err) {
+
+  console.log("DELETE STAGE ERROR");
+  console.log(err);
+
+  return res.status(500).json({
+    success: false,
+    message: err.message
+  });
+}
 
     try {
       const stages = await prisma.stages.findMany({
@@ -296,9 +400,9 @@ router.delete('/:id', async (req, res) => {
         const stage = stages[index];
         try {
           await prisma.stages.update({
-            where: { id: stage.id },
-            data: { stage_order: index + 1 }
-          });
+  where: { id: Number(stage.id) },
+  data: { stage_order: index + 1 }
+});
         } catch (err) {
           console.log(err);
         }

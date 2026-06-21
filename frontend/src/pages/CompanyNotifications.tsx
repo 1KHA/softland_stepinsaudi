@@ -141,11 +141,23 @@ className={`w-14 h-14 rounded-full flex items-center justify-center ${
             </h3>
 
 <p className="text-gray-600 mt-2">
-  {i18n.language.startsWith("ar")
+  {item.type === "RESUBMISSION_REQUESTED"
+? t("notificationsPage.resubmissionRequestedDesc")
+    : item.type === "DOCUMENT_APPROVED"
+? t("notificationsPage.documentApprovedDesc")
+    : item.type === "LICENSE_ISSUED"
+? t("notificationsPage.licenseIssuedDesc", {
+
+license:
+  i18n.language.startsWith("ar")
+    ? item.message_ar?.split("|")[1] || ""
+    : item.message?.split("|")[1] || ""
+  })
+  
+    : i18n.language.startsWith("ar")
     ? (item.message_ar || item.message)
     : item.message}
 </p>
-
 <p className="text-xs text-gray-400 mt-3">
   {new Date(item.created_at).toLocaleDateString(
     i18n.language.startsWith("ar") ? "ar-SA" : "en-GB"

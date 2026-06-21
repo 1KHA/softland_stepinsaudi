@@ -22,7 +22,7 @@ export default function CompanyLicenses() {
             },
           }
         );
-
+console.log(res.data.licenses);
         setLicenses(res.data.licenses || []);
       } catch (error) {
         console.log(error);
@@ -88,21 +88,22 @@ export default function CompanyLicenses() {
                     </p>
 
                     <p className="text-sm text-gray-400 mt-4">
-                      {new Date(
-                        license.uploaded_at
-                      ).toLocaleDateString("en-GB")}
+                      {new Date(license.uploaded_at).toLocaleDateString(
+  i18n.language.startsWith("ar")
+    ? "ar-SA"
+    : "en-GB"
+)}
                     </p>
 
                     <div className="flex gap-3 mt-6">
-                      <a
-                        href={license.file_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 text-center bg-[#1E3A5F] text-white py-3 rounded-xl hover:opacity-90"
-                      >
-                        {t("licensesPage.finalLicenseIssued")}
-                      </a>
-
+<a
+  href={license.file_url}
+  target="_blank"
+  rel="noreferrer"
+  className="flex-1 text-center bg-[#1E3A5F] text-white py-3 rounded-xl hover:opacity-90"
+>
+  {t("view")}
+</a>
                       <a
                         href={license.file_url}
                         download

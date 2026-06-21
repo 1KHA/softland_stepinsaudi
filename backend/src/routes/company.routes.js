@@ -164,10 +164,12 @@ router.get(
       const rows = await prisma.company_tasks.findMany({
         where: { company_id: Number(companyId) },
         include: {
-          tasks: {
-            select: { title: true, title_ar: true }
-          }
-        }
+tasks: {
+  select: {
+    title: true,
+    title_ar: true
+  }
+}}
       });
 
       // flatten to match original: ct.*, title, title_ar
@@ -246,6 +248,7 @@ router.post(
   upload.array("files"),
   async (req, res) => {
 
+    console.log("🚨🚨🚨 ROUTE VERSION 999 🚨🚨🚨");
     console.log("UPLOAD ROUTE HIT");
     console.log("TASK ID =", req.params.taskId);
 
@@ -258,6 +261,10 @@ router.post(
       const documentNames = Array.isArray(requiredDocumentNames)
         ? requiredDocumentNames
         : [requiredDocumentNames];
+
+        console.log("FILES COUNT =", req.files.length);
+console.log("DOCUMENT NAMES =", documentNames);
+console.log("BODY =", req.body);
 
       console.log("TASK ID =", taskId);
       console.log("USER =", req.user);
@@ -278,6 +285,10 @@ router.post(
           documentNames[index] || null;
 
         try {
+console.log("CREATING DOCUMENT");
+console.log("TASK =", taskId);
+console.log("DOC NAME =", documentName);
+console.log("FILE =", file.originalname);
 
           const existing = await prisma.task_documents.findFirst({
             where: {
@@ -305,21 +316,30 @@ router.post(
 
           } else {
 
-            await prisma.task_documents.create({
-              data: {
-                company_task_id: Number(taskId),
-                file_name: file.originalname,
-                file_url: fileUrl,
-                uploaded_by: req.user.id,
-                required_document_name: documentName
-              }
-            });
+const created = await prisma.task_documents.create({
+  data: {
+    company_task_id: Number(taskId),
+
+    file_name: Buffer.from(
+      file.originalname,
+      "latin1"
+    ).toString("utf8"),
+
+    file_url: fileUrl,
+
+    uploaded_by: req.user.id,
+    required_document_name: documentName
+  }
+});
+
+console.log("CREATED DOCUMENT ID =", created.id);
 
           }
 
-        } catch (err) {
-          // matches original per-file silent failure behavior
-        }
+} catch (err) {
+  console.log("DOCUMENT CREATE ERROR");
+  console.log(err);
+}
       }
 
       try {
@@ -330,28 +350,51 @@ router.post(
       } catch (err) {
         // matches original fire-and-forget behavior
       }
-
+console.log("BEFORE NOTIFICATION BLOCK");
       (async () => {
+        console.log("INSIDE NOTIFICATION BLOCK");
         try {
-          const admins = await prisma.users.findMany({
-            where: { role: 'ADMIN' },
-            select: { id: true }
-          });
+          const company = await prisma.companies.findUnique({
+  where: { id: req.user.company_id },
+  select: { name: true }
+});
 
-          for (const admin of admins) {
-            try {
-              await prisma.notifications.create({
-                data: {
-                  user_id: admin.id,
-                  message: `documentUploadedDesc|${req.user.company_name}`,
-                  type: "DOCUMENT",
-                  is_read: 0
-                }
-              });
-            } catch (err) {
-              // matches original per-notification silent failure behavior
-            }
-          }
+const companyName = company?.name || "Unknown Company";
+
+
+console.log("CREATING ADMIN NOTIFICATION");
+console.log("COMPANY ID =", req.user.company_id);
+console.log("USER =", req.user);
+
+const admins = await prisma.users.findMany({
+  where: { role: 'ADMIN' },
+  select: { id: true }
+});
+
+for (const admin of admins) {
+
+  console.log("ADMIN =", admin.id);
+
+  try {
+
+    await prisma.notifications.create({
+      data: {
+        user_id: admin.id,
+        message: `documentUploadedDesc|${companyName}`,
+        type: "DOCUMENT",
+        is_read: 0
+      }
+    });
+
+    console.log("NOTIFICATION CREATED");
+
+  } catch (err) {
+
+    console.log("NOTIFICATION ERROR", err);
+
+  }
+
+}
         } catch (err) {
           console.error("Failed to fetch admins:", err);
         }
@@ -488,6 +531,9 @@ router.post(
   upload.array("files"),
   async (req, res) => {
 
+    console.log("FILES:", req.files?.length);
+console.log("BODY:", req.body);
+
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         message: "No file uploaded",
@@ -500,15 +546,22 @@ router.post(
     for (let index = 0; index < req.files.length; index++) {
       const file = req.files[index];
 
-      try {
-        await prisma.task_documents.create({
-          data: {
-            company_task_id: Number(companyTaskId),
-            file_name: file.originalname,
-            file_url: `/uploads/${file.filename}`,
-            required_document_name: req.body.required_document_name[index]
-          }
-        });
+try {
+  await prisma.task_documents.create({
+    data: {
+      company_task_id: Number(companyTaskId),
+
+      file_name: Buffer.from(
+        file.originalname,
+        "latin1"
+      ).toString("utf8"),
+
+      file_url: `/uploads/${file.filename}`,
+
+      required_document_name:
+        req.body.required_document_name[index]
+    }
+  });
       } catch (err) {
         // matches original fire-and-forget behavior
       }
@@ -705,27 +758,34 @@ router.get(
             company_id: req.user.company_id
           }
         },
-        include: {
-          company_tasks: {
-            include: {
-              tasks: { select: { title: true } }
-            }
-          }
-        },
+include: {
+  company_tasks: {
+    include: {
+      tasks: {
+        select: {
+          title: true,
+          title_ar: true
+        }
+      }
+    }
+  }
+},
         orderBy: { uploaded_at: 'desc' }
       });
 
       // flatten to match original: td.id, td.file_name, td.file_url, td.uploaded_at, license_name
-      const flattened = rows.map((td) => ({
-        id: td.id,
-        file_name: td.file_name,
-        file_url: td.file_url,
-        uploaded_at: td.uploaded_at,
-        license_name:
-          td.company_tasks && td.company_tasks.tasks
-            ? td.company_tasks.tasks.title
-            : null
-      }));
+const flattened = rows.map((td) => ({
+  id: td.id,
+  file_name: td.file_name,
+  file_url: td.file_url,
+  uploaded_at: td.uploaded_at,
+
+  license_name:
+    td.company_tasks?.tasks?.title || null,
+
+  license_name_ar:
+    td.company_tasks?.tasks?.title_ar || null
+}));
 
       res.json({
         success: true,

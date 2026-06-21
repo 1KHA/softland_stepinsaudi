@@ -38,6 +38,7 @@ const [errors, setErrors] = useState<{
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [stages, setStages] = useState<Stage[]>([]);
+  const [deleteStage, setDeleteStage] = useState<Stage | null>(null);
 
 useEffect(() => {
   fetch('http://localhost:3000/stages')
@@ -231,10 +232,6 @@ const mappedStages = data.stages.map((stage: any) => ({
 
 const handleDelete = (id: string) => {
 
-  if (!confirm(t('deleteConfirmation'))) {
-    return;
-  }
-
   fetch(`http://localhost:3000/stages/${id}`, {
     method: 'DELETE'
   })
@@ -392,8 +389,7 @@ setSuccessMessage(t('stageOrderSavedSuccess'));
                 <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDelete(stage.id);
-                }}
+setDeleteStage(stage);                }}
                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
                 
                   <Trash2Icon size={18} />
@@ -544,6 +540,40 @@ placeholder={t("stageArabicDescriptionPlaceholder" as any)}
             </motion.div>
           </div>
         }
+        {deleteStage && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+
+<h3 className="text-lg font-bold mb-3">
+  {t("deleteConfirmationTitle" as any)}
+</h3>
+
+<p className="text-gray-600 mb-6">
+  {t("deleteConfirmationMessage" as any)}
+</p>
+<div className="flex justify-end gap-3">
+
+  <button
+    onClick={() => setDeleteStage(null)}
+    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+  >
+    {t("cancel")}
+  </button>
+
+  <button
+    onClick={() => {
+      handleDelete(deleteStage.id);
+      setDeleteStage(null);
+    }}
+    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+  >
+    {t("delete")}
+  </button>
+
+</div>
+    </div>
+  </div>
+)}
       </AnimatePresence>
     </div>);
 

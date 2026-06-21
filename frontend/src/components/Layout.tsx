@@ -94,8 +94,8 @@ export const Layout: React.FC = () => {
   />
 
 <span className="text-xl font-bold tracking-wide text-white">
-    StepIn
-  </span>
+STEPIN 
+ </span>
 
 </div>
 

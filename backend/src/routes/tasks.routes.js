@@ -246,6 +246,7 @@ router.put('/:id', async (req, res) => {
     console.log('TASK UPDATED', id, stage_id, sector_id);
 
     try {
+      
       await prisma.company_tasks.deleteMany({
         where: { task_id: Number(id) }
       });
@@ -317,38 +318,56 @@ router.delete('/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
+
+    const companyTasks =
+      await prisma.company_tasks.findMany({
+        where: {
+          task_id: Number(id)
+        },
+        select: {
+          id: true
+        }
+      });
+
+    await prisma.task_documents.deleteMany({
+      where: {
+        company_task_id: {
+          in: companyTasks.map(t => t.id)
+        }
+      }
+    });
+
     await prisma.company_tasks.deleteMany({
-      where: { task_id: Number(id) }
+      where: {
+        task_id: Number(id)
+      }
     });
-  } catch (err) {
-    console.log(err);
-  }
 
-  try {
     await prisma.task_required_documents.deleteMany({
-      where: { task_id: Number(id) }
+      where: {
+        task_id: Number(id)
+      }
     });
-  } catch (err) {
-    console.log(err);
-  }
-
-  try {
 
     await prisma.tasks.delete({
-      where: { id: Number(id) }
+      where: {
+        id: Number(id)
+      }
     });
 
-    res.json({
+    return res.json({
       success: true
     });
 
   } catch (err) {
+
     console.log(err);
 
     return res.status(500).json({
       success: false,
-      message: 'Error deleting task'
+      message: err.message
     });
+
   }
 
 });

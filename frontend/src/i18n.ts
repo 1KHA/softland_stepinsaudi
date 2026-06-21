@@ -62,49 +62,52 @@ const resources = {
           three: 'A modern workflow built around documents, tasks, and progress tracking'
         }
       },
-      howItWorks: {
-        badge: 'How it works',
-        title: 'A clear 5-step workflow from signup to approvals.',
-        description: 'Designed as an easy-to-follow path so teams always know what comes next.',
-        steps: {
-          one: {
-            title: 'Create Account',
-            description: 'Start with a secure account to access your workspace and onboarding flow.'
-          },
-          two: {
-            title: 'Enter Company Data',
-            description: 'Provide the key business information needed to initiate your setup process.'
-          },
-          three: {
-            title: 'Define Requirements',
-            description: 'Specify the services, approvals, and operational needs relevant to your company.'
-          },
-          four: {
-            title: 'Upload Documents & Execute Tasks',
-            description: 'Submit required files, complete guided tasks, and keep all work organized in one place.'
-          },
-          five: {
-            title: 'Track Progress & Get Approvals',
-            description: 'Monitor progress, follow status updates, and move through approvals with visibility.'
-          }
-        }
-      },
+howItWorks: {
+  badge: 'How it works',
+  title: 'A clear 5-step workflow from signup to approvals.',
+  description: 'Designed as an easy-to-follow path so teams always know what comes next.',
+  steps: {
+    one: {
+      title: 'Create Account',
+      description: 'Start with a secure account to access your workspace and onboarding flow.'
+    },
+    two: {
+      title: 'Enter Company Data',
+      description: 'Provide the key business information needed to initiate your setup process.'
+    },
+    three: {
+      title: 'Define Requirements',
+      description: 'Specify the services, approvals, and operational needs relevant to your company.'
+    },
+    four: {
+      title: 'Upload Documents & Execute Tasks',
+      description: 'Submit required files, complete guided tasks, and keep all work organized in one place.'
+    },
+    five: {
+      title: 'Track Progress & Get Approvals',
+      description: 'Monitor progress, follow status updates, and move through approvals with visibility.'
+    }
+  }
+},
       cta: {
         title: 'Ready to move your expansion plan forward?',
         description: 'Get a cleaner, faster path to company setup, execution, and approvals in Saudi Arabia.',
         action: 'Get started today'
       },
       footer: {
-        description: 'Your trusted platform for setting up and managing business operations in Saudi Arabia with confidence.',
+  description: 'Your trusted platform for setting up and managing business operations in Saudi Arabia with confidence.',
+  location: 'Riyadh, Saudi Arabia',
         quickLinks: 'Quick links',
         home: 'Home',
         about: 'About',
         howItWorks: 'How it works',
         services: 'Services',
+        
         serviceLinks: {
           companyFormation: 'Company formation',
           licenses: 'Licenses & permits',
-          support: 'Ongoing support'
+          support: 'Ongoing support',
+          
         },
         contact: 'Contact us',
         address: 'Riyadh, Saudi Arabia',
@@ -194,6 +197,9 @@ download: "Download",
 companyHeader: {
   subtitle: "Your First Steps Toward Sustainable Success"
 },
+landing: {
+  slogan: "Your First Steps Toward Sustainable Success"
+},
 
 "status": {
   "PENDING": "Pending",
@@ -203,6 +209,11 @@ companyHeader: {
   "APPROVED": "Approved",
   "REJECTED": "Rejected"
 },
+
+  "error": "Error",
+  "deleteConfirmationTitle": "Delete Confirmation",
+  "deleteConfirmationMessage": "Are you sure you want to delete this stage?",
+
 "task": {
     currentStatus: "Current Status",
   requiredDocuments: "Required Documents",
@@ -210,9 +221,13 @@ companyHeader: {
     "whatYouNeedToDo": "What You Need To Do",
     "submitTask": "Submit Task",
       "uploadDocuments": "upload Documents ",
+      "uploadAllRequiredFiles": "Please upload all required files before submitting",
       "documentsSubmitted": "Documents submitted successfully",
-"documentsUnderReview": "Your documents are currently under review"
+"documentsUnderReview": "Your documents are currently under review",
+    "selectFiles": "Please select a file before submitting"
 },
+
+
  notifications: "Notifications", 
 "back":"back",
 "view": "View", 
@@ -251,14 +266,27 @@ dashboard: {
       },
 
 
-"notificationsPage": {
-  "subtitle": "Stay updated with the latest changes to your documents and applications.",
-  "noNotifications": "No notifications yet",
-  "noNotificationsDescription": "You'll receive notifications here whenever there are updates to your applications or documents.",
-  "documentNeedsReupload": "Document requires re-upload",
-  "documentApproved": "Document approved",
-  "licenseIssued": "License issued",
-  "systemNotification": "System notification"
+notificationsPage: {
+  subtitle: "Stay updated with the latest changes to your documents and applications.",
+  noNotifications: "No notifications yet",
+  noNotificationsDescription:
+    "You'll receive notifications here whenever there are updates to your applications or documents.",
+
+  documentNeedsReupload: "Document requires re-upload",
+
+  documentApproved: "Document approved",
+  documentApprovedDesc:
+    "Your document has been reviewed and approved.",
+
+  resubmissionRequested: "Document requires re-upload",
+  resubmissionRequestedDesc:
+    "Your document was reviewed and needs to be uploaded again.",
+
+  licenseIssued: "License issued",
+  licenseIssuedDesc:
+    "License issued: {{license}}",
+
+  systemNotification: "System notification"
 },
 
 
@@ -444,6 +472,14 @@ status: {
   noNotifications: "No notifications yet",
   noNotificationsDescription: "We'll notify you whenever there is an update on your requests or documents.",
   documentNeedsReupload: "Document Needs Re-upload",
+  resubmissionRequestedDesc:
+  "Your document was reviewed and needs to be uploaded again.",
+
+documentApprovedDesc:
+  "Your document has been reviewed and approved.",
+
+licenseIssuedDesc:
+  "License issued: {{license}}",
   documentApproved: "Document Approved",
   licenseIssued: "License Issued",
   systemNotification: "System Notification"
@@ -537,33 +573,33 @@ documentUpdateFailed: "Failed to update document",
           three: 'منهجية حديثة تتمحور حول المستندات والمهام وتتبع التقدم'
         }
       },
-      howItWorks: {
-        badge: 'كيف تعمل المنصة؟',
-        title: 'مسار واضح من 5 خطوات من التسجيل حتى الاعتمادات.',
-        description: 'مصمم ليكون سهل الفهم والمتابعة بحيث يعرف فريقك دائماً الخطوة التالية.',
-        steps: {
-          one: {
-            title: 'Create Account',
-            description: 'ابدأ بإنشاء حساب آمن للوصول إلى مساحة العمل ومسار onboarding الخاص بك.'
-          },
-          two: {
-            title: 'Enter Company Data',
-            description: 'أدخل بيانات الشركة الأساسية اللازمة لبدء رحلة التأسيس بشكل صحيح.'
-          },
-          three: {
-            title: 'Define Requirements',
-            description: 'حدد الخدمات والموافقات والاحتياجات التشغيلية المرتبطة بطبيعة شركتك.'
-          },
-          four: {
-            title: 'Upload Documents & Execute Tasks',
-            description: 'ارفع الملفات المطلوبة ونفذ المهام الموجهة مع تنظيم كامل في مكان واحد.'
-          },
-          five: {
-            title: 'Track Progress & Get Approvals',
-            description: 'تابع التقدم، واطلع على تحديثات الحالة، وتحرك خلال الاعتمادات بوضوح كامل.'
-          }
-        }
-      },
+howItWorks: {
+  badge: 'كيف تعمل المنصة؟',
+  title: 'مسار واضح من 5 خطوات من التسجيل حتى الاعتمادات.',
+  description: 'مصمم ليكون سهل الفهم والمتابعة بحيث يعرف فريقك دائماً الخطوة التالية.',
+  steps: {
+    one: {
+      title: 'إنشاء الحساب',
+      description: 'ابدأ بإنشاء حساب آمن للوصول إلى مساحة العمل ومسار العمل الخاص بشركتك.'
+    },
+    two: {
+      title: 'إدخال بيانات الشركة',
+      description: 'أدخل بيانات الشركة الأساسية اللازمة لبدء رحلة التأسيس بشكل صحيح.'
+    },
+    three: {
+      title: 'تحديد المتطلبات',
+      description: 'حدد الخدمات والموافقات والاحتياجات التشغيلية المرتبطة بطبيعة شركتك.'
+    },
+    four: {
+      title: 'رفع المستندات وتنفيذ المهام',
+      description: 'ارفع الملفات المطلوبة ونفذ المهام الموجهة مع تنظيم كامل في مكان واحد.'
+    },
+    five: {
+      title: 'متابعة التقدم والحصول على الاعتمادات',
+      description: 'تابع التقدم واطلع على تحديثات الحالة وتحرك خلال الاعتمادات بوضوح كامل.'
+    }
+  }
+},
       cta: {
         title: 'جاهز لتحريك خطة التوسع الخاصة بك؟',
         description: 'ابدأ بمسار أوضح وأسرع لتأسيس الشركة، وتنفيذ المهام، والحصول على الاعتمادات داخل المملكة.',
@@ -685,21 +721,43 @@ notificationsPage: {
   noNotifications: "لا توجد إشعارات حتى الآن",
   noNotificationsDescription: "سنقوم بإشعارك عند وجود أي تحديث على طلباتك أو مستنداتك.",
   documentNeedsReupload: "المستند يحتاج إلى إعادة رفع",
+
+
+documentApprovedDesc:
+  "تمت مراجعة المستند واعتماده بنجاح",
+
+licenseIssuedDesc:
+  "تم إصدار الترخيص: {{license}}",
   documentApproved: "تمت الموافقة على المستند",
+  resubmissionRequested: "المستند يحتاج إلى إعادة رفع",
+resubmissionRequestedDesc:
+  "تمت مراجعة المستند ويجب إعادة رفعه مرة أخرى.",
   licenseIssued: "تم إصدار الترخيص",
   systemNotification: "إشعار من النظام"
 },
 
+
 companyHeader: {
   subtitle: "خطواتك الأولى نحو نجاحٍ مستدام"
 },
+
+landing: {
+  slogan: "خطواتك الأولى نحو نجاحٍ مستدام"
+},
+
+  "error": "خطأ",
+  "deleteConfirmationTitle": "تأكيد الحذف",
+  "deleteConfirmationMessage": "هل أنت متأكد من حذف المرحلة؟",
+
 "task": {
     currentStatus: "الحالة الحالية",
   requiredDocuments: "المستندات المطلوبة",
   "reviewAndUpload": "راجع تفاصيل المهمة وارفع المستندات المطلوبة",
+      "selectFiles": "الرجاء اختيار ملف قبل الإرسال",
     "whatYouNeedToDo": "ما الذي يجب عليك القيام به",
     "submitTask": "إرسال المهمة",
       "uploadDocuments": "رفع المستندات",
+      "uploadAllRequiredFiles": "يرجى رفع جميع الملفات المطلوبة قبل الإرسال",
       "documentsSubmitted": "تم إرسال المستندات بنجاح",
 "documentsUnderReview": "المستندات قيد المراجعة حالياً"
 },

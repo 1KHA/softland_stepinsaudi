@@ -58,12 +58,16 @@ newCompanyRegistered: "New Company Registered",
 documentUploadedDesc: "A new document has been uploaded for review.",
 requestApprovedDesc: "The request has been approved.",
 requestRejectedDesc: "The request has been rejected.",
-resubmissionRequestedDesc: "A resubmission has been requested.",
 newCompanyRegisteredDesc: "A new company has been registered.",
 notificationsDescription: "Stay up to date with all system notifications and updates.",
 noNotifications: "No Notifications",
 noNotificationsDescription: "There are no notifications to display at the moment.",
-licenseIssuedDesc: "A new license has been issued successfully.",
+licenseIssued: "License issued",
+documentApproved: "Document approved",
+
+licenseIssuedDesc: "Your license has been issued successfully.",
+documentApprovedDesc: "Your document has been reviewed and approved successfully.",
+resubmissionRequestedDesc: "Your document was reviewed and needs to be uploaded again.",
 
 // Tasks & Licenses
 addTask: 'Add Task',
@@ -157,6 +161,9 @@ Industrial: "Industrial",
 Commercial: "Commercial",
 "Real Estate": "Real Estate",
 
+
+  "deleteConfirmationTitle": "Delete Confirmation",
+  "deleteConfirmationMessage": "Are you sure you want to delete this stage?",
     // Requests Page
     assignedTo: 'Assigned To',
     date: 'Date',
@@ -191,7 +198,6 @@ processing: "Processing...",
 selectFileFirst: "Please select a file first",
 finalLicenseUploaded: "Final license uploaded successfully",
 uploadFailed: "Upload failed",
-documentApproved: "Document approved successfully",
 documentApproveFailed: "Failed to approve document",
 documentNeedsResubmission: "Document marked for resubmission",
 documentUpdateFailed: "Failed to update document",
@@ -221,7 +227,6 @@ stageDescriptionPlaceholder: 'Brief description of the stage...',
 stageNameArabic: "Stage Name (Arabic)",
 stageArabicPlaceholder: "Example: Registration",
 stageArabicDescriptionPlaceholder: "Example: Initial company registration",
-
 
     // Settings Page
     profileSettings: 'Profile Settings',
@@ -292,7 +297,8 @@ logout: "Sign out",
     filter: 'Filter',
     apply: 'Apply',
     reset: 'Reset',
-    dateRange: 'Date Range'
+    dateRange: 'Date Range',
+
     
   },
   ar: {
@@ -454,6 +460,9 @@ Industrial: "صناعي",
 Commercial: "تجاري",
 "Real Estate": "عقاري",
 
+  "deleteConfirmationTitle": "تأكيد الحذف",
+  "deleteConfirmationMessage": "هل أنت متأكد من حذف المرحلة؟",
+  
     // Requests Page
     assignedTo: 'معين إلى',
     date: 'التاريخ',

@@ -29,9 +29,9 @@ export function Navbar() {
             </a>
             <div className="hidden md:block">
             <h3 className="text-[#1E3A5F] font-bold text-lg">
-              StepIn
+              STEPIN
             </h3>       
-       <p className="text-xs text-slate-500">Saudi market entry, simplified</p>
+       <p className="text-xs text-slate-500">{t("landing.slogan")}</p>
             </div>
           </div>
 

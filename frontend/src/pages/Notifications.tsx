@@ -46,20 +46,25 @@ const getNotificationTitle = (type: string) => {
   }
 };
 
-const getNotificationDescription = (type: string) => {
+const getNotificationDescription = (
+  type: string,
+  description: string
+) => {
+  const isArabic = language === "ar";
+
   switch (type) {
     case "DOCUMENT":
-      return t("documentUploadedDesc");
-    case "REQUEST_APPROVED":
-      return t("requestApprovedDesc");
-    case "REQUEST_REJECTED":
-      return t("requestRejectedDesc");
-    case "RESUBMISSION_REQUESTED":
-      return t("resubmissionRequestedDesc");
+      return isArabic
+        ? `قامت شركة ${description} برفع مستند جديد للمراجعة`
+        : `Company ${description} uploaded a new document for review`;
+
     case "NEW_COMPANY":
-      return t("newCompanyRegisteredDesc");
+      return isArabic
+        ? `تم تسجيل شركة جديدة: ${description}`
+        : `New company registered: ${description}`;
+
     default:
-      return "";
+      return description;
   }
 };
 
@@ -86,7 +91,9 @@ const fetchNotifications = async () => {
 
         type: item.type,
 
-        description: item.message, // 🔥 خليها كذا من الباك
+        description: item.message?.includes("|")
+  ? item.message.split("|")[1]
+  : item.message, // 🔥 خليها كذا من الباك
 
         timestamp: item.created_at,
 
@@ -285,11 +292,13 @@ const fetchNotifications = async () => {
   )}
 </span>
                     </div>
-                    <p
-                  className={`text-sm ${!notification.read ? 'text-gray-600 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
-                  
-                      {getNotificationDescription(notification.type)}
-                    </p>
+<p
+  className={`text-sm ${!notification.read ? 'text-gray-600 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
+  {getNotificationDescription(
+    notification.type,
+    notification.description
+  )}
+</p>
                   </div>
                 </motion.div>
             ) :

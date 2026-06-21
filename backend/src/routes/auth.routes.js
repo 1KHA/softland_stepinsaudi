@@ -1564,6 +1564,53 @@ try {
   });
 
   companyId = newCompany.id;
+  // Notify admins about new company registration
+try {
+
+  const admins = await prisma.users.findMany({
+    where: { role: "ADMIN" },
+    select: { id: true }
+  });
+
+  for (const admin of admins) {
+
+    await prisma.notifications.create({
+      data: {
+        user_id: admin.id,
+        message: `newCompanyRegistered|${data.company_name}`,
+        type: "NEW_COMPANY",
+        is_read: 0
+      }
+    });
+
+  }
+
+} catch (err) {
+
+  console.log("New company notification error:", err);
+
+}
+  // Save founders
+if (data.founders && Array.isArray(data.founders)) {
+
+  for (const founder of data.founders) {
+
+    try {
+
+      await prisma.founders.create({
+        data: {
+          company_id: companyId,
+          full_name: founder
+        }
+      });
+
+    } catch (err) {
+      console.log("Founder insert error:", err);
+    }
+
+  }
+
+}
 
 } catch (companyErr) {
 
