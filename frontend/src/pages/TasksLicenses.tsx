@@ -85,9 +85,9 @@ const [newDocument, setNewDocument] =
 
       const [tasksRes, stagesRes, sectorsRes] =
         await Promise.all([
-          fetch('http://localhost:3000/tasks'),
-          fetch('http://localhost:3000/stages'),
-          fetch('http://localhost:3000/sectors')
+          fetch('https://soft-landing-platform.onrender.com/tasks'),
+          fetch('https://soft-landing-platform.onrender.com/stages'),
+          fetch('https://soft-landing-platform.onrender.com/sectors')
         ]);
 
       const tasksData = await tasksRes.json();
@@ -119,7 +119,7 @@ const [newDocument, setNewDocument] =
     try {
 
       await fetch(
-        `http://localhost:3000/tasks/${id}`,
+        `https://soft-landing-platform.onrender.com/tasks/${id}`,
         {
           method: 'DELETE'
         }
@@ -215,7 +215,7 @@ const payload = {
     if (editingTask) {
 
       await fetch(
-        `http://localhost:3000/tasks/${editingTask.id}`,
+        `https://soft-landing-platform.onrender.com/tasks/${editingTask.id}`,
         {
           method: 'PUT',
           headers: {
@@ -232,7 +232,7 @@ setTimeout(() => {
     } else {
 
       await fetch(
-        'http://localhost:3000/tasks',
+        'https://soft-landing-platform.onrender.com/tasks',
         {
           method: 'POST',
           headers: {

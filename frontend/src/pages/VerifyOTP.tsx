@@ -97,7 +97,7 @@ const endpoint =
 isReset
 ?
 
-"http://localhost:3000/auth/reset-password"
+"https://soft-landing-platform.onrender.com/auth/reset-password"
 
 :
 
@@ -105,11 +105,11 @@ isLogin
 
 ?
 
-"http://localhost:3000/auth/verify-login-otp"
+"https://soft-landing-platform.onrender.com/auth/verify-login-otp"
 
 :
 
-"http://localhost:3000/auth/verify-register-otp";
+"https://soft-landing-platform.onrender.com/auth/verify-register-otp";
 const res =
 await fetch(
 endpoint,
@@ -300,7 +300,7 @@ isReset
 
 ?
 
-"http://localhost:3000/auth/forgot-password"
+"https://soft-landing-platform.onrender.com/auth/forgot-password"
 
 :
 
@@ -308,11 +308,11 @@ isLogin
 
 ?
 
-"http://localhost:3000/auth/login"
+"https://soft-landing-platform.onrender.com/auth/login"
 
 :
 
-"http://localhost:3000/auth/register-with-company";
+"https://soft-landing-platform.onrender.com/auth/register-with-company";
 const body =
 
 isReset

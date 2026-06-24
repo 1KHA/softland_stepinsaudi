@@ -8,7 +8,7 @@ import {
   ChevronLeft, ChevronRight, X, ClipboardList
 } from 'lucide-react';
 
-const API = 'http://localhost:3000';
+const API = 'https://soft-landing-platform.onrender.com';
 const ITEMS_PER_PAGE = 10;
 
 export default function EmployeeRequests() {

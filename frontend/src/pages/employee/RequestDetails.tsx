@@ -9,7 +9,7 @@ import {
   Clock, User, MessageSquare, History, X
 } from 'lucide-react';
 
-const API = 'http://localhost:3000';
+const API = 'https://soft-landing-platform.onrender.com';
 
 type ActionType =
   | "approve"

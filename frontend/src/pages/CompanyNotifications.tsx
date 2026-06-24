@@ -18,7 +18,7 @@ useEffect(() => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:3000/companies/notifications",
+        "https://soft-landing-platform.onrender.com/companies/notifications",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -28,7 +28,7 @@ useEffect(() => {
 
       setNotifications(res.data.notifications || []);
       await axios.put(
-  "http://localhost:3000/companies/notifications/read",
+  "https://soft-landing-platform.onrender.com/companies/notifications/read",
   {},
   {
     headers: {

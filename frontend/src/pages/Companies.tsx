@@ -98,7 +98,7 @@ export const Companies: React.FC = () => {
 console.log('TOKEN =', token);
 
       const response = await fetch(
-        'http://localhost:3000/auth/companies',
+        'https://soft-landing-platform.onrender.com/auth/companies',
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -378,7 +378,7 @@ const handleFormChange = (
 const token = localStorage.getItem('token');
 console.log("TOKEN =", token);
 const response = await fetch(
-  `http://localhost:3000/companies/${editCompany.id}`,
+  `https://soft-landing-platform.onrender.com/companies/${editCompany.id}`,
   {
     method: 'PUT',
     headers: {

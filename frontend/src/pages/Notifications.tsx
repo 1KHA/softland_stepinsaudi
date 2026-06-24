@@ -73,7 +73,7 @@ const fetchNotifications = async () => {
     const token = localStorage.getItem("token");
 
     const response = await fetch(
-      "http://localhost:3000/companies/notifications",
+      "https://soft-landing-platform.onrender.com/companies/notifications",
       {
         headers: {
           Authorization: `Bearer ${token}`

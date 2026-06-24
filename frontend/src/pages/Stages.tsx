@@ -41,7 +41,7 @@ const [errors, setErrors] = useState<{
   const [deleteStage, setDeleteStage] = useState<Stage | null>(null);
 
 useEffect(() => {
-  fetch('http://localhost:3000/stages')
+  fetch('https://soft-landing-platform.onrender.com/stages')
     .then((res) => res.json())
     .then((data) => {
 
@@ -123,7 +123,7 @@ if (!formData.description_ar.trim()) {
 
 if (selectedStage) {
 
-  fetch(`http://localhost:3000/stages/${selectedStage.id}`, {
+  fetch(`https://soft-landing-platform.onrender.com/stages/${selectedStage.id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
@@ -152,7 +152,7 @@ body: JSON.stringify({
 
   console.log('PUT RESPONSE', data);
 
-  return fetch('http://localhost:3000/stages');
+  return fetch('https://soft-landing-platform.onrender.com/stages');
 
 })
 .then((res) => res.json())
@@ -178,7 +178,7 @@ const mappedStages = data.stages.map((stage: any) => ({
 });
 
 } else {
-    fetch('http://localhost:3000/stages', {
+    fetch('https://soft-landing-platform.onrender.com/stages', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
@@ -205,7 +205,7 @@ body: JSON.stringify({
     throw new Error(data.message);
   }
 
-  return fetch('http://localhost:3000/stages');
+  return fetch('https://soft-landing-platform.onrender.com/stages');
 
 })
   .then((res) => res.json())
@@ -232,7 +232,7 @@ const mappedStages = data.stages.map((stage: any) => ({
 
 const handleDelete = (id: string) => {
 
-  fetch(`http://localhost:3000/stages/${id}`, {
+  fetch(`https://soft-landing-platform.onrender.com/stages/${id}`, {
     method: 'DELETE'
   })
    .then((res) => res.json())
@@ -248,7 +248,7 @@ setTimeout(() => {
 
 throw new Error(data.message);  }
 
-  return fetch('http://localhost:3000/stages');
+  return fetch('https://soft-landing-platform.onrender.com/stages');
 
 })
     .then((res) => res.json())
@@ -321,7 +321,7 @@ onReorder={(newOrder) => {
 
   setStages(newOrder);
 
-  fetch('http://localhost:3000/stages/reorder', {
+  fetch('https://soft-landing-platform.onrender.com/stages/reorder', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'

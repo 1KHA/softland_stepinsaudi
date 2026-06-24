@@ -154,7 +154,7 @@ const handleVerificationSubmit = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'http://localhost:3000/auth/change-password',
+      'https://soft-landing-platform.onrender.com/auth/change-password',
       {
         method: 'PUT',
 

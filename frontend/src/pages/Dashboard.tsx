@@ -70,7 +70,7 @@ const fetchStats = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'http://localhost:3000/employee/dashboard/stats',
+      'https://soft-landing-platform.onrender.com/employee/dashboard/stats',
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -102,7 +102,7 @@ const fetchRequests = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'http://localhost:3000/employee/requests',
+      'https://soft-landing-platform.onrender.com/employee/requests',
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -145,7 +145,7 @@ const fetchNotifications = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'http://localhost:3000/employee/notifications',
+      'https://soft-landing-platform.onrender.com/employee/notifications',
       {
         headers: {
           Authorization: `Bearer ${token}`

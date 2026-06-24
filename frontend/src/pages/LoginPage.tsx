@@ -39,7 +39,7 @@ try {
 
 const res =
 await fetch(
-"http://localhost:3000/auth/login",
+"https://soft-landing-platform.onrender.com/auth/login",
 {
 
 method:
@@ -291,7 +291,7 @@ return;
  // إنشاء حساب
 try {
 
-  const res = await fetch('http://localhost:3000/auth/register-with-company', {
+  const res = await fetch('https://soft-landing-platform.onrender.com/auth/register-with-company', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'

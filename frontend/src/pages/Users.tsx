@@ -127,7 +127,7 @@ const fetchUsers = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'http://localhost:3000/auth/users',
+      'https://soft-landing-platform.onrender.com/auth/users',
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -170,7 +170,7 @@ const fetchCompanies = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'http://localhost:3000/auth/companies',
+      'https://soft-landing-platform.onrender.com/auth/companies',
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -204,7 +204,7 @@ const toggleStatus = async (
         : 'ACTIVE';
 
     const response = await fetch(
-      `http://localhost:3000/auth/users/${id}/status`,
+      `https://soft-landing-platform.onrender.com/auth/users/${id}/status`,
       {
         method: 'PUT',
         headers: {
@@ -332,7 +332,7 @@ const toggleStatus = async (
         }
 
         const response = await fetch(
-          `http://localhost:3000/auth/users/${selectedUserId}`,
+          `https://soft-landing-platform.onrender.com/auth/users/${selectedUserId}`,
           {
             method: 'PUT',
             headers: {
@@ -380,7 +380,7 @@ let backendRole = 'ADMIN';
 
       if (backendRole === 'ADMIN') {
         const response = await fetch(
-          'http://localhost:3000/auth/create-admin',
+          'https://soft-landing-platform.onrender.com/auth/create-admin',
           {
             method: 'POST',
             headers: {
@@ -422,7 +422,7 @@ let backendRole = 'ADMIN';
     const token = localStorage.getItem('token');
 
     await fetch(
-      `http://localhost:3000/auth/users/${id}`,
+      `https://soft-landing-platform.onrender.com/auth/users/${id}`,
       {
         method: 'DELETE',
 

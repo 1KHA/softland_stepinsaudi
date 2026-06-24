@@ -45,7 +45,7 @@ const [showSuccess, setShowSuccess] = useState(false);
 const token = localStorage.getItem("token");
 
 const response = await axios.get(
-`http://localhost:3000/companies/${companyId}`,
+`https://soft-landing-platform.onrender.com/companies/${companyId}`,
 {
     headers: {
         Authorization: `Bearer ${token}`
@@ -186,7 +186,7 @@ setCompanyData({
 console.log(user);
 console.log(user.company_id);
 await axios.put(
-  `http://localhost:3000/companies/${user.company_id}`,
+  `https://soft-landing-platform.onrender.com/companies/${user.company_id}`,
 {
   name: companyData.companyName,
   manager_name: companyData.managerName,

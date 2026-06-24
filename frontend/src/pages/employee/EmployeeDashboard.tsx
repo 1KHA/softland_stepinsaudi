@@ -9,7 +9,7 @@ import {
   AlertCircle, Activity, RefreshCw, Download
 } from 'lucide-react';
 
-const API = 'http://localhost:3000';
+const API = 'https://soft-landing-platform.onrender.com';
 
 export default function EmployeeDashboard() {
   const navigate = useNavigate();

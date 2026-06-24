@@ -33,7 +33,7 @@ try {
 
 const res =
 await fetch(
-"http://localhost:3000/auth/forgot-password",
+"https://soft-landing-platform.onrender.com/auth/forgot-password",
 {
 
 method:

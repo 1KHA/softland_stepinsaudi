@@ -15,7 +15,7 @@ export default function CompanyLicenses() {
         const token = localStorage.getItem("token");
 
         const res = await axios.get(
-          "http://localhost:3000/companies/licenses",
+          "https://soft-landing-platform.onrender.com/companies/licenses",
           {
             headers: {
               Authorization: `Bearer ${token}`,

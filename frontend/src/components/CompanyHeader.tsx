@@ -16,7 +16,7 @@ const handleLogout = async () => {
 try {
 
 await axios.post(
-"http://localhost:3000/auth/logout"
+"https://soft-landing-platform.onrender.com/auth/logout"
 );
 
 } catch (err) {
@@ -45,7 +45,7 @@ useEffect(() => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:3000/companies/notifications/unread-count",
+        "https://soft-landing-platform.onrender.com/companies/notifications/unread-count",
         {
           headers: {
             Authorization: `Bearer ${token}`,
