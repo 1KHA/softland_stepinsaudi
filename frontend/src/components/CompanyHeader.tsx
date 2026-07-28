@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { LogOut } from "lucide-react";
 import axios from "axios";
+import { API_URL } from "../config";
 export default function CompanyHeader() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,7 +17,7 @@ const handleLogout = async () => {
 try {
 
 await axios.post(
-"https://soft-landing-platform.onrender.com/auth/logout"
+`${API_URL}/auth/logout`
 );
 
 } catch (err) {
@@ -45,7 +46,7 @@ useEffect(() => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "https://soft-landing-platform.onrender.com/companies/notifications/unread-count",
+        `${API_URL}/companies/notifications/unread-count`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

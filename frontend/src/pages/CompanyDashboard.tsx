@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
+import { API_URL } from "../config";
 export default function CompanyDashboard() {
 
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ const [showApprovedPopup, setShowApprovedPopup] =
           user?.company_id;
 const companyResponse =
   await axios.get(
-    `https://soft-landing-platform.onrender.com/companies/${companyId}`,
+    `${API_URL}/companies/${companyId}`,
     {
       headers: {
         Authorization: `Bearer ${token}`
@@ -63,7 +64,7 @@ if (
         // stages
         const stagesResponse =
           await axios.get(
-            `https://soft-landing-platform.onrender.com/companies/${companyId}/stages`,
+            `${API_URL}/companies/${companyId}/stages`,
             {
               headers: {
                 Authorization:
@@ -81,7 +82,7 @@ if (
         // tasks
         const tasksResponse =
           await axios.get(
-            `https://soft-landing-platform.onrender.com/companies/${companyId}/tasks`,
+            `${API_URL}/companies/${companyId}/tasks`,
             {
               headers: {
                 Authorization:
@@ -103,7 +104,7 @@ console.log(
         // progress
 const progressResponse =
   await axios.get(
-    `https://soft-landing-platform.onrender.com/companies/${companyId}/progress`,
+    `${API_URL}/companies/${companyId}/progress`,
     {
       headers: {
         Authorization:

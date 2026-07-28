@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Mail, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import { API_URL } from "../config";
 export default function ForgotPassword() {
 
 const navigate =
@@ -33,7 +34,7 @@ try {
 
 const res =
 await fetch(
-"https://soft-landing-platform.onrender.com/auth/forgot-password",
+`${API_URL}/auth/forgot-password`,
 {
 
 method:

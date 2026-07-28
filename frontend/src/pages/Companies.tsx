@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { API_URL } from "../config";
 interface Company {
   id: string;
   name: string;
@@ -98,7 +99,7 @@ export const Companies: React.FC = () => {
 console.log('TOKEN =', token);
 
       const response = await fetch(
-        'https://soft-landing-platform.onrender.com/auth/companies',
+        `${API_URL}/auth/companies`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -378,7 +379,7 @@ const handleFormChange = (
 const token = localStorage.getItem('token');
 console.log("TOKEN =", token);
 const response = await fetch(
-  `https://soft-landing-platform.onrender.com/companies/${editCompany.id}`,
+  `${API_URL}/companies/${editCompany.id}`,
   {
     method: 'PUT',
     headers: {

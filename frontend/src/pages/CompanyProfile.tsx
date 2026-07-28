@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import CompanyHeader from "../components/CompanyHeader";
 
+import { API_URL } from "../config";
 export default function CompanyProfile() {
 
 const { t, i18n } = useTranslation();
@@ -45,7 +46,7 @@ const [showSuccess, setShowSuccess] = useState(false);
 const token = localStorage.getItem("token");
 
 const response = await axios.get(
-`https://soft-landing-platform.onrender.com/companies/${companyId}`,
+`${API_URL}/companies/${companyId}`,
 {
     headers: {
         Authorization: `Bearer ${token}`
@@ -186,7 +187,7 @@ setCompanyData({
 console.log(user);
 console.log(user.company_id);
 await axios.put(
-  `https://soft-landing-platform.onrender.com/companies/${user.company_id}`,
+  `${API_URL}/companies/${user.company_id}`,
 {
   name: companyData.companyName,
   manager_name: companyData.managerName,

@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: soft-landing-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: softlanding
+      POSTGRES_PASSWORD: softlanding
+      POSTGRES_DB: soft_landing
+    ports:
+      # 5434 on the host because 5432/5433/5455 are used by other local projects
+      - "5434:5432"
+    volumes:
+      - soft_landing_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U softlanding -d soft_landing"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  soft_landing_pgdata:

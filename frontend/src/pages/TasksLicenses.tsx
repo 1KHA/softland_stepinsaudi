@@ -6,6 +6,7 @@ import {
   Trash2Icon
 } from 'lucide-react';
 
+import { API_URL } from "../config";
 interface Task {
   id: number;
   title: string;
@@ -85,9 +86,9 @@ const [newDocument, setNewDocument] =
 
       const [tasksRes, stagesRes, sectorsRes] =
         await Promise.all([
-          fetch('https://soft-landing-platform.onrender.com/tasks'),
-          fetch('https://soft-landing-platform.onrender.com/stages'),
-          fetch('https://soft-landing-platform.onrender.com/sectors')
+          fetch(`${API_URL}/tasks`),
+          fetch(`${API_URL}/stages`),
+          fetch(`${API_URL}/sectors`)
         ]);
 
       const tasksData = await tasksRes.json();
@@ -119,7 +120,7 @@ const [newDocument, setNewDocument] =
     try {
 
       await fetch(
-        `https://soft-landing-platform.onrender.com/tasks/${id}`,
+        `${API_URL}/tasks/${id}`,
         {
           method: 'DELETE'
         }
@@ -215,7 +216,7 @@ const payload = {
     if (editingTask) {
 
       await fetch(
-        `https://soft-landing-platform.onrender.com/tasks/${editingTask.id}`,
+        `${API_URL}/tasks/${editingTask.id}`,
         {
           method: 'PUT',
           headers: {
@@ -232,7 +233,7 @@ setTimeout(() => {
     } else {
 
       await fetch(
-        'https://soft-landing-platform.onrender.com/tasks',
+        `${API_URL}/tasks`,
         {
           method: 'POST',
           headers: {

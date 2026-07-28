@@ -9,6 +9,7 @@ import {
 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { API_URL } from "../config";
 export const Requests: React.FC = () => {
   const { t, language } = useAppContext();
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const fetchRequests = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'https://soft-landing-platform.onrender.com/employee/requests',
+      `${API_URL}/employee/requests`,
       {
         headers: {
           Authorization: `Bearer ${token}`

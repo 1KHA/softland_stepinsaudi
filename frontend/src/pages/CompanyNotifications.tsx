@@ -8,6 +8,7 @@ import {
 import CompanyHeader from "../components/CompanyHeader";
 import { useTranslation } from "react-i18next";
 
+import { API_URL } from "../config";
 export default function CompanyNotifications() {
     const { t, i18n } = useTranslation();
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -18,7 +19,7 @@ useEffect(() => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "https://soft-landing-platform.onrender.com/companies/notifications",
+        `${API_URL}/companies/notifications`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -28,7 +29,7 @@ useEffect(() => {
 
       setNotifications(res.data.notifications || []);
       await axios.put(
-  "https://soft-landing-platform.onrender.com/companies/notifications/read",
+  `${API_URL}/companies/notifications/read`,
   {},
   {
     headers: {

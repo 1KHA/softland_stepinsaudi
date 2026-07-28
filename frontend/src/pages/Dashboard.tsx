@@ -14,6 +14,7 @@ import {
   XIcon } from
 'lucide-react';
 import { motion } from 'framer-motion';
+import { API_URL } from "../config";
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { t, language } = useAppContext();
@@ -70,7 +71,7 @@ const fetchStats = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'https://soft-landing-platform.onrender.com/employee/dashboard/stats',
+      `${API_URL}/employee/dashboard/stats`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -102,7 +103,7 @@ const fetchRequests = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'https://soft-landing-platform.onrender.com/employee/requests',
+      `${API_URL}/employee/requests`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -145,7 +146,7 @@ const fetchNotifications = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'https://soft-landing-platform.onrender.com/employee/notifications',
+      `${API_URL}/employee/notifications`,
       {
         headers: {
           Authorization: `Bearer ${token}`

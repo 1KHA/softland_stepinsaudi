@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import CompanyHeader from "../components/CompanyHeader";
 import { useTranslation } from "react-i18next";
 
+import { API_URL } from "../config";
 export default function TaskDetails() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -20,7 +21,7 @@ const [showError, setShowError] = useState(false);
     const fetchTask = async () => {
       try {
         const response = await fetch(
-          `https://soft-landing-platform.onrender.com/companies/tasks/${id}`
+          `${API_URL}/companies/tasks/${id}`
         );
 
         const data = await response.json();
@@ -285,7 +286,7 @@ if (
                     );
 
                     const response = await fetch(
-                      `https://soft-landing-platform.onrender.com/companies/tasks/${id}/upload`,
+                      `${API_URL}/companies/tasks/${id}/upload`,
                       {
                         method: "POST",
                         headers: {

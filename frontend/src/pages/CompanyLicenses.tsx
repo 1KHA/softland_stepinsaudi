@@ -4,6 +4,7 @@ import CompanyHeader from "../components/CompanyHeader";
 import { FileCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { API_URL } from "../config";
 export default function CompanyLicenses() {
   const { t, i18n } = useTranslation();
 
@@ -15,7 +16,7 @@ export default function CompanyLicenses() {
         const token = localStorage.getItem("token");
 
         const res = await axios.get(
-          "https://soft-landing-platform.onrender.com/companies/licenses",
+          `${API_URL}/companies/licenses`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

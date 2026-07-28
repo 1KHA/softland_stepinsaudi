@@ -8,7 +8,8 @@ import {
   CheckCircle, XCircle, RefreshCw, X, FileText
 } from 'lucide-react';
 
-const API = 'https://soft-landing-platform.onrender.com';
+import { API_URL } from "../../config";
+const API = `${API_URL}`;
 type TabKey = 'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEEDS_RESUBMISSION';
 type ConfirmType = { type: 'reject' | 'resubmit'; docId: number } | null;
 

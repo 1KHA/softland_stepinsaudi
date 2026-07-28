@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { PlusIcon, Edit2Icon, Trash2Icon, XCircleIcon } from 'lucide-react';
+import { API_URL } from "../config";
 interface User {
   id: string;
   name: string;
@@ -127,7 +128,7 @@ const fetchUsers = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'https://soft-landing-platform.onrender.com/auth/users',
+      `${API_URL}/auth/users`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -170,7 +171,7 @@ const fetchCompanies = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'https://soft-landing-platform.onrender.com/auth/companies',
+      `${API_URL}/auth/companies`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -204,7 +205,7 @@ const toggleStatus = async (
         : 'ACTIVE';
 
     const response = await fetch(
-      `https://soft-landing-platform.onrender.com/auth/users/${id}/status`,
+      `${API_URL}/auth/users/${id}/status`,
       {
         method: 'PUT',
         headers: {
@@ -332,7 +333,7 @@ const toggleStatus = async (
         }
 
         const response = await fetch(
-          `https://soft-landing-platform.onrender.com/auth/users/${selectedUserId}`,
+          `${API_URL}/auth/users/${selectedUserId}`,
           {
             method: 'PUT',
             headers: {
@@ -380,7 +381,7 @@ let backendRole = 'ADMIN';
 
       if (backendRole === 'ADMIN') {
         const response = await fetch(
-          'https://soft-landing-platform.onrender.com/auth/create-admin',
+          `${API_URL}/auth/create-admin`,
           {
             method: 'POST',
             headers: {
@@ -422,7 +423,7 @@ let backendRole = 'ADMIN';
     const token = localStorage.getItem('token');
 
     await fetch(
-      `https://soft-landing-platform.onrender.com/auth/users/${id}`,
+      `${API_URL}/auth/users/${id}`,
       {
         method: 'DELETE',
 

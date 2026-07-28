@@ -10,6 +10,7 @@ import {
   CheckIcon } from
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_URL } from "../config";
 type NotificationType = 'document' | 'approved' | 'rejected' | 'stage' | 'alert';
 interface Notification {
   id: string;
@@ -73,7 +74,7 @@ const fetchNotifications = async () => {
     const token = localStorage.getItem("token");
 
     const response = await fetch(
-      "https://soft-landing-platform.onrender.com/companies/notifications",
+      `${API_URL}/companies/notifications`,
       {
         headers: {
           Authorization: `Bearer ${token}`

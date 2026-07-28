@@ -8,7 +8,8 @@ import {
   CheckCircle, XCircle, AlertCircle, RefreshCw, ClipboardList
 } from 'lucide-react';
 
-const API = 'https://soft-landing-platform.onrender.com';
+import { API_URL } from "../../config";
+const API = `${API_URL}`;
 type TabType = 'all' | 'unread' | 'REQUEST_APPROVED' | 'REQUEST_REJECTED' | 'RESUBMISSION_REQUESTED';
 
 interface Notification {

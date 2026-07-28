@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Mail, ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { API_URL } from "../config";
 export default function VerifyOTP() {
 
 const navigate = useNavigate();
@@ -97,7 +98,7 @@ const endpoint =
 isReset
 ?
 
-"https://soft-landing-platform.onrender.com/auth/reset-password"
+`${API_URL}/auth/reset-password`
 
 :
 
@@ -105,11 +106,11 @@ isLogin
 
 ?
 
-"https://soft-landing-platform.onrender.com/auth/verify-login-otp"
+`${API_URL}/auth/verify-login-otp`
 
 :
 
-"https://soft-landing-platform.onrender.com/auth/verify-register-otp";
+`${API_URL}/auth/verify-register-otp`;
 const res =
 await fetch(
 endpoint,
@@ -300,7 +301,7 @@ isReset
 
 ?
 
-"https://soft-landing-platform.onrender.com/auth/forgot-password"
+`${API_URL}/auth/forgot-password`
 
 :
 
@@ -308,11 +309,11 @@ isLogin
 
 ?
 
-"https://soft-landing-platform.onrender.com/auth/login"
+`${API_URL}/auth/login`
 
 :
 
-"https://soft-landing-platform.onrender.com/auth/register-with-company";
+`${API_URL}/auth/register-with-company`;
 const body =
 
 isReset

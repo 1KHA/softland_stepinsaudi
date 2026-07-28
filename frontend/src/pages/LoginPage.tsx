@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
+import { API_URL } from "../config";
 export function LoginPage() {
 const sectors = [
   { id: 1, name: 'Entrepreneurial' },
@@ -39,7 +40,7 @@ try {
 
 const res =
 await fetch(
-"https://soft-landing-platform.onrender.com/auth/login",
+`${API_URL}/auth/login`,
 {
 
 method:
@@ -291,7 +292,7 @@ return;
  // إنشاء حساب
 try {
 
-  const res = await fetch('https://soft-landing-platform.onrender.com/auth/register-with-company', {
+  const res = await fetch(`${API_URL}/auth/register-with-company`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'

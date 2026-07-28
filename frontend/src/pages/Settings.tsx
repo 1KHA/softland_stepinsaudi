@@ -11,6 +11,7 @@ import {
   KeyIcon } from
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_URL } from "../config";
 type PasswordForm = {
   currentPassword: string;
   newPassword: string;
@@ -154,7 +155,7 @@ const handleVerificationSubmit = async () => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'https://soft-landing-platform.onrender.com/auth/change-password',
+      `${API_URL}/auth/change-password`,
       {
         method: 'PUT',
 

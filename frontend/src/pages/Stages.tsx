@@ -8,6 +8,7 @@ import {
   XIcon } from
 'lucide-react';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
+import { API_URL } from "../config";
 interface Stage {
   id: string;
   name: string;
@@ -41,7 +42,7 @@ const [errors, setErrors] = useState<{
   const [deleteStage, setDeleteStage] = useState<Stage | null>(null);
 
 useEffect(() => {
-  fetch('https://soft-landing-platform.onrender.com/stages')
+  fetch(`${API_URL}/stages`)
     .then((res) => res.json())
     .then((data) => {
 
@@ -123,7 +124,7 @@ if (!formData.description_ar.trim()) {
 
 if (selectedStage) {
 
-  fetch(`https://soft-landing-platform.onrender.com/stages/${selectedStage.id}`, {
+  fetch(`${API_URL}/stages/${selectedStage.id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
@@ -152,7 +153,7 @@ body: JSON.stringify({
 
   console.log('PUT RESPONSE', data);
 
-  return fetch('https://soft-landing-platform.onrender.com/stages');
+  return fetch(`${API_URL}/stages`);
 
 })
 .then((res) => res.json())
@@ -178,7 +179,7 @@ const mappedStages = data.stages.map((stage: any) => ({
 });
 
 } else {
-    fetch('https://soft-landing-platform.onrender.com/stages', {
+    fetch(`${API_URL}/stages`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
@@ -205,7 +206,7 @@ body: JSON.stringify({
     throw new Error(data.message);
   }
 
-  return fetch('https://soft-landing-platform.onrender.com/stages');
+  return fetch(`${API_URL}/stages`);
 
 })
   .then((res) => res.json())
@@ -232,7 +233,7 @@ const mappedStages = data.stages.map((stage: any) => ({
 
 const handleDelete = (id: string) => {
 
-  fetch(`https://soft-landing-platform.onrender.com/stages/${id}`, {
+  fetch(`${API_URL}/stages/${id}`, {
     method: 'DELETE'
   })
    .then((res) => res.json())
@@ -248,7 +249,7 @@ setTimeout(() => {
 
 throw new Error(data.message);  }
 
-  return fetch('https://soft-landing-platform.onrender.com/stages');
+  return fetch(`${API_URL}/stages`);
 
 })
     .then((res) => res.json())
@@ -321,7 +322,7 @@ onReorder={(newOrder) => {
 
   setStages(newOrder);
 
-  fetch('https://soft-landing-platform.onrender.com/stages/reorder', {
+  fetch(`${API_URL}/stages/reorder`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
