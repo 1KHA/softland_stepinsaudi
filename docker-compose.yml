@@ -18,5 +18,44 @@ services:
       timeout: 5s
       retries: 10
 
+  # The services below only start with:  docker compose --profile app up -d
+  # Plain `docker compose up -d` starts Postgres only (for non-Docker local dev).
+  backend:
+    build: ./backend
+    image: soft-landing-backend
+    container_name: soft-landing-backend
+    profiles: ["app"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://softlanding:softlanding@postgres:5432/soft_landing?schema=public
+      JWT_SECRET: ${JWT_SECRET:-local-docker-secret-change-me-in-production}
+      PORT: 4000
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+    ports:
+      - "4000:4000"
+    volumes:
+      - soft_landing_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # URL the BROWSER uses to reach the API (baked into the JS bundle).
+        # For a server deployment set VITE_API_URL to the public API URL.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+    image: soft-landing-frontend
+    container_name: soft-landing-frontend
+    profiles: ["app"]
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
 volumes:
   soft_landing_pgdata:
+  soft_landing_uploads:
