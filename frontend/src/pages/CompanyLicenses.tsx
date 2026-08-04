@@ -38,13 +38,13 @@ console.log(res.data.licenses);
     <>
       <CompanyHeader />
 
-      <div className="min-h-screen bg-[#F5F2EA] p-8">
+      <div className="min-h-screen bg-[#F4F7FB] p-8">
         <div className="max-w-7xl mx-auto">
           <div className="bg-white rounded-3xl shadow-sm p-8">
 
             <div className="flex items-center justify-between mb-8">
               <div>
-<h1 className="text-4xl font-bold text-[#1E3A5F]">
+<h1 className="text-4xl font-bold text-[#2B3E8F]">
   {t("licensesPage.title")}
 </h1>
 
@@ -53,14 +53,14 @@ console.log(res.data.licenses);
 </p>
               </div>
 
-              <div className="bg-[#C5A55A] text-white px-4 py-2 rounded-full font-semibold">
+              <div className="bg-[#1DBAEA] text-white px-4 py-2 rounded-full font-semibold">
 {`${licenses.length} ${t("licenses")}`}
               </div>
             </div>
 
             {licenses.length === 0 ? (
               <div className="border-2 border-dashed border-[#E5E5E5] rounded-3xl p-12 text-center">
-<h3 className="text-xl font-semibold text-[#1E3A5F]">
+<h3 className="text-xl font-semibold text-[#2B3E8F]">
   {t("licensesPage.noLicenses")}
 </h3>
 
@@ -73,12 +73,12 @@ console.log(res.data.licenses);
                 {licenses.map((license: any) => (
                   <div
                     key={license.id}
-                    className="bg-[#FCFCFC] border border-[#ECE7DD] rounded-3xl p-6 shadow-sm hover:shadow-lg transition"
+                    className="bg-[#F4F7FB] border border-[#D8E4F5] rounded-3xl p-6 shadow-sm hover:shadow-lg transition"
                   >
 <div className="flex items-center gap-2">
-  <FileCheck size={24} className="text-[#C5A55A]" />
+  <FileCheck size={24} className="text-[#1DBAEA]" />
 
-<h2 className="text-xl font-bold text-[#1E3A5F]">
+<h2 className="text-xl font-bold text-[#2B3E8F]">
   {i18n.language.startsWith("ar")
     ? (license.license_name_ar || license.license_name)
     : license.license_name}
@@ -103,14 +103,14 @@ console.log(res.data.licenses);
 <button
   type="button"
   onClick={() => openDocument(license.id, "view")}
-  className="flex-1 text-center bg-[#1E3A5F] text-white py-3 rounded-xl hover:opacity-90"
+  className="flex-1 text-center bg-[#2B3E8F] text-white py-3 rounded-xl hover:opacity-90"
 >
   {t("view")}
 </button>
                       <button
                         type="button"
                         onClick={() => openDocument(license.id, "download")}
-                        className="flex-1 text-center bg-[#C5A55A] text-white py-3 rounded-xl hover:opacity-90"
+                        className="flex-1 text-center bg-[#1DBAEA] text-white py-3 rounded-xl hover:opacity-90"
                       >
                          {t("download")}
                       </button>

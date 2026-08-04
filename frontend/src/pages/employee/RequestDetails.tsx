@@ -197,14 +197,14 @@ await axios.put(
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F7F3EE] flex items-center justify-center" dir={dir}>
-        <div className="w-12 h-12 border-4 border-[#C5A55A] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center" dir={dir}>
+        <div className="w-12 h-12 border-4 border-[#1DBAEA] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#F7F3EE] flex items-center justify-center text-gray-500" dir={dir}>
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center text-gray-500" dir={dir}>
         {t('employee.requestDetails.title')}
       </div>
     );
@@ -235,7 +235,7 @@ const canManageRequest =
   !["APPROVED", "REJECTED", "COMPLETED"].includes(company.status);
 
   return (
-    <div className="min-h-screen bg-[#F7F3EE]" dir={dir}>
+    <div className="min-h-screen bg-brand-bg" dir={dir}>
 
       {/* Toast */}
       {toast && (
@@ -251,7 +251,7 @@ const canManageRequest =
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-2xl font-bold text-[#1E3A5F]">{t('employee.requestDetails.confirmation.title')}</h2>
+              <h2 className="text-2xl font-bold text-[#2B3E8F]">{t('employee.requestDetails.confirmation.title')}</h2>
               <button onClick={() => setShowConfirm(null)} className="p-2 hover:bg-gray-100 rounded-lg transition">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
@@ -271,7 +271,7 @@ const canManageRequest =
     placeholder={t(
       "employee.requestDetails.confirmation.reasonPlaceholder"
     )}
-    className="w-full border border-gray-200 rounded-xl p-4 min-h-[100px] mb-5 focus:outline-none focus:border-[#C5A55A] text-sm resize-none"
+    className="w-full border border-gray-200 rounded-xl p-4 min-h-[100px] mb-5 focus:outline-none focus:border-[#1DBAEA] text-sm resize-none"
   />
 )}
 
@@ -301,11 +301,11 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
       <div className="bg-white shadow-sm px-8 py-5 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-  onClick={() => navigate('/admin/requests')} className="flex items-center gap-2 text-[#1E3A5F] hover:text-[#C5A55A] transition">
+  onClick={() => navigate('/admin/requests')} className="flex items-center gap-2 text-[#2B3E8F] hover:text-[#1DBAEA] transition">
             <ArrowBack className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-[#1E3A5F]">{t('employee.requestDetails.title')}</h1>
+            <h1 className="text-2xl font-bold text-[#2B3E8F]">{t('employee.requestDetails.title')}</h1>
             <p className="text-gray-500 text-sm mt-0.5">
               {t('employee.requestDetails.requestId')}: REQ-{String(company.id).padStart(3, '0')}
             </p>
@@ -318,7 +318,7 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
           <button onClick={() => i18n.changeLanguage(isArabic ? 'en' : 'ar')}
             className="flex items-center gap-2 border border-gray-200 bg-white px-4 py-2 rounded-full hover:bg-gray-50 transition text-sm">
             <span>🌐</span>
-            <span className="text-[#1E3A5F] font-medium">{isArabic ? 'EN' : 'AR'}</span>
+            <span className="text-[#2B3E8F] font-medium">{isArabic ? 'EN' : 'AR'}</span>
           </button>
           <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 text-sm transition">{t('employee.logout')}</button>
         </div>
@@ -332,13 +332,13 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
 
           {/* Company Card */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold text-[#1E3A5F] mb-5">{t('employee.requestDetails.companyInfo')}</h2>
+            <h2 className="text-xl font-bold text-[#2B3E8F] mb-5">{t('employee.requestDetails.companyInfo')}</h2>
             <div className="flex items-center gap-4 mb-5">
-              <div className="w-14 h-14 bg-[#C5A55A]/10 rounded-xl flex items-center justify-center">
-                <Building2 className="w-7 h-7 text-[#C5A55A]" />
+              <div className="w-14 h-14 bg-[#1DBAEA]/10 rounded-xl flex items-center justify-center">
+                <Building2 className="w-7 h-7 text-[#1DBAEA]" />
               </div>
               <div>
-<p className="font-bold text-[#1E3A5F] text-lg">
+<p className="font-bold text-[#2B3E8F] text-lg">
   {company.name || "—"}
 </p>
                 <p className="text-sm text-gray-500">{company.sector_name || '—'}</p>
@@ -360,7 +360,7 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
 
           {/* Request Meta */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold text-[#1E3A5F] mb-5">{t('employee.requestDetails.requestMeta')}</h2>
+            <h2 className="text-xl font-bold text-[#2B3E8F] mb-5">{t('employee.requestDetails.requestMeta')}</h2>
             <div className="space-y-4">
               {[
                 { label: t('employee.requestDetails.requestId'), value: `#${company.id}` },
@@ -372,7 +372,7 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
               ].map((item, i) => (
                 <div key={i} className="flex justify-between items-center py-1">
                   <span className="text-sm text-gray-500">{item.label}</span>
-                  <span className="text-sm font-semibold text-[#1E3A5F]">{item.value}</span>
+                  <span className="text-sm font-semibold text-[#2B3E8F]">{item.value}</span>
                 </div>
               ))}
               <div className="pt-2">
@@ -381,7 +381,7 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
                   <span>{stages.length ? Math.round((stages.filter((s: any) => s.status === 'COMPLETED').length / stages.length) * 100) : 0}%</span>
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#C5A55A] rounded-full transition-all"
+                  <div className="h-full bg-[#1DBAEA] rounded-full transition-all"
                     style={{ width: `${stages.length ? (stages.filter((s: any) => s.status === 'COMPLETED').length / stages.length) * 100 : 0}%` }} />
                 </div>
               </div>
@@ -395,24 +395,24 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
           {/* Workflow Stages */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center gap-3 mb-5">
-              <History className="w-5 h-5 text-[#C5A55A]" />
-              <h2 className="text-xl font-bold text-[#1E3A5F]">{t('employee.requestDetails.workflow')}</h2>
+              <History className="w-5 h-5 text-[#1DBAEA]" />
+              <h2 className="text-xl font-bold text-[#2B3E8F]">{t('employee.requestDetails.workflow')}</h2>
             </div>
             <div className="space-y-3">
               {stages.map((stage: any) => {
                 const stageTasks = tasks.filter((t2: any) => t2.company_stage_id === stage.id);
                 return (
                   <div key={stage.id} className={`border rounded-xl overflow-hidden ${
-                    stage.status === 'IN_PROGRESS' ? 'border-[#C5A55A]' :
+                    stage.status === 'IN_PROGRESS' ? 'border-[#1DBAEA]' :
                     stage.status === 'COMPLETED'   ? 'border-green-200' : 'border-gray-100'
                   }`}>
                     <div className={`flex items-center justify-between px-4 py-3 ${
-                      stage.status === 'IN_PROGRESS' ? 'bg-[#C5A55A]/10' :
+                      stage.status === 'IN_PROGRESS' ? 'bg-[#1DBAEA]/10' :
                       stage.status === 'COMPLETED'   ? 'bg-green-50' : 'bg-gray-50'
                     }`}>
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-gray-400" />
-                        <span className="font-semibold text-[#1E3A5F] text-sm">{getStageName(stage.stage_name)}</span>
+                        <span className="font-semibold text-[#2B3E8F] text-sm">{getStageName(stage.stage_name)}</span>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusCls(stage.status)}`}>
                         {statusLabel(stage.status)}
@@ -545,8 +545,8 @@ showToast(t("uploadFailed"), "error");
           {/* Documents */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center gap-3 mb-5">
-              <FileText className="w-5 h-5 text-[#C5A55A]" />
-              <h2 className="text-xl font-bold text-[#1E3A5F]">{t('employee.requestDetails.docsTitle')} ({documents.length})</h2>
+              <FileText className="w-5 h-5 text-[#1DBAEA]" />
+              <h2 className="text-xl font-bold text-[#2B3E8F]">{t('employee.requestDetails.docsTitle')} ({documents.length})</h2>
             </div>
             {documents.length === 0 ? (
               <div className="text-center py-10 text-gray-400">
@@ -559,16 +559,16 @@ showToast(t("uploadFailed"), "error");
                   <div key={doc.id} className="border border-gray-100 rounded-xl p-4 hover:bg-gray-50 transition">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#C5A55A]/10 rounded-xl flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-[#C5A55A]" />
+                        <div className="w-10 h-10 bg-[#1DBAEA]/10 rounded-xl flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-[#1DBAEA]" />
                         </div>
                         <div>
                           <div>
-  <h3 className="font-semibold text-[#1E3A5F] text-sm">
+  <h3 className="font-semibold text-[#2B3E8F] text-sm">
     {doc.file_name}
   </h3>
 
-  <p className="text-xs text-[#C5A55A] font-medium">
+  <p className="text-xs text-[#1DBAEA] font-medium">
     {doc.task_title}
   </p>
 
@@ -587,10 +587,10 @@ showToast(t("uploadFailed"), "error");
                         </span>
                         {/* R-12: authenticated download — see lib/files.ts */}
                         <button type="button" onClick={() => openDocument(doc.id, "view")} className="p-2 hover:bg-gray-100 rounded-lg transition">
-                          <Eye className="w-4 h-4 text-[#1E3A5F]" />
+                          <Eye className="w-4 h-4 text-[#2B3E8F]" />
                         </button>
                         <button type="button" onClick={() => openDocument(doc.id, "download")} className="p-2 hover:bg-gray-100 rounded-lg transition">
-                          <Download className="w-4 h-4 text-[#1E3A5F]" />
+                          <Download className="w-4 h-4 text-[#2B3E8F]" />
                         </button>
 {canManageRequest &&
  doc.status !== "APPROVED" &&

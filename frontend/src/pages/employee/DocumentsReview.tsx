@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { Footer } from '../../components/Footer';
 import axios from 'axios';
 import {
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { API_URL } from "../../config";
+import { StepInLogo, SpectrumBar } from "../../components/StepInLogo";
 import { openDocument } from "../../lib/files";
 const API = `${API_URL}`;
 type TabKey = 'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEEDS_RESUBMISSION';
@@ -139,7 +140,8 @@ export default function DocumentsReview() {
   const ArrowBack = isArabic ? ArrowRight : ArrowLeft;
 
   return (
-    <div className="min-h-screen bg-[#F7F3EE]" dir={dir}>
+    <div className="min-h-screen bg-brand-bg" dir={dir}>
+      <SpectrumBar />
 
       {/* Toast */}
       {toast && (
@@ -155,7 +157,7 @@ export default function DocumentsReview() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-xl font-bold text-[#1E3A5F]">
+              <h3 className="text-xl font-bold text-[#2B3E8F]">
                 {confirm.type === 'reject' ? t('employee.documents.modal.rejectTitle') : t('employee.documents.modal.resubmitTitle')}
               </h3>
               <button onClick={() => setConfirm(null)} className="p-2 hover:bg-gray-100 rounded-lg transition">
@@ -171,7 +173,7 @@ export default function DocumentsReview() {
                 value={reviewerNotes}
                 onChange={e => setReviewerNotes(e.target.value)}
                 placeholder={t('employee.documents.modal.notesPlaceholder')}
-                className="w-full p-4 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C5A55A] min-h-[100px] text-sm resize-none"
+                className="w-full p-4 rounded-xl border border-gray-200 focus:outline-none focus:border-[#1DBAEA] min-h-[100px] text-sm resize-none"
               />
             </div>
             <div className="flex gap-3">
@@ -193,30 +195,30 @@ export default function DocumentsReview() {
       {/* ── HEADER ── */}
       <div className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <img src="/Screenshot_2026-04-22_142843.png" alt="Logo" className="h-10 w-auto object-contain" />
+          <StepInLogo size="md" />
           <div className={`${isArabic ? 'border-r border-gray-200 pr-4' : 'border-l border-gray-200 pl-4'} flex items-center gap-3`}>
-            <button onClick={() => navigate('/employee-dashboard')} className="text-[#1E3A5F] hover:text-[#C5A55A] transition">
+            <button onClick={() => navigate('/employee-dashboard')} className="text-[#2B3E8F] hover:text-[#1DBAEA] transition">
               <ArrowBack className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-[#1E3A5F]">{t('employee.documents.title')}</h1>
+              <h1 className="text-xl font-bold text-[#2B3E8F]">{t('employee.documents.title')}</h1>
               <p className="text-gray-500 text-sm">{t('employee.documents.subtitle')}</p>
             </div>
           </div>
         </div>
 
         <div className="hidden md:flex items-center gap-8">
-          <button onClick={() => navigate('/employee-dashboard')} className="text-[#1E3A5F]/70 hover:text-[#C5A55A] font-medium text-sm transition">{t('employee.nav.home')}</button>
-          <button onClick={() => navigate('/employee-requests')} className="text-[#1E3A5F]/70 hover:text-[#C5A55A] font-medium text-sm transition">{t('employee.nav.requests')}</button>
-          <button onClick={() => navigate('/employee-documents')} className="text-[#1E3A5F] font-semibold border-b-2 border-[#C5A55A] pb-0.5 text-sm">{t('employee.nav.documents')}</button>
-          <button onClick={() => navigate('/employee-notifications')} className="text-[#1E3A5F]/70 hover:text-[#C5A55A] font-medium text-sm transition">{t('employee.nav.notifications')}</button>
+          <button onClick={() => navigate('/employee-dashboard')} className="text-[#2B3E8F]/70 hover:text-[#1DBAEA] font-medium text-sm transition">{t('employee.nav.home')}</button>
+          <button onClick={() => navigate('/employee-requests')} className="text-[#2B3E8F]/70 hover:text-[#1DBAEA] font-medium text-sm transition">{t('employee.nav.requests')}</button>
+          <button onClick={() => navigate('/employee-documents')} className="text-[#2B3E8F] font-semibold border-b-2 border-[#1DBAEA] pb-0.5 text-sm">{t('employee.nav.documents')}</button>
+          <button onClick={() => navigate('/employee-notifications')} className="text-[#2B3E8F]/70 hover:text-[#1DBAEA] font-medium text-sm transition">{t('employee.nav.notifications')}</button>
         </div>
 
         <div className="flex items-center gap-3">
           <button onClick={() => i18n.changeLanguage(isArabic ? 'en' : 'ar')}
             className="flex items-center gap-2 border border-gray-200 bg-white px-4 py-2 rounded-full hover:bg-gray-50 transition text-sm">
             <span>🌐</span>
-            <span className="text-[#1E3A5F] font-medium">{isArabic ? 'EN' : 'AR'}</span>
+            <span className="text-[#2B3E8F] font-medium">{isArabic ? 'EN' : 'AR'}</span>
           </button>
           <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 text-sm transition">{t('employee.logout')}</button>
         </div>
@@ -231,7 +233,7 @@ export default function DocumentsReview() {
             {tabs.map(tab => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                 className={`px-5 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition ${
-                  activeTab === tab.key ? 'bg-[#C5A55A] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  activeTab === tab.key ? 'bg-[#1DBAEA] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>
                 {tab.label}
               </button>
@@ -249,11 +251,11 @@ export default function DocumentsReview() {
                 placeholder={t('employee.documents.searchPlaceholder')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className={`w-full ${isArabic ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C5A55A] focus:ring-2 focus:ring-[#C5A55A]/20 text-sm`}
+                className={`w-full ${isArabic ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#1DBAEA] focus:ring-2 focus:ring-[#1DBAEA]/20 text-sm`}
               />
             </div>
             <button onClick={fetchDocs}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#1E3A5F] text-white text-sm font-medium hover:bg-[#1E3A5F]/90 transition">
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#2B3E8F] text-white text-sm font-medium hover:bg-[#2B3E8F]/90 transition">
               <RefreshCw className="w-4 h-4" />
               {t('employee.documents.refresh')}
             </button>
@@ -274,7 +276,7 @@ export default function DocumentsReview() {
           </div>
           {loading ? (
             <div className="flex items-center justify-center h-48">
-              <div className="w-8 h-8 border-4 border-[#C5A55A] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[#1DBAEA] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-16 text-center">
@@ -304,13 +306,13 @@ export default function DocumentsReview() {
                     <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-3">
-                          <FileText className="w-5 h-5 text-[#C5A55A] flex-shrink-0" />
-                          <span className="font-medium text-[#1E3A5F] text-sm">{doc.file_name}</span>
+                          <FileText className="w-5 h-5 text-[#1DBAEA] flex-shrink-0" />
+                          <span className="font-medium text-[#2B3E8F] text-sm">{doc.file_name}</span>
                         </div>
                       </td>
                       <td className="py-4 px-5">
                         <button onClick={() => navigate(`/employee-requests/${doc.company_id}`)}
-                          className="text-sm text-[#C5A55A] hover:underline font-medium">
+                          className="text-sm text-[#1DBAEA] hover:underline font-medium">
                           {doc.company_name}
                         </button>
                       </td>
@@ -335,11 +337,11 @@ export default function DocumentsReview() {
                         <div className="flex items-center gap-1.5">
                           {/* R-12: authenticated download — see lib/files.ts */}
                           <button type="button" onClick={() => openDocument(doc.id, 'view')}
-                            className="p-2 text-[#C5A55A] hover:bg-[#C5A55A]/10 rounded-lg transition" title={t('employee.documents.actions.view')}>
+                            className="p-2 text-[#1DBAEA] hover:bg-[#1DBAEA]/10 rounded-lg transition" title={t('employee.documents.actions.view')}>
                             <Eye className="w-4 h-4" />
                           </button>
                           <button type="button" onClick={() => openDocument(doc.id, 'download')}
-                            className="p-2 text-[#C5A55A] hover:bg-[#C5A55A]/10 rounded-lg transition" title={t('employee.documents.actions.download')}>
+                            className="p-2 text-[#1DBAEA] hover:bg-[#1DBAEA]/10 rounded-lg transition" title={t('employee.documents.actions.download')}>
                             <Download className="w-4 h-4" />
                           </button>
                           {(doc.status?.toUpperCase() === 'PENDING' || doc.status?.toUpperCase() === 'NEEDS_RESUBMISSION') && (

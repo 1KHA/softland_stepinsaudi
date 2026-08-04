@@ -7,7 +7,7 @@ export function Footer() {
   const isArabic = i18n.language.startsWith('ar');
 
   return (
-    <footer className="bg-[#152844] text-gray-300 pt-16 pb-8 border-t border-gray-800">
+    <footer className="bg-[#1E2C68] text-gray-300 pt-16 pb-8 border-t border-gray-800">
       <div className="section-shell">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
 <div className={isArabic ? "text-right" : "text-left"}>

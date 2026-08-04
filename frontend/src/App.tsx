@@ -7,7 +7,9 @@ import VerifyOTP from "./pages/VerifyOTP";
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import NewPassword from "./pages/NewPassword";
-import { HomePage } from './pages/HomePage';
+// Old landing page hidden — replaced by StepInLanding (see pages/StepInLanding.tsx)
+// import { HomePage } from './pages/HomePage';
+import { StepInLanding } from './pages/StepInLanding';
 import { LoginPage } from './pages/LoginPage';
 
 import CompanyDashboard from './pages/CompanyDashboard';
@@ -44,6 +46,7 @@ function AppContent() {
   const location = useLocation();
 
  const hideNavbar =
+  location.pathname === "/" ||
   location.pathname === "/login" ||
   location.pathname === "/company-dashboard" ||
   location.pathname === "/company-profile" ||
@@ -91,10 +94,10 @@ element={<VerifyOTP />}
 path="/new-password"
 element={<NewPassword />}
 />
-          {/* Home */}
+          {/* Home — new StepIn landing page (old HomePage hidden) */}
           <Route
             path="/"
-            element={<HomePage />}
+            element={<StepInLanding />}
           />
 
           {/* Login */}
@@ -227,6 +230,7 @@ element={<ForgotPassword />}
 
       {/* Footer */}
 {
+  location.pathname !== "/" &&
   location.pathname !== "/login" &&
   location.pathname !== "/company-dashboard" &&
   location.pathname !== "/company-profile" &&

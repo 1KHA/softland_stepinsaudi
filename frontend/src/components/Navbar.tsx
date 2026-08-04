@@ -28,7 +28,7 @@ export function Navbar() {
                 className="h-12 w-auto object-contain" />
             </a>
             <div className="hidden md:block">
-            <h3 className="text-[#1E3A5F] font-bold text-lg">
+            <h3 className="text-[#2B3E8F] font-bold text-lg">
               STEPIN
             </h3>       
        <p className="text-xs text-slate-500">{t("landing.slogan")}</p>

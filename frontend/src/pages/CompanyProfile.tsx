@@ -238,7 +238,7 @@ return (
   <>
     <CompanyHeader />
 
-    <div className="min-h-screen bg-[#F7F3EE]">
+    <div className="min-h-screen bg-[#F4F7FB]">
 
 
             {/* Content */}
@@ -262,7 +262,7 @@ return (
 
                         <div>
 
-                            <h2 className="text-3xl font-bold text-[#1E3A5F]">
+                            <h2 className="text-3xl font-bold text-[#2B3E8F]">
                                 {t("profile.companyProfile")}
                             </h2>
 
@@ -277,7 +277,7 @@ return (
                                 setIsEditing(!isEditing)
                             }
                             className={`px-6 py-3 rounded-xl font-medium transition ${isEditing
-                                ? 'bg-[#C5A55A] text-white'
+                                ? 'bg-[#1DBAEA] text-white'
                                 : 'bg-white border border-gray-300'
                                 }`}
                         >
@@ -505,14 +505,14 @@ return (
 
   <div className="flex items-center justify-between mb-5">
 
-    <h3 className="text-2xl font-bold text-[#1E3A5F]">
+    <h3 className="text-2xl font-bold text-[#2B3E8F]">
       {t("profile.companyFounders")}
     </h3>
 
     {isEditing && (
       <button
         onClick={addFounder}
-        className="bg-[#C5A55A] text-white px-5 py-2 rounded-xl"
+        className="bg-[#1DBAEA] text-white px-5 py-2 rounded-xl"
       >
         + {t("profile.addFounder")}
       </button>
@@ -543,7 +543,7 @@ return (
 
     <button
       onClick={handleSave}
-      className="bg-[#1E3A5F] text-white px-8 py-4 rounded-2xl hover:opacity-90"
+      className="bg-[#2B3E8F] text-white px-8 py-4 rounded-2xl hover:opacity-90"
     >
       {t("profile.saveChanges")}
     </button>

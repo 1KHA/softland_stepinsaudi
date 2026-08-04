@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { StepInLogo, SpectrumBar } from './StepInLogo';
 import { TranslationKey } from '../translations';
 import {
   LayoutDashboardIcon,
@@ -86,18 +87,13 @@ export const Layout: React.FC = () => {
     language === "ar" ? "order-2" : "order-1"
   }`}
 >
-            <div className="p-6 flex items-center gap-3">
-  <img
-    src="/StepInLogo.png"
-    alt="StepIn"
-  className="w-12 h-12 object-contain brightness-0 invert"
-  />
-
-<span className="text-xl font-bold tracking-wide text-white">
-STEPIN 
- </span>
-
-</div>
+            {/* Brand §01: reverse lockup on the navy sidebar, with clear space
+                around it. The spectrum bar (§02) sits directly beneath as the
+                sidebar's identifying rule. */}
+            <div className="px-6 py-7">
+              <StepInLogo size="md" inverse />
+            </div>
+            <SpectrumBar />
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {

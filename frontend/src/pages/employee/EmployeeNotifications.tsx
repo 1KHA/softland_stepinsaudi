@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { Footer } from '../../components/Footer';
 import axios from 'axios';
 import {
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { API_URL } from "../../config";
+import { StepInLogo, SpectrumBar } from "../../components/StepInLogo";
 const API = `${API_URL}`;
 type TabType = 'all' | 'unread' | 'REQUEST_APPROVED' | 'REQUEST_REJECTED' | 'RESUBMISSION_REQUESTED';
 
@@ -114,28 +115,29 @@ export default function EmployeeNotifications() {
   const ArrowBack = isArabic ? ArrowRight : ArrowLeft;
 
   return (
-    <div className="min-h-screen bg-[#F7F3EE]" dir={dir}>
+    <div className="min-h-screen bg-brand-bg" dir={dir}>
+      <SpectrumBar />
 
       {/* ── HEADER ── */}
       <div className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <img src="/Screenshot_2026-04-22_142843.png" alt="Logo" className="h-10 w-auto object-contain" />
+          <StepInLogo size="md" />
           <div className={`${isArabic ? 'border-r border-gray-200 pr-4' : 'border-l border-gray-200 pl-4'} flex items-center gap-3`}>
-            <button onClick={() => navigate('/employee-dashboard')} className="text-[#1E3A5F] hover:text-[#C5A55A] transition">
+            <button onClick={() => navigate('/employee-dashboard')} className="text-[#2B3E8F] hover:text-[#1DBAEA] transition">
               <ArrowBack className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-[#1E3A5F]">{t('employee.notifications.title')}</h1>
+              <h1 className="text-xl font-bold text-[#2B3E8F]">{t('employee.notifications.title')}</h1>
               <p className="text-gray-500 text-sm">{t('employee.notifications.subtitle')}</p>
             </div>
           </div>
         </div>
 
         <div className="hidden md:flex items-center gap-8">
-          <button onClick={() => navigate('/employee-dashboard')} className="text-[#1E3A5F]/70 hover:text-[#C5A55A] font-medium text-sm transition">{t('employee.nav.home')}</button>
-          <button onClick={() => navigate('/employee-requests')} className="text-[#1E3A5F]/70 hover:text-[#C5A55A] font-medium text-sm transition">{t('employee.nav.requests')}</button>
-          <button onClick={() => navigate('/employee-documents')} className="text-[#1E3A5F]/70 hover:text-[#C5A55A] font-medium text-sm transition">{t('employee.nav.documents')}</button>
-          <button onClick={() => navigate('/employee-notifications')} className="text-[#1E3A5F] font-semibold border-b-2 border-[#C5A55A] pb-0.5 text-sm flex items-center gap-1.5">
+          <button onClick={() => navigate('/employee-dashboard')} className="text-[#2B3E8F]/70 hover:text-[#1DBAEA] font-medium text-sm transition">{t('employee.nav.home')}</button>
+          <button onClick={() => navigate('/employee-requests')} className="text-[#2B3E8F]/70 hover:text-[#1DBAEA] font-medium text-sm transition">{t('employee.nav.requests')}</button>
+          <button onClick={() => navigate('/employee-documents')} className="text-[#2B3E8F]/70 hover:text-[#1DBAEA] font-medium text-sm transition">{t('employee.nav.documents')}</button>
+          <button onClick={() => navigate('/employee-notifications')} className="text-[#2B3E8F] font-semibold border-b-2 border-[#1DBAEA] pb-0.5 text-sm flex items-center gap-1.5">
             {t('employee.nav.notifications')}
             {unreadCount > 0 && (
               <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
@@ -148,7 +150,7 @@ export default function EmployeeNotifications() {
         <div className="flex items-center gap-3">
           {unreadCount > 0 && (
             <button onClick={markAllRead}
-              className="hidden md:flex items-center gap-2 text-[#C5A55A] font-medium text-sm hover:text-[#1E3A5F] transition">
+              className="hidden md:flex items-center gap-2 text-[#1DBAEA] font-medium text-sm hover:text-[#2B3E8F] transition">
               <CheckCheck className="w-4 h-4" />
               {t('employee.notifications.markAllRead')}
             </button>
@@ -156,7 +158,7 @@ export default function EmployeeNotifications() {
           <button onClick={() => i18n.changeLanguage(isArabic ? 'en' : 'ar')}
             className="flex items-center gap-2 border border-gray-200 bg-white px-4 py-2 rounded-full hover:bg-gray-50 transition text-sm">
             <span>🌐</span>
-            <span className="text-[#1E3A5F] font-medium">{isArabic ? 'EN' : 'AR'}</span>
+            <span className="text-[#2B3E8F] font-medium">{isArabic ? 'EN' : 'AR'}</span>
           </button>
           <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 text-sm transition">{t('employee.logout')}</button>
         </div>
@@ -169,7 +171,7 @@ export default function EmployeeNotifications() {
         {unreadCount > 0 && (
           <div className="md:hidden mb-4 flex justify-end">
             <button onClick={markAllRead}
-              className="flex items-center gap-2 px-4 py-2 bg-[#C5A55A] text-white rounded-xl text-sm font-medium">
+              className="flex items-center gap-2 px-4 py-2 bg-[#1DBAEA] text-white rounded-xl text-sm font-medium">
               <CheckCheck className="w-4 h-4" />
               {t('employee.notifications.markAllRead')}
             </button>
@@ -182,7 +184,7 @@ export default function EmployeeNotifications() {
             {tabs.map(tab => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                 className={`px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition ${
-                  activeTab === tab.key ? 'bg-[#C5A55A] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  activeTab === tab.key ? 'bg-[#1DBAEA] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>
                 {tab.label}
               </button>
@@ -194,7 +196,7 @@ export default function EmployeeNotifications() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center h-48">
-              <div className="w-8 h-8 border-4 border-[#C5A55A] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[#1DBAEA] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : displayed.length === 0 ? (
             <div className="py-16 text-center">
@@ -215,7 +217,7 @@ export default function EmployeeNotifications() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className={`font-semibold text-sm ${n.is_read ? 'text-gray-600' : 'text-[#1E3A5F]'}`}>
+                            <h3 className={`font-semibold text-sm ${n.is_read ? 'text-gray-600' : 'text-[#2B3E8F]'}`}>
                               {typeLabel(n.type)}
                             </h3>
                             {!n.is_read && <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />}
@@ -230,7 +232,7 @@ export default function EmployeeNotifications() {
                           {!n.is_read && (
                             <button
                               onClick={e => { e.stopPropagation(); markRead(n.id); }}
-                              className="p-1.5 text-gray-400 hover:text-[#C5A55A] hover:bg-gray-100 rounded-lg transition"
+                              className="p-1.5 text-gray-400 hover:text-[#1DBAEA] hover:bg-gray-100 rounded-lg transition"
                               title={t('employee.notifications.markAsRead')}>
                               <Check className="w-4 h-4" />
                             </button>
@@ -257,7 +259,7 @@ export default function EmployeeNotifications() {
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 ${card.bg} rounded-xl flex items-center justify-center`}>{card.icon}</div>
                 <div>
-                  <p className="text-2xl font-bold text-[#1E3A5F]">{card.count}</p>
+                  <p className="text-2xl font-bold text-[#2B3E8F]">{card.count}</p>
                   <p className="text-xs text-gray-500">{card.label}</p>
                 </div>
               </div>

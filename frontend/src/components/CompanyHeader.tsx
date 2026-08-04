@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { LogOut } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "../config";
+import { StepInLogo, SpectrumBar } from "./StepInLogo";
 import { authHeaders, logout } from "../lib/session";
 export default function CompanyHeader() {
   const navigate = useNavigate();
@@ -81,26 +82,22 @@ const navItems = [
 ];
 
   return (
-    <div className="bg-white border-b border-[#ECE7DD] shadow-sm">
+    <div className="bg-white border-b border-brand-navy/10 shadow-sm">
+      {/* شريط الطيف — brand §02: the spectrum rule tops the shell. */}
+      <SpectrumBar />
 <div className="max-w-7xl mx-auto px-8 h-20 flex items-center justify-between gap-8">
             {/* Logo */}
         <div
           onClick={() => navigate("/company-dashboard")}
           className="flex items-center gap-3 cursor-pointer"
         >
-          <img
-            src="/StepInLogo.png"
-            alt="StepIn"
-className="w-12 h-12 object-contain"          />
+          {/* Brand §01: primary lockup on a light background. */}
+          <StepInLogo size="md" />
 
-          <div>
-            <h3 className="text-[#1E3A5F] font-bold text-lg">
-              STEPIN
-            </h3>
-
-<p className="text-xs text-[#8E8E8E]">
-  {t("companyHeader.subtitle")}
-</p>
+          <div className="border-s border-brand-navy/15 ps-3">
+            <p className="text-xs text-brand-gray">
+              {t("companyHeader.subtitle")}
+            </p>
           </div>
         </div>
 
@@ -126,8 +123,8 @@ const active =
 
   ${
     active
-      ? "bg-[#C5A55A] text-white shadow-md"
-      : "text-[#1E3A5F] hover:bg-[#F7F3EE] hover:text-[#C5A55A] hover:-translate-y-0.5"
+      ? "bg-[#1DBAEA] text-white shadow-md"
+      : "text-[#2B3E8F] hover:bg-[#F4F7FB] hover:text-[#1DBAEA] hover:-translate-y-0.5"
   }
 `}
 >
@@ -167,7 +164,7 @@ onClick={() => {
 
   i18n.changeLanguage(newLang);
 }}
-  className="px-4 py-2 rounded-xl border border-[#ECE7DD] text-sm font-semibold text-[#1E3A5F] hover:bg-[#F7F3EE]"
+  className="px-4 py-2 rounded-xl border border-[#D8E4F5] text-sm font-semibold text-[#2B3E8F] hover:bg-[#F4F7FB]"
 >
   🌐 {isArabic ? "EN" : "AR"}
 </button>

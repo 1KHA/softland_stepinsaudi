@@ -180,12 +180,12 @@ return (
   <>
     <CompanyHeader />
 
-    <div className="min-h-screen bg-[#F7F3EE]">
+    <div className="min-h-screen bg-[#F4F7FB]">
 
       {/* Progress Card */}
       <div className="p-8">
 
-<div className="bg-white rounded-3xl p-8 shadow-lg border border-[#ECE7DD]">
+<div className="bg-white rounded-3xl p-8 shadow-lg border border-[#D8E4F5]">
           <div className="flex items-center justify-between mb-6">
 
             <div>
@@ -194,7 +194,7 @@ return (
                 {t('dashboard.currentStage')}
               </p>
 
-<h2 className="text-2xl font-bold text-[#1E3A5F]">
+<h2 className="text-2xl font-bold text-[#2B3E8F]">
   {i18n.language.startsWith("ar")
     ? (
         companyStages.find(
@@ -206,7 +206,7 @@ return (
 
             </div>
 
-            <h1 className="text-5xl font-bold text-[#C5A55A]">
+            <h1 className="text-5xl font-bold text-[#1DBAEA]">
               {progress}%
             </h1>
 
@@ -219,7 +219,7 @@ return (
               style={{
                 width: `${progress}%`
               }}
-              className="h-full bg-[#C5A55A] rounded-full"
+              className="h-full bg-[#1DBAEA] rounded-full"
             ></div>
 
           </div>
@@ -243,7 +243,7 @@ return (
                       ? "bg-green-100 text-green-700 border border-green-300"
                       : stage.status ===
                         "IN_PROGRESS"
-                      ? "bg-[#FFF7E5] text-[#C5A55A] border border-[#F3D48B]"
+                      ? "bg-[#E8F7FD] text-[#1DBAEA] border border-[#4ECBF0]"
                       : "bg-gray-100 text-gray-500 border border-gray-200"
                   }`}
                 >
@@ -275,12 +275,12 @@ return (
 
               <div
                 key={task.id}
-                className="bg-white border border-[#ECE7DD] rounded-3xl p-6 flex items-center justify-between shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                className="bg-white border border-[#D8E4F5] rounded-3xl p-6 flex items-center justify-between shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
               >
 
                 <div>
 
-<h3 className="text-[#1E3A5F] text-xl font-bold">
+<h3 className="text-[#2B3E8F] text-xl font-bold">
   {i18n.language.startsWith("ar")
     ? (task.title_ar || task.title)
     : task.title}
@@ -294,7 +294,7 @@ return (
     task.status === "COMPLETED"
       ? "bg-green-100 text-green-700 border border-green-300"
       : task.status === "IN_PROGRESS"
-      ? "bg-[#FFF7E5] text-[#C5A55A] border border-[#F3D48B]"
+      ? "bg-[#E8F7FD] text-[#1DBAEA] border border-[#4ECBF0]"
       : task.status === "PENDING"
       ? "bg-gray-100 text-gray-700"
       : "bg-red-100 text-red-700"
@@ -305,7 +305,7 @@ return (
 
                 <button
   onClick={() => navigate(`/company-task/${task.id}`)}
-className="bg-[#C5A55A] text-white px-5 py-2 rounded-xl hover:bg-[#B18F46] transition">
+className="bg-[#1DBAEA] text-white px-5 py-2 rounded-xl hover:bg-[#0D5DA6] transition">
 {t("view")}
 </button>
 

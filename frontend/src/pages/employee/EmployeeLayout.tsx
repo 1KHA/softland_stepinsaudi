@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, ClipboardList, Bell, LogOut
 } from 'lucide-react';
+import { StepInLogo } from '../../components/StepInLogo';
 
 interface EmployeeLayoutProps {
   children: React.ReactNode;
@@ -31,7 +32,7 @@ export default function EmployeeLayout({ children }: EmployeeLayoutProps) {
       {/* Sidebar */}
       <aside className="w-64 bg-brand-navy flex flex-col fixed h-full z-20">
         <div className="p-6 border-b border-white/10">
-          <img src="/Screenshot_2026-04-22_142843.png" alt="Logo" className="h-10 w-auto mb-3" />
+          <StepInLogo size="md" inverse className="mb-3" />
           <p className="text-white font-bold text-sm">{user?.name}</p>
           <p className="text-white/50 text-xs">موظف المنصة</p>
         </div>

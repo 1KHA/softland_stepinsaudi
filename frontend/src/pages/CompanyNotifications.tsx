@@ -48,20 +48,20 @@ useEffect(() => {
     <>
       <CompanyHeader />
 
-      <div className="min-h-screen bg-[#F5F2EA] p-8">
+      <div className="min-h-screen bg-[#F4F7FB] p-8">
 <div className="max-w-7xl mx-auto">
               <div className="bg-white rounded-3xl shadow-sm p-8">
             <div className="flex items-center justify-between mb-8">
  <div className="flex items-center gap-4">
-  <div className="w-14 h-14 rounded-2xl bg-[#C5A55A]/10 flex items-center justify-center">
+  <div className="w-14 h-14 rounded-2xl bg-[#1DBAEA]/10 flex items-center justify-center">
     <Bell
       size={28}
-      className="text-[#C5A55A]"
+      className="text-[#1DBAEA]"
     />
   </div>
 
   <div>
-    <h1 className="text-4xl font-bold text-[#1E3A5F]">
+    <h1 className="text-4xl font-bold text-[#2B3E8F]">
 {t("notifications")}
     </h1>
 
@@ -71,7 +71,7 @@ useEffect(() => {
   </div>
 </div>
 
-  <div className="bg-[#C5A55A] text-white px-4 py-2 rounded-full font-semibold">
+  <div className="bg-[#1DBAEA] text-white px-4 py-2 rounded-full font-semibold">
 {notifications.length} {t("notifications")}
   </div>
 </div>
@@ -79,7 +79,7 @@ useEffect(() => {
 <div className="mt-8 space-y-4">
   {notifications.length === 0 ? (
 <div className="border-2 border-dashed border-[#E5E5E5] rounded-3xl p-12 text-center">
-<h3 className="text-xl font-semibold text-[#1E3A5F]">
+<h3 className="text-xl font-semibold text-[#2B3E8F]">
   {t("notificationsPage.noNotifications")}
 </h3>
 
@@ -109,7 +109,7 @@ const licenseIssued = item.type === "LICENSE_ISSUED";
   rejected
     ? "bg-red-50 border-red-100"
     : licenseIssued
-    ? "bg-[#FFF9EC] border-[#E8D39A]"
+    ? "bg-[#E8F7FD] border-[#4ECBF0]"
     : "bg-green-50 border-green-100"
 }
   `}
@@ -119,7 +119,7 @@ className={`w-14 h-14 rounded-full flex items-center justify-center ${
   rejected
     ? "bg-red-100 text-red-500"
     : licenseIssued
-    ? "bg-[#C5A55A]/20 text-[#C5A55A]"
+    ? "bg-[#1DBAEA]/20 text-[#1DBAEA]"
     : "bg-green-100 text-green-600"
 }`}
           >
@@ -131,7 +131,7 @@ className={`w-14 h-14 rounded-full flex items-center justify-center ${
           </div>
 
           <div className="flex-1">
-<h3 className="text-lg font-bold text-[#1E3A5F]">
+<h3 className="text-lg font-bold text-[#2B3E8F]">
 {rejected
   ? t("notificationsPage.documentNeedsReupload")
   : approved

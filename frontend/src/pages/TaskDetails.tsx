@@ -49,12 +49,12 @@ return (
   <>
     <CompanyHeader />
 
-    <div className="min-h-screen bg-[#F8F5EF]">
+    <div className="min-h-screen bg-[#F4F7FB]">
       <div className="max-w-7xl mx-auto px-8 pt-8">
 
       <div className="flex items-center justify-between mb-8">
   <div>
-    <h1 className="text-4xl font-bold text-[#1E3A5F]">
+    <h1 className="text-4xl font-bold text-[#2B3E8F]">
 {i18n.language.startsWith("ar")
   ? (task.title_ar || task.title)
   : task.title}
@@ -67,7 +67,7 @@ return (
 
   <button
     onClick={() => navigate(-1)}
-    className="bg-[#C5A55A] hover:bg-[#B18F46] text-white px-6 py-3 rounded-xl transition"
+    className="bg-[#1DBAEA] hover:bg-[#0D5DA6] text-white px-6 py-3 rounded-xl transition"
   >
 {t("back")}
   </button>
@@ -76,7 +76,7 @@ return (
 
 <div className="space-y-8">
           {/* STATUS */}
-<div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#ECE7DD]">
+<div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#D8E4F5]">
           <div className="flex justify-between items-center">
             <div>
               <p className="text-gray-500 mb-2">{t("task.currentStatus")}</p>
@@ -99,7 +99,7 @@ return (
         </div>
 
         {/* DESCRIPTION */}
-<div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#ECE7DD]">
+<div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#D8E4F5]">
           <h2 className="text-2xl font-bold text-[#4B5563] mb-5">
 {t("task.whatYouNeedToDo")}
           </h2>
@@ -110,7 +110,7 @@ return (
         </div>
 
         {/* REQUIRED DOCUMENTS */}
-<div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#ECE7DD]">
+<div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#D8E4F5]">
           <h2 className="text-2xl font-bold text-[#4B5563] mb-6">
 {t("task.requiredDocuments")}
           </h2>
@@ -122,7 +122,7 @@ return (
                 className="border border-gray-200 rounded-xl p-4 flex justify-between"
               >
                 <div>
-<p className="font-semibold text-[#1E3A5F]">
+<p className="font-semibold text-[#2B3E8F]">
 📄 {
   i18n.language.startsWith("ar")
     ? (doc.document_name_ar || doc.document_name)
@@ -158,7 +158,7 @@ return (
         </div>
 
         {/* UPLOAD SECTION */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#ECE7DD]">
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-[#D8E4F5]">
           <h2 className="text-2xl font-bold text-[#4B5563] mb-6">
 {t("task.uploadDocuments")}
           </h2>
@@ -173,7 +173,7 @@ return (
               .map((doc: any) => (
                 <div
                   key={doc.document_name}
-                  className="bg-[#FCFCFC] border border-dashed border-[#C5A55A] rounded-2xl p-5 flex justify-between items-center hover:bg-[#FFFCF6] transition"
+                  className="bg-[#F4F7FB] border border-dashed border-[#1DBAEA] rounded-2xl p-5 flex justify-between items-center hover:bg-[#F4F7FB] transition"
                 >
                   <div>
 <p className="font-semibold">
@@ -248,7 +248,7 @@ return (
       doc.status === "NEEDS_RESUBMISSION"
   ) && (
     <button
-className="bg-[#C5A55A] hover:bg-[#B18F46] transition text-white px-8 py-3 rounded-xl font-semibold shadow-md"
+className="bg-[#1DBAEA] hover:bg-[#0D5DA6] transition text-white px-8 py-3 rounded-xl font-semibold shadow-md"
                 onClick={async () => {
 
                   const requiredDocs = task.requiredDocuments.filter(

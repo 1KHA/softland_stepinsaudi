@@ -83,3 +83,6 @@ backend/prisma/seed.js
 # R-12: uploaded customer documents must never be committed
 backend/uploads/
 !backend/uploads/.gitkeep
+
+/newland
+/brand

@@ -1,9 +1,10 @@
 /* --- MANAGED FONT IMPORTS START (do not edit manually) --- */
-/* INTERNAL USE NAME: Heading */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+/* Brand typeface — IBM Plex Sans Arabic carries BOTH Arabic and Latin, per the
+   StepIn brand guidelines (§03: "العربية والإنجليزية — خط واحد"). Weights map to
+   the four the guidelines define: 300 long-form, 400 body, 600 labels, 700 headings. */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 /* INTERNAL USE NAME: Mono */
 @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
 
 /* --- MANAGED FONT IMPORTS END --- */
 
@@ -51,12 +52,11 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --font-body: 'Montserrat', sans-serif;
+  --font-body: 'IBM Plex Sans Arabic', sans-serif;
 }
 
-html[lang='ar'] {
-  --font-body: 'Cairo', sans-serif;
-}
+/* One typeface for both scripts — no Arabic-specific override. The brand
+   guidelines forbid using any other family in official material. */
 
 :root.dark {
   --background: oklch(0.145 0 0);

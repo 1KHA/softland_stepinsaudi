@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { API_URL } from "../config";
+import { StepInLogo, SpectrumBar } from "../components/StepInLogo";
 export function LoginPage() {
 const sectors = [
   { id: 1, name: 'Entrepreneurial' },
@@ -403,18 +404,17 @@ data.message
     <div className="min-h-screen bg-brand-cream flex flex-col">
       {/* Top Bar */}
       <div className="bg-white shadow-sm">
+        {/* شريط الطيف — brand §02 */}
+        <SpectrumBar />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <Link
             to="/"
-            className="flex items-center gap-3 text-brand-navy hover:text-brand-gold transition-colors group">
+            className="flex items-center gap-3 text-brand-navy hover:text-brand-cyan transition-colors group">
             <BackIcon className={`w-5 h-5 transition-transform ${isArabic ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`} />
             <span className="font-medium">{t('common.backHome')}</span>
           </Link>
-          <Link to="/">
-            <img
-              src="/StepInLogo.png"
-              alt={t('common.brand')}
-              className="h-12 w-auto object-contain" />
+          <Link to="/" aria-label={t('common.brand')}>
+            <StepInLogo size="md" />
           </Link>
         </div>
       </div>

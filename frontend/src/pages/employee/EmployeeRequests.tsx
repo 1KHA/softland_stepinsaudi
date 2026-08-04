@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { Footer } from '../../components/Footer';
 import axios from 'axios';
 import {
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { API_URL } from "../../config";
+import { StepInLogo, SpectrumBar } from "../../components/StepInLogo";
 const API = `${API_URL}`;
 const ITEMS_PER_PAGE = 10;
 
@@ -99,35 +100,36 @@ export default function EmployeeRequests() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F7F3EE]" dir={dir}>
+    <div className="min-h-screen bg-brand-bg" dir={dir}>
+      <SpectrumBar />
 
       {/* ── HEADER ── */}
       <div className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <img src="/Screenshot_2026-04-22_142843.png" alt="Logo" className="h-10 w-auto object-contain" />
+          <StepInLogo size="md" />
           <div className={`${isArabic ? 'border-r border-gray-200 pr-4' : 'border-l border-gray-200 pl-4'} flex items-center gap-3`}>
-            <button onClick={() => navigate('/employee-dashboard')} className="text-[#1E3A5F] hover:text-[#C5A55A] transition">
+            <button onClick={() => navigate('/employee-dashboard')} className="text-[#2B3E8F] hover:text-[#1DBAEA] transition">
               <ArrowBack className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-[#1E3A5F]">{t('employee.requests.title')}</h1>
+              <h1 className="text-xl font-bold text-[#2B3E8F]">{t('employee.requests.title')}</h1>
               <p className="text-gray-500 text-sm">{t('employee.requests.subtitle')}</p>
             </div>
           </div>
         </div>
 
         <div className="hidden md:flex items-center gap-8">
-          <button onClick={() => navigate('/employee-dashboard')} className="text-[#1E3A5F]/70 hover:text-[#C5A55A] font-medium text-sm transition">{t('employee.nav.home')}</button>
-          <button onClick={() => navigate('/employee-requests')} className="text-[#1E3A5F] font-semibold border-b-2 border-[#C5A55A] pb-0.5 text-sm">{t('employee.nav.requests')}</button>
-          <button onClick={() => navigate('/employee-documents')} className="text-[#1E3A5F]/70 hover:text-[#C5A55A] font-medium text-sm transition">{t('employee.nav.documents')}</button>
-          <button onClick={() => navigate('/employee-notifications')} className="text-[#1E3A5F]/70 hover:text-[#C5A55A] font-medium text-sm transition">{t('employee.nav.notifications')}</button>
+          <button onClick={() => navigate('/employee-dashboard')} className="text-[#2B3E8F]/70 hover:text-[#1DBAEA] font-medium text-sm transition">{t('employee.nav.home')}</button>
+          <button onClick={() => navigate('/employee-requests')} className="text-[#2B3E8F] font-semibold border-b-2 border-[#1DBAEA] pb-0.5 text-sm">{t('employee.nav.requests')}</button>
+          <button onClick={() => navigate('/employee-documents')} className="text-[#2B3E8F]/70 hover:text-[#1DBAEA] font-medium text-sm transition">{t('employee.nav.documents')}</button>
+          <button onClick={() => navigate('/employee-notifications')} className="text-[#2B3E8F]/70 hover:text-[#1DBAEA] font-medium text-sm transition">{t('employee.nav.notifications')}</button>
         </div>
 
         <div className="flex items-center gap-3">
           <button onClick={() => i18n.changeLanguage(isArabic ? 'en' : 'ar')}
             className="flex items-center gap-2 border border-gray-200 bg-white px-4 py-2 rounded-full hover:bg-gray-50 transition text-sm">
             <span>🌐</span>
-            <span className="text-[#1E3A5F] font-medium">{isArabic ? 'EN' : 'AR'}</span>
+            <span className="text-[#2B3E8F] font-medium">{isArabic ? 'EN' : 'AR'}</span>
           </button>
           <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 text-sm transition">{t('employee.logout')}</button>
         </div>
@@ -140,21 +142,21 @@ export default function EmployeeRequests() {
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
           <div className="flex flex-col md:flex-row gap-4 items-center">
             <div className="relative flex-1 w-full max-w-lg">
-              <div className={`absolute ${isArabic ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 bg-[#C5A55A]/10 p-1.5 rounded-lg`}>
-                <Search className="w-4 h-4 text-[#C5A55A]" />
+              <div className={`absolute ${isArabic ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 bg-[#1DBAEA]/10 p-1.5 rounded-lg`}>
+                <Search className="w-4 h-4 text-[#1DBAEA]" />
               </div>
               <input
                 type="text"
                 placeholder={t('employee.requests.searchPlaceholder')}
                 value={search}
                 onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                className={`w-full ${isArabic ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C5A55A] focus:ring-2 focus:ring-[#C5A55A]/20 text-sm`}
+                className={`w-full ${isArabic ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#1DBAEA] focus:ring-2 focus:ring-[#1DBAEA]/20 text-sm`}
               />
             </div>
 
             <button onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-5 py-3 rounded-xl border transition text-sm ${
-                showFilters ? 'bg-[#C5A55A] text-white border-[#C5A55A]' : 'border-gray-200 text-[#1E3A5F] hover:bg-gray-50'
+                showFilters ? 'bg-[#1DBAEA] text-white border-[#1DBAEA]' : 'border-gray-200 text-[#2B3E8F] hover:bg-gray-50'
               }`}>
               <Filter className="w-4 h-4" />
               {t('employee.requests.filterStatus')}
@@ -176,7 +178,7 @@ export default function EmployeeRequests() {
                   <button key={opt.value}
                     onClick={() => { setStatusFilter(opt.value); setCurrentPage(1); }}
                     className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-                      statusFilter === opt.value ? 'bg-[#C5A55A] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      statusFilter === opt.value ? 'bg-[#1DBAEA] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}>
                     {opt.label}
                   </button>
@@ -190,7 +192,7 @@ export default function EmployeeRequests() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center h-48">
-              <div className="w-8 h-8 border-4 border-[#C5A55A] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[#1DBAEA] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : paginated.length === 0 ? (
             <div className="py-16 text-center text-gray-500">
@@ -219,7 +221,7 @@ export default function EmployeeRequests() {
                 <tbody>
                   {paginated.map(req => (
                     <tr key={req.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
-                      <td className="py-3.5 px-5 text-sm font-mono font-medium text-[#1E3A5F]">
+                      <td className="py-3.5 px-5 text-sm font-mono font-medium text-[#2B3E8F]">
                         REQ-{String(req.id).padStart(3, '0')}
                       </td>
                       <td className="py-3.5 px-5 text-sm font-medium text-gray-800">{req.company_name}</td>
@@ -236,7 +238,7 @@ export default function EmployeeRequests() {
                       </td>
                       <td className="py-3.5 px-5">
                         <button onClick={() => navigate(`/employee-requests/${req.id}`)}
-                          className="flex items-center gap-2 text-[#C5A55A] font-medium text-sm hover:text-[#1E3A5F] transition">
+                          className="flex items-center gap-2 text-[#1DBAEA] font-medium text-sm hover:text-[#2B3E8F] transition">
                           <Eye className="w-4 h-4" />
                           {t('employee.requests.details')}
                         </button>
@@ -260,19 +262,19 @@ export default function EmployeeRequests() {
               </p>
               <div className="flex items-center gap-2">
                 <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-gray-200 text-[#1E3A5F] hover:bg-gray-50 disabled:opacity-40">
+                  className="p-2 rounded-lg border border-gray-200 text-[#2B3E8F] hover:bg-gray-50 disabled:opacity-40">
                   <PrevChevron className="w-4 h-4" />
                 </button>
                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => (
                   <button key={page} onClick={() => setCurrentPage(page)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                      currentPage === page ? 'bg-[#C5A55A] text-white' : 'border border-gray-200 text-[#1E3A5F] hover:bg-gray-50'
+                      currentPage === page ? 'bg-[#1DBAEA] text-white' : 'border border-gray-200 text-[#2B3E8F] hover:bg-gray-50'
                     }`}>
                     {page}
                   </button>
                 ))}
                 <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-gray-200 text-[#1E3A5F] hover:bg-gray-50 disabled:opacity-40">
+                  className="p-2 rounded-lg border border-gray-200 text-[#2B3E8F] hover:bg-gray-50 disabled:opacity-40">
                   <NextChevron className="w-4 h-4" />
                 </button>
               </div>
