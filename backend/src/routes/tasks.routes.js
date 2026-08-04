@@ -1,8 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma/client');
+const authMiddleware = require('../middleware/authMiddleware');
+const checkRole = require('../middleware/checkRole');
 
-// GET ALL TASKS
+// R-02: every route below requires a valid token.
+router.use(authMiddleware);
+
+// GET ALL TASKS — open to any authenticated user (read-only list).
 router.get('/', async (req, res) => {
 
   const { stage_id, sector_id } = req.query;
@@ -63,6 +68,10 @@ router.get('/', async (req, res) => {
   }
 
 });
+
+// R-02: everything from here down is ADMIN-only — including any
+// route added later, so this fails closed by default.
+router.use(checkRole("ADMIN"));
 
 // CREATE TASK
 router.post('/', async (req, res) => {
@@ -365,7 +374,7 @@ router.delete('/:id', async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: err.message
+      message: 'Server error'
     });
 
   }

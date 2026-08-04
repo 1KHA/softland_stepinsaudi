@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { API_URL } from "../../config";
+import { openDocument } from "../../lib/files";
 const API = `${API_URL}`;
 type TabKey = 'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEEDS_RESUBMISSION';
 type ConfirmType = { type: 'reject' | 'resubmit'; docId: number } | null;
@@ -332,14 +333,15 @@ export default function DocumentsReview() {
                       </td>
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-1.5">
-                          <a href={doc.file_url} target="_blank" rel="noreferrer"
+                          {/* R-12: authenticated download — see lib/files.ts */}
+                          <button type="button" onClick={() => openDocument(doc.id, 'view')}
                             className="p-2 text-[#C5A55A] hover:bg-[#C5A55A]/10 rounded-lg transition" title={t('employee.documents.actions.view')}>
                             <Eye className="w-4 h-4" />
-                          </a>
-                          <a href={doc.file_url} download
+                          </button>
+                          <button type="button" onClick={() => openDocument(doc.id, 'download')}
                             className="p-2 text-[#C5A55A] hover:bg-[#C5A55A]/10 rounded-lg transition" title={t('employee.documents.actions.download')}>
                             <Download className="w-4 h-4" />
-                          </a>
+                          </button>
                           {(doc.status?.toUpperCase() === 'PENDING' || doc.status?.toUpperCase() === 'NEEDS_RESUBMISSION') && (
                             <button onClick={() => handleApprove(doc.id)}
                               className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition" title={t('employee.documents.actions.approve')}>

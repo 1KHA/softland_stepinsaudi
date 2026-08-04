@@ -2,8 +2,15 @@ const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/upload");
 const prisma = require('../prisma/client');
+const { toRelative, toDownloadUrl } = require("../lib/fileUrl");
 const authMiddleware = require("../middleware/authMiddleware");
 const checkOwnership = require("../middleware/ownership");
+const {
+  requireCompanyAccess,
+  fromParam,
+  fromCompanyTask,
+  fromBodyCompanyTask
+} = require("../middleware/ownership");
 
 const {
   createCompany,
@@ -50,9 +57,12 @@ router.put('/assign/:id', authMiddleware, async (req, res) => {
     });
 
   } catch (err) {
+    // R-18: log server-side, return nothing internal to the client.
+    console.error('Assign employee error:', err);
+
     return res.status(500).json({
       success: false,
-      error: err.message
+      message: 'Server error'
     });
   }
 
@@ -105,6 +115,7 @@ router.put(
 router.get(
   '/:companyId/stages',
   authMiddleware,
+  requireCompanyAccess(fromParam('companyId')),
   async (req, res) => {
 
     const { companyId } = req.params;
@@ -141,10 +152,12 @@ router.get(
       });
 
     } catch (err) {
+      // R-18: log server-side, return nothing internal to the client.
+      console.error('Company stages error:', err);
+
       return res.status(500).json({
         success: false,
-        error: JSON.stringify(err),
-        message: err.message
+        message: 'Server error'
       });
     }
 
@@ -155,6 +168,7 @@ router.get(
 router.get(
   '/:companyId/tasks',
   authMiddleware,
+  requireCompanyAccess(fromParam('companyId')),
   async (req, res) => {
 
     const { companyId } = req.params;
@@ -191,10 +205,12 @@ tasks: {
       });
 
     } catch (err) {
+      // R-18: log server-side, return nothing internal to the client.
+      console.error('Company stages error:', err);
+
       return res.status(500).json({
         success: false,
-        error: JSON.stringify(err),
-        message: err.message
+        message: 'Server error'
       });
     }
 
@@ -205,6 +221,7 @@ tasks: {
 router.get(
   "/:companyId/progress",
   authMiddleware,
+  requireCompanyAccess(fromParam('companyId')),
   async (req, res) => {
 
     const { companyId } = req.params;
@@ -245,6 +262,7 @@ router.get(
 router.post(
   "/tasks/:taskId/upload",
   authMiddleware,
+  requireCompanyAccess(fromCompanyTask('taskId')),
   upload.array("files"),
   async (req, res) => {
 
@@ -278,8 +296,12 @@ console.log("BODY =", req.body);
       for (let index = 0; index < req.files.length; index++) {
         const file = req.files[index];
 
-        const fileUrl =
-          `http://localhost:3000/uploads/${file.filename}`;
+        // R-12: store a RELATIVE path. This used to bake
+        // `http://localhost:3000/uploads/...` into the column — a host the API
+        // has not listened on for a long time, so every such row is already
+        // wrong. Reads go through lib/fileUrl.toRelative(), which strips the
+        // legacy prefix, so the old rows keep resolving with no migration.
+        const fileUrl = file.filename;
 
         const documentName =
           documentNames[index] || null;
@@ -418,7 +440,11 @@ for (const admin of admins) {
   }
 );
 
-router.get("/tasks/:id", async (req, res) => {
+router.get(
+  "/tasks/:id",
+  authMiddleware,
+  requireCompanyAccess(fromCompanyTask('id')),
+  async (req, res) => {
 
   const taskId = req.params.id;
 
@@ -521,14 +547,26 @@ router.get("/tasks/:id", async (req, res) => {
     }
 
   } catch (err) {
-    return res.status(500).json(err);
+    // R-18: `json(err)` serialised to `{}` (Error fields are non-enumerable),
+    // so the client learned nothing and the real error was lost.
+    console.error('Company documents error:', err);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
   }
 
-});
+  }
+);
 
 router.post(
   "/tasks/upload",
+  authMiddleware,
+  // multipart: company_task_id only exists in req.body once multer has parsed it,
+  // so the access check has to run after upload.array
   upload.array("files"),
+  requireCompanyAccess(fromBodyCompanyTask('company_task_id')),
   async (req, res) => {
 
     console.log("FILES:", req.files?.length);
@@ -556,7 +594,8 @@ try {
         "latin1"
       ).toString("utf8"),
 
-      file_url: `/uploads/${file.filename}`,
+      // R-12: relative path only — see lib/fileUrl.js
+      file_url: file.filename,
 
       required_document_name:
         req.body.required_document_name[index]
@@ -579,6 +618,7 @@ try {
 router.put(
   "/tasks/:id/status",
   authMiddleware,
+  requireCompanyAccess(fromCompanyTask('id')),
   async (req, res) => {
 
     const taskId = req.params.id;
@@ -666,7 +706,13 @@ router.put(
       });
 
     } catch (err) {
-      return res.status(500).json(err);
+      // R-18: see note above — `json(err)` sent an empty object.
+      console.error('Task status update error:', err);
+
+      return res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
 
   }
@@ -777,7 +823,14 @@ include: {
 const flattened = rows.map((td) => ({
   id: td.id,
   file_name: td.file_name,
-  file_url: td.file_url,
+
+  // R-12: normalise at READ time so rows written before this phase (which hold
+  // an absolute http://localhost:3000/uploads/... URL) come back in the same
+  // shape as new ones. `download_url` is the authenticated route the UI uses;
+  // `file_url` is now a bare relative path and is not directly fetchable.
+  file_url: toRelative(td.file_url),
+  download_url: toDownloadUrl(td.id),
+
   uploaded_at: td.uploaded_at,
 
   license_name:

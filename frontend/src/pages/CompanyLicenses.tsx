@@ -5,6 +5,7 @@ import { FileCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { API_URL } from "../config";
+import { openDocument } from "../lib/files";
 export default function CompanyLicenses() {
   const { t, i18n } = useTranslation();
 
@@ -97,21 +98,22 @@ console.log(res.data.licenses);
                     </p>
 
                     <div className="flex gap-3 mt-6">
-<a
-  href={license.file_url}
-  target="_blank"
-  rel="noreferrer"
+{/* R-12: documents are behind an authenticated endpoint now, and an
+    anchor cannot send an Authorization header — see lib/files.ts */}
+<button
+  type="button"
+  onClick={() => openDocument(license.id, "view")}
   className="flex-1 text-center bg-[#1E3A5F] text-white py-3 rounded-xl hover:opacity-90"
 >
   {t("view")}
-</a>
-                      <a
-                        href={license.file_url}
-                        download
+</button>
+                      <button
+                        type="button"
+                        onClick={() => openDocument(license.id, "download")}
                         className="flex-1 text-center bg-[#C5A55A] text-white py-3 rounded-xl hover:opacity-90"
                       >
                          {t("download")}
-                      </a>
+                      </button>
                     </div>
                   </div>
                 ))}

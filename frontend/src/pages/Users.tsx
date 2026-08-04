@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { PlusIcon, Edit2Icon, Trash2Icon, XCircleIcon } from 'lucide-react';
 import { API_URL } from "../config";
+import { authHeaders } from "../lib/session";
 interface User {
   id: string;
   name: string;
@@ -385,7 +386,8 @@ let backendRole = 'ADMIN';
           {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              ...authHeaders()
             },
             body: JSON.stringify({
               name: formState.name,

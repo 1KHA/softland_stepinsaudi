@@ -197,7 +197,14 @@ element={<ForgotPassword />}
           />
 
             {/* ── ADMIN DASHBOARD ─── */}
-<Route path="/admin" element={<Layout />}>
+<Route
+  path="/admin"
+  element={
+    <ProtectedRoute allowedRole="ADMIN">
+      <Layout />
+    </ProtectedRoute>
+  }
+>
   <Route index element={<Dashboard />} />
   <Route path="users" element={<Users />} />
   <Route path="companies" element={<Companies />} />

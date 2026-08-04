@@ -11,15 +11,15 @@ import {
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from "../config";
-type NotificationType = 'document' | 'approved' | 'rejected' | 'stage' | 'alert';
-interface Notification {
-  id: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  read: boolean;
-  type: NotificationType;
-}
+import { authHeaders } from "../lib/session";
+import {
+  normalizeNotifications,
+  NormalizedNotification,
+  NotificationTone } from
+'../lib/notifications';
+// The row shape is owned by lib/notifications.ts: `tone`, `actions` and
+// `status` are always populated, even for backend types the UI has never seen.
+type Notification = NormalizedNotification;
 export const Notifications: React.FC = () => {
   const { t, language } = useAppContext();
   const isRtl = language === 'ar';
@@ -71,13 +71,11 @@ const getNotificationDescription = (
 
 const fetchNotifications = async () => {
   try {
-    const token = localStorage.getItem("token");
-
     const response = await fetch(
       `${API_URL}/companies/notifications`,
       {
         headers: {
-          Authorization: `Bearer ${token}`
+          ...authHeaders()
         }
       }
     );
@@ -87,19 +85,7 @@ const fetchNotifications = async () => {
     console.log("Notifications API:", data);
 
     setNotifications(
-      (data.notifications || []).map((item: any) => ({
-        id: String(item.id),
-
-        type: item.type,
-
-        description: item.message?.includes("|")
-  ? item.message.split("|")[1]
-  : item.message, // 🔥 خليها كذا من الباك
-
-        timestamp: item.created_at,
-
-        read: item.is_read === 1,
-      }))
+      normalizeNotifications(data.notifications)
     );
 
   } catch (error) {
@@ -143,22 +129,6 @@ const fetchNotifications = async () => {
     changeStage: 'Change stage'
   };
 
-  const actionKeysByType: Record<NotificationType, Array<'preview'|'approve'|'reject'|'view'|'edit'|'notify'|'changeStage'>> = {
-    document: ['preview', 'approve', 'reject'],
-    approved: ['view'],
-    rejected: ['view'],
-    stage: ['view', 'changeStage'],
-    alert: ['edit', 'notify']
-  };
-
-  const statusByType: Record<NotificationType, string> = {
-    document: 'Pending review',
-    approved: 'Approved',
-    rejected: 'Rejected',
-    stage: 'Stage update',
-    alert: 'Action required'
-  };
-
   const handleOpenNotification = (notification: Notification) => {
     if (!notification.read) {
       markAsRead(notification.id);
@@ -174,8 +144,8 @@ const fetchNotifications = async () => {
     console.log('Notification action:', action, selectedNotification?.id);
   };
 
-  const getIcon = (type: NotificationType) => {
-    switch (type) {
+  const getIcon = (tone: NotificationTone) => {
+    switch (tone) {
       case 'document':
         return <FileIcon size={20} className="text-blue-500" />;
       case 'approved':
@@ -190,8 +160,8 @@ const fetchNotifications = async () => {
         return <BellIcon size={20} className="text-gray-500" />;
     }
   };
-  const getIconBg = (type: NotificationType) => {
-    switch (type) {
+  const getIconBg = (tone: NotificationTone) => {
+    switch (tone) {
       case 'document':
         return 'bg-blue-500/10';
       case 'approved':
@@ -276,9 +246,9 @@ const fetchNotifications = async () => {
               }
 
                   <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${getIconBg(notification.type)}`}>
-                
-                    {getIcon(notification.type)}
+                className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${getIconBg(notification.tone)}`}>
+
+                    {getIcon(notification.tone)}
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -346,10 +316,13 @@ const fetchNotifications = async () => {
                 <div className="flex items-start justify-between gap-4 mb-6">
                   <div>
                     <h2 className="text-2xl font-semibold text-navy dark:text-cream-dark">
-                      {selectedNotification.title}
+                      {getNotificationTitle(selectedNotification.type)}
                     </h2>
                     <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                      {selectedNotification.description}
+                      {getNotificationDescription(
+                        selectedNotification.type,
+                        selectedNotification.description
+                      )}
                     </p>
                   </div>
                   <button
@@ -373,13 +346,13 @@ const fetchNotifications = async () => {
                       Status
                     </p>
                     <p className="mt-2 text-sm font-medium text-navy dark:text-cream-dark">
-                      {statusByType[selectedNotification.type]}
+                      {selectedNotification.status}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  {actionKeysByType[selectedNotification.type].map((action) => (
+                  {selectedNotification.actions.map((action) => (
                     <button
                       key={action}
                       onClick={() => handleAction(action)}

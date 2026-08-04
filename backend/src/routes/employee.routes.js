@@ -6,7 +6,14 @@ const {
     updateCompanyStatus
 } = require('../services/workflow.service');
 const authMiddleware = require('../middleware/authMiddleware');
+const {
+    requireCompanyAccess,
+    fromCompany,
+    fromCompanyTask,
+    fromTaskDocument
+} = require('../middleware/ownership');
 const upload = require("../middleware/upload");
+const { toRelative, toDownloadUrl } = require('../lib/fileUrl');
 
 // ─── MIDDLEWARE: employee or admin only ───────────────────────────────────────
 function employeeOrAdmin(req, res, next) {
@@ -88,7 +95,9 @@ router.get('/dashboard/stats', authMiddleware, employeeOrAdmin, async (req, res)
     });
 
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'DB error', error: err.message });
+    console.error('Employee route error:', err);
+
+    return res.status(500).json({ success: false, message: 'DB error' });
   }
 });
 
@@ -193,8 +202,7 @@ router.get('/requests', authMiddleware, employeeOrAdmin, async (req, res) => {
 
   return res.status(500).json({
     success: false,
-    message: 'DB error',
-    error: err.message
+    message: 'DB error'
   });
 
 }
@@ -203,7 +211,7 @@ router.get('/requests', authMiddleware, employeeOrAdmin, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // REQUEST DETAILS
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/requests/:id', authMiddleware, employeeOrAdmin, async (req, res) => {
+router.get('/requests/:id', authMiddleware, employeeOrAdmin, requireCompanyAccess(fromCompany('id')), async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -283,6 +291,11 @@ console.log("DOCUMENTS COUNT =", documentsRaw.length);
       const { company_tasks: ct, ...rest } = td;
       return {
         ...rest,
+
+        // R-12: same read-time normalisation as the documents list.
+        file_url: toRelative(rest.file_url),
+        download_url: toDownloadUrl(rest.id),
+
         company_id: ct ? ct.company_id : null,
         task_title: ct && ct.tasks ? ct.tasks.title : null,
         stage_name: ct && ct.company_stages && ct.company_stages.stages
@@ -300,8 +313,7 @@ console.log("DOCUMENTS COUNT =", documentsRaw.length);
 
   return res.status(500).json({
     success: false,
-    message: 'DB error',
-    error: err.message
+    message: 'DB error'
   });
 
 }
@@ -310,29 +322,11 @@ console.log("DOCUMENTS COUNT =", documentsRaw.length);
 // ─────────────────────────────────────────────────────────────────────────────
 // APPROVE REQUEST
 // ─────────────────────────────────────────────────────────────────────────────
-router.put('/requests/:id/approve', authMiddleware, employeeOrAdmin, async (req, res) => {
+// S-04 / R-11: assignment check is now the shared requireCompanyAccess middleware
+router.put('/requests/:id/approve', authMiddleware, employeeOrAdmin, requireCompanyAccess(fromCompany('id')), async (req, res) => {
   const { id } = req.params;
 
-  // S-04: verify the requesting employee is assigned to this company (admins bypass)
-  async function verifyOwnership() {
-    if (req.user.role === 'ADMIN') return { ok: true };
-    const row = await prisma.companies.findUnique({
-      where: { id: Number(id) },
-      select: { assigned_employee_id: true }
-    });
-    if (!row) return { ok: false, status: 404, message: 'Company not found' };
-    if (row.assigned_employee_id !== req.user.id) {
-      return { ok: false, status: 403, message: 'Not assigned to this company' };
-    }
-    return { ok: true };
-  }
-
   try {
-
-    const ownership = await verifyOwnership();
-    if (!ownership.ok) {
-      return res.status(ownership.status).json({ success: false, message: ownership.message });
-    }
 
     // تحديث الشركة
     await prisma.companies.update({
@@ -387,28 +381,10 @@ router.put('/requests/:id/approve', authMiddleware, employeeOrAdmin, async (req,
 // ─────────────────────────────────────────────────────────────────────────────
 // REJECT REQUEST
 // ─────────────────────────────────────────────────────────────────────────────
-router.put('/requests/:id/reject', authMiddleware, employeeOrAdmin, async (req, res) => {
+router.put('/requests/:id/reject', authMiddleware, employeeOrAdmin, requireCompanyAccess(fromCompany('id')), async (req, res) => {
   const { id } = req.params;
 
-  async function verifyOwnership() {
-    if (req.user.role === 'ADMIN') return { ok: true };
-    const row = await prisma.companies.findUnique({
-      where: { id: Number(id) },
-      select: { assigned_employee_id: true }
-    });
-    if (!row) return { ok: false, status: 404, message: 'Company not found' };
-    if (row.assigned_employee_id !== req.user.id) {
-      return { ok: false, status: 403, message: 'Not assigned to this company' };
-    }
-    return { ok: true };
-  }
-
   try {
-
-    const ownership = await verifyOwnership();
-    if (!ownership.ok) {
-      return res.status(ownership.status).json({ success: false, message: ownership.message });
-    }
 
     await prisma.companies.update({
       where: { id: Number(id) },
@@ -449,28 +425,10 @@ router.put('/requests/:id/reject', authMiddleware, employeeOrAdmin, async (req, 
 // ─────────────────────────────────────────────────────────────────────────────
 // REQUEST RESUBMISSION
 // ─────────────────────────────────────────────────────────────────────────────
-router.put('/requests/:id/resubmit', authMiddleware, employeeOrAdmin, async (req, res) => {
+router.put('/requests/:id/resubmit', authMiddleware, employeeOrAdmin, requireCompanyAccess(fromCompany('id')), async (req, res) => {
   const { id } = req.params;
 
-  async function verifyOwnership() {
-    if (req.user.role === 'ADMIN') return { ok: true };
-    const row = await prisma.companies.findUnique({
-      where: { id: Number(id) },
-      select: { assigned_employee_id: true }
-    });
-    if (!row) return { ok: false, status: 404, message: 'Company not found' };
-    if (row.assigned_employee_id !== req.user.id) {
-      return { ok: false, status: 403, message: 'Not assigned to this company' };
-    }
-    return { ok: true };
-  }
-
   try {
-
-    const ownership = await verifyOwnership();
-    if (!ownership.ok) {
-      return res.status(ownership.status).json({ success: false, message: ownership.message });
-    }
 
     await prisma.companies.update({
       where: { id: Number(id) },
@@ -555,7 +513,12 @@ router.get('/documents', authMiddleware, employeeOrAdmin, async (req, res) => {
       return {
         id: td.id,
         file_name: td.file_name,
-        file_url: td.file_url,
+
+        // R-12: legacy absolute URLs normalised on read; the UI downloads
+        // through the authenticated /files/:id route.
+        file_url: toRelative(td.file_url),
+        download_url: toDownloadUrl(td.id),
+
         status: td.status,
         uploaded_at: td.uploaded_at,
         rejection_reason: td.rejection_reason,
@@ -581,7 +544,9 @@ router.get('/documents', authMiddleware, employeeOrAdmin, async (req, res) => {
     res.json({ success: true, documents });
 
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'DB error', error: err.message });
+    console.error('Employee route error:', err);
+
+    return res.status(500).json({ success: false, message: 'DB error' });
   }
 });
 
@@ -592,6 +557,7 @@ router.put(
   '/documents/:id/approve',
   authMiddleware,
   employeeOrAdmin,
+  requireCompanyAccess(fromTaskDocument('id')),
   async (req, res) => {
 
     const { id } = req.params;
@@ -826,7 +792,7 @@ router.put(
 // ─────────────────────────────────────────────────────────────────────────────
 // REJECT DOCUMENT
 // ─────────────────────────────────────────────────────────────────────────────
-router.put('/documents/:id/reject', authMiddleware, employeeOrAdmin, async (req, res) => {
+router.put('/documents/:id/reject', authMiddleware, employeeOrAdmin, requireCompanyAccess(fromTaskDocument('id')), async (req, res) => {
   const { id } = req.params;
   const { reason } = req.body;
 
@@ -888,6 +854,20 @@ router.put('/documents/:id/reject', authMiddleware, employeeOrAdmin, async (req,
   });
 
 } catch (err) {
+
+  // R-18: this catch was empty and sent no response at all, so any failure
+  // above left the request hanging until the client timed out.
+  console.error('Document reject error:', err);
+
+  if (res.headersSent) {
+    return;
+  }
+
+  res.status(500).json({
+    success: false,
+    message: 'Failed to reject document'
+  });
+
 }});
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -897,6 +877,7 @@ router.put(
   '/documents/:id/needs-resubmission',
   authMiddleware,
   employeeOrAdmin,
+  requireCompanyAccess(fromTaskDocument('id')),
   async (req, res) => {
 
     const { id } = req.params;
@@ -1306,6 +1287,7 @@ router.post(
   "/tasks/:taskId/final-license",
   authMiddleware,
   employeeOrAdmin,
+  requireCompanyAccess(fromCompanyTask('taskId')),
   upload.single("file"),
   async (req, res) => {
     const { taskId } = req.params;
@@ -1317,7 +1299,10 @@ router.post(
       });
     }
 
-    const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
+    // R-12: store a RELATIVE path (see lib/fileUrl.js). The old absolute
+    // `http://localhost:3000/uploads/...` value pointed at a port the API no
+    // longer listens on; legacy rows are normalised on read instead of migrated.
+    const fileUrl = req.file.filename;
 
     try {
 

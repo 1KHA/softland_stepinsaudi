@@ -4,6 +4,7 @@ import CompanyHeader from "../components/CompanyHeader";
 import { useTranslation } from "react-i18next";
 
 import { API_URL } from "../config";
+import { authHeaders } from "../lib/session";
 export default function TaskDetails() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -21,7 +22,12 @@ const [showError, setShowError] = useState(false);
     const fetchTask = async () => {
       try {
         const response = await fetch(
-          `${API_URL}/companies/tasks/${id}`
+          `${API_URL}/companies/tasks/${id}`,
+          {
+            headers: {
+              ...authHeaders()
+            }
+          }
         );
 
         const data = await response.json();

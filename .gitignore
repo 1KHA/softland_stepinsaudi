@@ -79,3 +79,7 @@ frontend/.env.example
 backend/prisma/seed-demo.js
 backend/prisma/seed.js
 /mdfiles
+
+# R-12: uploaded customer documents must never be committed
+backend/uploads/
+!backend/uploads/.gitkeep

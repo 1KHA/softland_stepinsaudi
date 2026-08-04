@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 import { API_URL } from "../config";
+import { authHeaders } from "../lib/session";
 interface Task {
   id: number;
   title: string;
@@ -86,9 +87,21 @@ const [newDocument, setNewDocument] =
 
       const [tasksRes, stagesRes, sectorsRes] =
         await Promise.all([
-          fetch(`${API_URL}/tasks`),
-          fetch(`${API_URL}/stages`),
-          fetch(`${API_URL}/sectors`)
+          fetch(`${API_URL}/tasks`, {
+            headers: {
+              ...authHeaders()
+            }
+          }),
+          fetch(`${API_URL}/stages`, {
+            headers: {
+              ...authHeaders()
+            }
+          }),
+          fetch(`${API_URL}/sectors`, {
+            headers: {
+              ...authHeaders()
+            }
+          })
         ]);
 
       const tasksData = await tasksRes.json();
@@ -122,7 +135,10 @@ const [newDocument, setNewDocument] =
       await fetch(
         `${API_URL}/tasks/${id}`,
         {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            ...authHeaders()
+          }
         }
       );
 
@@ -220,7 +236,8 @@ const payload = {
         {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...authHeaders()
           },
           body: JSON.stringify(payload)
         }
@@ -237,7 +254,8 @@ setTimeout(() => {
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...authHeaders()
           },
           body: JSON.stringify(payload)
         }

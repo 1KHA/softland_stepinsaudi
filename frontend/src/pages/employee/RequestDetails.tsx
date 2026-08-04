@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import { API_URL } from "../../config";
+import { openDocument } from "../../lib/files";
 const API = `${API_URL}`;
 
 type ActionType =
@@ -584,12 +585,13 @@ showToast(t("uploadFailed"), "error");
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusCls(doc.status)}`}>
                           {statusLabel(doc.status)}
                         </span>
-                        <a href={doc.file_url} target="_blank" rel="noreferrer" className="p-2 hover:bg-gray-100 rounded-lg transition">
+                        {/* R-12: authenticated download — see lib/files.ts */}
+                        <button type="button" onClick={() => openDocument(doc.id, "view")} className="p-2 hover:bg-gray-100 rounded-lg transition">
                           <Eye className="w-4 h-4 text-[#1E3A5F]" />
-                        </a>
-                        <a href={doc.file_url} download className="p-2 hover:bg-gray-100 rounded-lg transition">
+                        </button>
+                        <button type="button" onClick={() => openDocument(doc.id, "download")} className="p-2 hover:bg-gray-100 rounded-lg transition">
                           <Download className="w-4 h-4 text-[#1E3A5F]" />
-                        </a>
+                        </button>
 {canManageRequest &&
  doc.status !== "APPROVED" &&
  doc.status !== "NEEDS_RESUBMISSION" && (

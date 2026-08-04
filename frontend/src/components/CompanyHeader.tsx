@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { LogOut } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "../config";
+import { authHeaders, logout } from "../lib/session";
 export default function CompanyHeader() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,7 +18,13 @@ const handleLogout = async () => {
 try {
 
 await axios.post(
-`${API_URL}/auth/logout`
+`${API_URL}/auth/logout`,
+null,
+{
+headers: {
+...authHeaders()
+}
+}
 );
 
 } catch (err) {
@@ -26,16 +33,8 @@ console.log(err);
 
 }
 
-localStorage.removeItem(
-"token"
-);
-
-localStorage.removeItem(
-"user"
-);
-
-navigate(
-"/login"
+logout(
+navigate
 );
 
 };

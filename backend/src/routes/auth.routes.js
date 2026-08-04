@@ -1,9 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const prisma = require('../prisma/client');
 const upload = require("../middleware/upload");
+
+const {
+  loginLimiters,
+  otpVerifyLimiters,
+  otpRequestLimiters,
+  otpRequestIpLimiter,
+  otpRequestEmailLimiter,
+  otpLockoutRemainingMs,
+  recordFailedOtpAttempt,
+  clearOtpAttempts
+} = require('../middleware/rateLimit');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const checkOwnership = require('../middleware/ownership');
@@ -19,10 +31,11 @@ const PHONE_REGEX = /^\d{10}$/;
 
 function generateOTP() {
 
-return Math.floor(
-100000 +
-Math.random() *
-900000
+// R-08: Math.random() is not a cryptographic source — an attacker who sees a
+// few OTPs can predict the rest. crypto.randomInt is uniform and CSPRNG-backed.
+return crypto.randomInt(
+100000,
+1000000
 ).toString();
 
 }
@@ -80,14 +93,72 @@ async function findUserByEmail(email) {
   });
 }
 
+// R-08: `resend_after` was written on every OTP row but never read, so resends
+// were unlimited (email bombing). Returns the number of seconds still to wait,
+// or 0 when a new code may be issued.
+async function resendCooldownSeconds(email, type) {
+
+  let pending;
+
+  try {
+
+    pending = await prisma.otp_requests.findFirst({
+      where: { email, type },
+      orderBy: { id: 'desc' }
+    });
+
+  } catch (err) {
+    // A lookup failure must not block a legitimate resend.
+    return 0;
+  }
+
+  if (!pending || !pending.resend_after) {
+    return 0;
+  }
+
+  const remainingMs =
+    new Date(pending.resend_after).getTime() - Date.now();
+
+  return remainingMs > 0
+    ? Math.ceil(remainingMs / 1000)
+    : 0;
+
+}
+
+// R-08: attempt counter + lockout shared by the two OTP verification routes.
+function otpLockoutResponse(res, email, type) {
+
+  const remainingMs =
+    otpLockoutRemainingMs(email, type);
+
+  if (!remainingMs) {
+    return null;
+  }
+
+  return sendError(
+    res,
+    429,
+    'Too many incorrect codes. Please request a new code and try again later.',
+    {
+      retryAfterSeconds: Math.ceil(remainingMs / 1000)
+    }
+  );
+
+}
+
 // ================= REGISTER WITH COMPANY =================
 
 router.post(
   '/register-with-company',
+  // Per-IP first, so a flood is rejected before multer writes anything to
+  // disk; per-email after, because this is a multipart body and req.body does
+  // not exist until multer has parsed it.
+  otpRequestIpLimiter,
   upload.fields([
     { name: "logo", maxCount: 1 },
     { name: "companyProfile", maxCount: 1 }
   ]),
+  otpRequestEmailLimiter,
   async (req, res) => {
 
   try {
@@ -149,11 +220,38 @@ router.post(
 
     }
 
+    // R-08: honour the resend cooldown that was previously written and ignored.
+    const cooldown =
+      await resendCooldownSeconds(email, 'REGISTER');
+
+    if (cooldown > 0) {
+
+      return sendError(
+        res,
+        429,
+        'A verification code was just sent. Please wait before requesting another.',
+        {
+          retryAfterSeconds: cooldown
+        }
+      );
+
+    }
+
     const otp = generateOTP();
+
+    // R-10: the payload used to be `JSON.stringify(req.body)`, which wrote the
+    // plaintext password into otp_requests and left it there indefinitely.
+    // Hash it here instead; /verify-register-otp consumes `password_hash`
+    // directly and never sees the plaintext.
+    const {
+      password: _plaintextPassword,
+      ...payloadFields
+    } = req.body;
 
     // نحفظ بيانات التسجيل مع اسم ملف اللوقو
     const payload = {
-      ...req.body,
+      ...payloadFields,
+      password_hash: await bcrypt.hash(password, 10),
       logo_url: req.files?.logo?.[0]?.filename || null,
     };
 
@@ -234,7 +332,10 @@ router.post(
 });
 
 // ================= LOGIN =================
-router.post('/login', async (req, res) => {
+// R-08: login is password-only now, so these limiters are the primary
+// brute-force defence. Keyed per IP and per email; successful logins are not
+// counted, so only failures consume the budget.
+router.post('/login', loginLimiters, async (req, res) => {
 
 try {
 
@@ -308,74 +409,31 @@ res,
 
 }
 
-// إنشاء OTP
-const otp =
-generateOTP();
-
-try {
-
-  // حذف أي OTP قديم
-  await prisma.otp_requests.deleteMany({
-    where: {
-      email,
-      type: 'LOGIN'
-    }
-  });
-
-  // حفظ OTP
-  await prisma.otp_requests.create({
-    data: {
-      email,
-      otp,
-      type: 'LOGIN',
-      expires_at: new Date(getExpiry()),
-      resend_after: new Date(getResendTime())
-    }
-  });
-
-} catch (otpErr) {
-
-console.log(otpErr);
-
-return sendError(
-res,
-500,
-'OTP error'
-);
-
-}
-
-try {
-
-await sendOTP(
-email,
-otp
+// Login is password-only: issue the session token directly.
+const token = jwt.sign(
+  {
+    id: user.id,
+    role: user.role,
+    company_id: user.company_id
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "7d" }
 );
 
 return sendSuccess(
-res,
-'OTP sent',
-{
-requiresOTP:
-true
-}
+  res,
+  'Login successful ✅',
+  {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      company_id: user.company_id
+    }
+  }
 );
-
-}
-
-catch (mailErr) {
-
-console.log(
-mailErr
-);
-
-return sendError(
-res,
-500,
-'Email failed'
-);
-
-}
 
 }
 
@@ -394,6 +452,10 @@ res,
 });
 router.post(
 "/verify-login-otp",
+
+// Login is password-only now so no LOGIN rows are ever written, but the route
+// still exists — rate limit it too rather than leave an unguarded OTP check.
+otpVerifyLimiters,
 
 async (
 req,
@@ -501,9 +563,7 @@ user.company_id
 
 },
 
-process.env.JWT_SECRET
-||
-"secret_key",
+process.env.JWT_SECRET,
 
 {
 expiresIn:
@@ -627,6 +687,8 @@ router.get(
 
 router.post(
   "/create-admin",
+  authMiddleware,
+  checkRole("ADMIN"),
   async (req, res) => {
 
     try {
@@ -734,7 +796,7 @@ router.post(
 router.post(
   "/users/employee",
   authMiddleware,
-  checkRole(["ADMIN", "CLIENT"]),
+  checkRole("ADMIN"),
   async (req, res) => {
 
     try {
@@ -857,7 +919,7 @@ router.post(
 router.get(
   "/users/employees",
   authMiddleware,
-  checkRole(["ADMIN", "CLIENT"]),
+  checkRole("ADMIN"),
   async (req, res) => {
 
     const companyId =
@@ -920,6 +982,7 @@ router.get(
 router.put(
   "/users/:id",
   authMiddleware,
+  checkRole("ADMIN"),
   async (req, res) => {
 
     try {
@@ -1021,6 +1084,7 @@ try {
 router.delete(
   "/users/:id",
   authMiddleware,
+  checkRole("ADMIN"),
   async (req, res) => {
 
     try {
@@ -1123,6 +1187,7 @@ router.delete(
 router.put(
   "/users/:id/status",
   authMiddleware,
+  checkRole("ADMIN"),
   async (req, res) => {
 
     const { id } = req.params;
@@ -1202,6 +1267,7 @@ router.put(
 router.get(
   "/users",
   authMiddleware,
+  checkRole("ADMIN"),
 
   async (req, res) => {
 
@@ -1252,6 +1318,7 @@ router.get(
 router.get(
   "/companies",
   authMiddleware,
+  checkRole("ADMIN"),
 
   async (req, res) => {
 
@@ -1464,6 +1531,8 @@ router.post(
   router.post(
 '/verify-register-otp',
 
+otpVerifyLimiters,
+
 async (
 req,
 res
@@ -1476,6 +1545,13 @@ email,
 otp
 } =
 req.body;
+
+const locked =
+otpLockoutResponse(res, email, 'REGISTER');
+
+if (locked) {
+return locked;
+}
 
 let record;
 try {
@@ -1508,6 +1584,8 @@ record.otp
 !== otp
 ) {
 
+recordFailedOtpAttempt(email, 'REGISTER');
+
 return sendError(
 res,
 400,
@@ -1532,16 +1610,36 @@ res,
 
 }
 
+clearOtpAttempts(email, 'REGISTER');
+
 const data =
 JSON.parse(
 record.payload
 );
 
+// R-10: the payload now carries `password_hash`, already bcrypted at
+// /register-with-company time. `data.password` only appears on rows written
+// by the previous build; hash those so in-flight registrations still work.
 const hashedPassword =
-await bcrypt.hash(
+data.password_hash ||
+(
+data.password
+? await bcrypt.hash(
 data.password,
 10
+)
+: null
 );
+
+if (!hashedPassword) {
+
+return sendError(
+res,
+400,
+'Registration data is incomplete. Please register again.'
+);
+
+}
 
 // رجعنا للكود القديم
 // إنشاء الشركة
@@ -1622,10 +1720,19 @@ if (data.founders && Array.isArray(data.founders)) {
 
 }
 
-generateWorkflow(
-companyId,
-data.sector_id
-);
+// R-15/R-19: this was previously fire-and-forget with no .catch(), and
+// data.sector_id arrives from a multipart body as a string. Prisma rejects
+// the string, and the resulting unhandled rejection killed the process on
+// every registration. Await it, coerce the id, and never let a workflow
+// failure take down the server.
+try {
+  await generateWorkflow(
+    companyId,
+    Number(data.sector_id)
+  );
+} catch (workflowErr) {
+  console.error("generateWorkflow failed:", workflowErr);
+}
 
 let newUser;
 try {
@@ -1677,9 +1784,7 @@ companyId
 
 },
 
-process.env.JWT_SECRET
-||
-'secret_key',
+process.env.JWT_SECRET,
 
 {
 
@@ -1733,6 +1838,8 @@ res,
 router.post(
 "/forgot-password",
 
+otpRequestLimiters,
+
 async (req, res) => {
 
 const { email } = req.body;
@@ -1750,6 +1857,23 @@ return sendError(
 res,
 404,
 "Email not found"
+);
+
+}
+
+// R-08: honour the resend cooldown that was previously written and ignored.
+const cooldown =
+await resendCooldownSeconds(email, 'RESET_PASSWORD');
+
+if (cooldown > 0) {
+
+return sendError(
+res,
+429,
+'A verification code was just sent. Please wait before requesting another.',
+{
+retryAfterSeconds: cooldown
+}
 );
 
 }
@@ -1798,6 +1922,8 @@ requiresOTP: true
 router.post(
 "/reset-password",
 
+otpVerifyLimiters,
+
 async (
 req,
 res
@@ -1809,6 +1935,13 @@ otp,
 password
 } =
 req.body;
+
+const locked =
+otpLockoutResponse(res, email, 'RESET_PASSWORD');
+
+if (locked) {
+return locked;
+}
 
 let record;
 try {
@@ -1841,6 +1974,8 @@ record.otp
 !== otp
 ) {
 
+recordFailedOtpAttempt(email, 'RESET_PASSWORD');
+
 return sendError(
 res,
 400,
@@ -1848,6 +1983,27 @@ res,
 );
 
 }
+
+// R-09: this handler matched the OTP but never checked expiry, unlike
+// /verify-login-otp and /verify-register-otp, so a reset code stayed valid
+// forever until consumed.
+if (
+new Date()
+>
+new Date(
+record.expires_at
+)
+) {
+
+return sendError(
+res,
+400,
+"OTP expired"
+);
+
+}
+
+clearOtpAttempts(email, 'RESET_PASSWORD');
 
 const hashed =
 await bcrypt.hash(

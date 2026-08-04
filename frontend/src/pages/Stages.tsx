@@ -9,6 +9,7 @@ import {
 'lucide-react';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
 import { API_URL } from "../config";
+import { authHeaders } from "../lib/session";
 interface Stage {
   id: string;
   name: string;
@@ -42,7 +43,11 @@ const [errors, setErrors] = useState<{
   const [deleteStage, setDeleteStage] = useState<Stage | null>(null);
 
 useEffect(() => {
-  fetch(`${API_URL}/stages`)
+  fetch(`${API_URL}/stages`, {
+    headers: {
+      ...authHeaders()
+    }
+  })
     .then((res) => res.json())
     .then((data) => {
 
@@ -127,7 +132,8 @@ if (selectedStage) {
   fetch(`${API_URL}/stages/${selectedStage.id}`, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...authHeaders()
     },
 body: JSON.stringify({
   name: formData.name,
@@ -153,7 +159,11 @@ body: JSON.stringify({
 
   console.log('PUT RESPONSE', data);
 
-  return fetch(`${API_URL}/stages`);
+  return fetch(`${API_URL}/stages`, {
+    headers: {
+      ...authHeaders()
+    }
+  });
 
 })
 .then((res) => res.json())
@@ -182,7 +192,8 @@ const mappedStages = data.stages.map((stage: any) => ({
     fetch(`${API_URL}/stages`, {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    ...authHeaders()
   },
 body: JSON.stringify({
   name: formData.name,
@@ -206,7 +217,11 @@ body: JSON.stringify({
     throw new Error(data.message);
   }
 
-  return fetch(`${API_URL}/stages`);
+  return fetch(`${API_URL}/stages`, {
+    headers: {
+      ...authHeaders()
+    }
+  });
 
 })
   .then((res) => res.json())
@@ -234,7 +249,10 @@ const mappedStages = data.stages.map((stage: any) => ({
 const handleDelete = (id: string) => {
 
   fetch(`${API_URL}/stages/${id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
+    headers: {
+      ...authHeaders()
+    }
   })
    .then((res) => res.json())
 .then((data) => {
@@ -249,7 +267,11 @@ setTimeout(() => {
 
 throw new Error(data.message);  }
 
-  return fetch(`${API_URL}/stages`);
+  return fetch(`${API_URL}/stages`, {
+    headers: {
+      ...authHeaders()
+    }
+  });
 
 })
     .then((res) => res.json())
@@ -325,7 +347,8 @@ onReorder={(newOrder) => {
   fetch(`${API_URL}/stages/reorder`, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...authHeaders()
     },
     body: JSON.stringify({
       stages: newOrder

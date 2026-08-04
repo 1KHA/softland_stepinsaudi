@@ -61,13 +61,15 @@ exports.createCompany = async (req, res) => {
       console.log(err);
 
       return res.status(500).json({
-        message: err.message
+        message: 'Server error'
       });
     }
 
     const companyId = newCompany.id;
 
-    generateWorkflow(companyId, sector_id)
+    // R-19: sector_id may arrive as a string; Prisma requires an Int or the
+    // whole workflow generation rejects and is silently swallowed below.
+    generateWorkflow(companyId, Number(sector_id))
       .then(() => {
         console.log('Workflow generated ✅');
       })

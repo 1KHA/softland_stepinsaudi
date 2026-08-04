@@ -1,7 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma/client');
+const authMiddleware = require('../middleware/authMiddleware');
+const checkRole = require('../middleware/checkRole');
 
+// R-02: every route below requires a valid token.
+router.use(authMiddleware);
+
+// GET / stays open to any authenticated user (read-only list).
 router.get('/', async (req, res) => {
 
   try {
@@ -37,6 +43,10 @@ router.get('/', async (req, res) => {
   }
 
 });
+
+// R-02: everything from here down is ADMIN-only — including any
+// route added later, so this fails closed by default.
+router.use(checkRole("ADMIN"));
 
 router.post('/', async (req, res) => {
   const {
@@ -386,7 +396,7 @@ for (const company of companies) {
 
   return res.status(500).json({
     success: false,
-    message: err.message
+    message: 'Server error'
   });
 }
 
