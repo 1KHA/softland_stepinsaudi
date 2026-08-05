@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, Phone, Building2, UserCog, Globe2, BriefcaseBusiness, FileText, Users, GitBranch, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -7,13 +7,33 @@ import { useNavigate } from 'react-router-dom';
 
 import { API_URL } from "../config";
 import { StepInLogo, SpectrumBar } from "../components/StepInLogo";
-export function LoginPage() {
-const sectors = [
-  { id: 1, name: 'Entrepreneurial' },
-  { id: 2, name: 'Industrial' },
-  { id: 3, name: 'Commercial' },
-  { id: 4, name: 'Real Estate' }
+type Sector = { id: number; name_en: string | null; name_ar: string | null };
+
+// Fallback when GET /sectors is unreachable — must stay aligned with the DB
+// seed (prisma/seed.js), where these ids drive workflow task matching.
+const FALLBACK_SECTORS: Sector[] = [
+  { id: 1, name_en: 'Commercial', name_ar: 'تجاري' },
+  { id: 2, name_en: 'Industrial', name_ar: 'صناعي' },
+  { id: 3, name_en: 'Real Estate', name_ar: 'عقاري' },
+  { id: 4, name_en: 'Entrepreneurial', name_ar: 'ريادي' }
 ];
+
+// Sector 5 is the "All Sectors" task-template wildcard (see workflow.service.js),
+// not a real company sector — never offer it at registration.
+const ALL_SECTORS_ID = 5;
+
+export function LoginPage() {
+  const [sectors, setSectors] = useState<Sector[]>(FALLBACK_SECTORS);
+
+  useEffect(() => {
+    fetch(`${API_URL}/sectors`)
+      .then((res) => res.json())
+      .then((data) => {
+        const rows = (data.sectors || []).filter((s: Sector) => s.id !== ALL_SECTORS_ID);
+        if (rows.length) setSectors(rows);
+      })
+      .catch(() => {});
+  }, []);
   const { t, i18n } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -525,11 +545,11 @@ data.message
     onChange={(e) => setSector(e.target.value)}
     className="w-full p-3 border rounded"
   >
-    <option value="">Select sector</option>
+    <option value="">{t('login.selectSector')}</option>
 
     {sectors.map((s) => (
       <option key={s.id} value={s.id}>
-        {s.name}
+        {(isArabic ? s.name_ar : s.name_en) || s.name_en || s.name_ar}
       </option>
     ))}
   </select>
