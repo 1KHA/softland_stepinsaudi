@@ -130,6 +130,15 @@ howItWorks: {
         companyManagerPlaceholder: 'Enter the company manager name',
         country: 'Country',
         countryPlaceholder: 'Enter the country',
+        selectCountry: 'Select country',
+        countries: {
+          saudiArabia: 'Saudi Arabia',
+          uae: 'United Arab Emirates',
+          kuwait: 'Kuwait',
+          qatar: 'Qatar',
+          bahrain: 'Bahrain',
+          oman: 'Oman'
+        },
         sector: 'Sector',
         sectorPlaceholder: 'Enter the business sector',
         selectSector: 'Select sector',
@@ -639,6 +648,15 @@ howItWorks: {
         companyManagerPlaceholder: 'أدخل اسم مدير الشركة',
         country: 'الدولة',
         countryPlaceholder: 'أدخل الدولة',
+        selectCountry: 'اختر الدولة',
+        countries: {
+          saudiArabia: 'المملكة العربية السعودية',
+          uae: 'الإمارات العربية المتحدة',
+          kuwait: 'الكويت',
+          qatar: 'قطر',
+          bahrain: 'البحرين',
+          oman: 'عُمان'
+        },
         sector: 'القطاع',
         sectorPlaceholder: 'أدخل القطاع',
         selectSector: 'اختر القطاع',
@@ -1013,6 +1031,9 @@ document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
 
 i18n.on('languageChanged', (lng) => {
   document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
+  // Persist so a reload (or landing directly on any page) keeps the choice —
+  // same key the init above reads.
+  localStorage.setItem('language', lng);
 });
 
 export default i18n;

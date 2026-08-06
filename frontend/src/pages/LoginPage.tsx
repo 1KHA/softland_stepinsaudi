@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { API_URL } from "../config";
 import { StepInLogo, SpectrumBar } from "../components/StepInLogo";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 type Sector = { id: number; name_en: string | null; name_ar: string | null };
 
 // Fallback when GET /sectors is unreachable — must stay aligned with the DB
@@ -21,6 +22,17 @@ const FALLBACK_SECTORS: Sector[] = [
 // Sector 5 is the "All Sectors" task-template wildcard (see workflow.service.js),
 // not a real company sector — never offer it at registration.
 const ALL_SECTORS_ID = 5;
+
+// Option values stay in English — the backend stores `country` as a plain
+// string and existing rows use these exact values; only the labels translate.
+const COUNTRIES = [
+  { value: 'Saudi Arabia', key: 'saudiArabia' },
+  { value: 'United Arab Emirates', key: 'uae' },
+  { value: 'Kuwait', key: 'kuwait' },
+  { value: 'Qatar', key: 'qatar' },
+  { value: 'Bahrain', key: 'bahrain' },
+  { value: 'Oman', key: 'oman' }
+];
 
 export function LoginPage() {
   const [sectors, setSectors] = useState<Sector[]>(FALLBACK_SECTORS);
@@ -433,9 +445,12 @@ data.message
             <BackIcon className={`w-5 h-5 transition-transform ${isArabic ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'}`} />
             <span className="font-medium">{t('common.backHome')}</span>
           </Link>
-          <Link to="/" aria-label={t('common.brand')}>
-            <StepInLogo size="md" />
-          </Link>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <Link to="/" aria-label={t('common.brand')}>
+              <StepInLogo size="md" />
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -527,14 +542,13 @@ data.message
     onChange={(e) => setCountry(e.target.value)}
     className="w-full p-3 border rounded"
   >
-    <option value="">Select country</option>
+    <option value="">{t('login.selectCountry')}</option>
 
-    <option value="Saudi Arabia">Saudi Arabia</option>
-    <option value="United Arab Emirates">United Arab Emirates</option>
-    <option value="Kuwait">Kuwait</option>
-    <option value="Qatar">Qatar</option>
-    <option value="Bahrain">Bahrain</option>
-    <option value="Oman">Oman</option>
+    {COUNTRIES.map((c) => (
+      <option key={c.value} value={c.value}>
+        {t(`login.countries.${c.key}`)}
+      </option>
+    ))}
   </select>
 </div>
 <div className="space-y-2">
