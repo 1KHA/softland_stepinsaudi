@@ -43,11 +43,11 @@ export const Layout: React.FC = () => {
   const userInitial = displayName.charAt(0).toUpperCase();
 
   // The backend only stores ADMIN / EMPLOYEE / CLIENT. "CLIENT" is surfaced as
-  // "Manager" everywhere in this UI (see Users.tsx), so keep that wording here.
+  // "Client" everywhere in this UI (see Users.tsx), so keep that wording here.
   const roleLabelKeys: Record<string, TranslationKey> = {
     ADMIN: 'admin',
     EMPLOYEE: 'employee',
-    CLIENT: 'manager'
+    CLIENT: 'client'
   };
   const rawRole = typeof user?.role === 'string' ? user.role : '';
   const roleLabel = roleLabelKeys[rawRole] ? t(roleLabelKeys[rawRole]) : rawRole;

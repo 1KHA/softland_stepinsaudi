@@ -8,7 +8,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'employee';
+  role: 'admin' | 'client' | 'employee';
   status: 'active' | 'inactive';
   company?: string;
   company_id?: string | number;
@@ -19,7 +19,7 @@ interface User {
   companyEmail?: string;
   managerPhoneNumber?: string;
 }
-type Role = 'admin' | 'manager' | 'employee';
+type Role = 'admin' | 'client' | 'employee';
 interface UserForm {
   name: string;
   email: string;
@@ -178,7 +178,7 @@ const mappedUsers = data.users
     role:
       user.role === 'ADMIN'
         ? 'admin'
-        : 'manager',
+        : 'client',
 
     status: String(user.status || 'ACTIVE').toLowerCase()
   }));
@@ -420,7 +420,7 @@ let backendRole = 'ADMIN';
         backendRole = 'ADMIN';
       }
 
-      if (formState.role === 'manager') {
+      if (formState.role === 'client') {
         backendRole = 'CLIENT';
       }
 
@@ -529,7 +529,7 @@ setTimeout(() => {
     switch (role) {
       case 'admin':
         return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'manager':
+      case 'client':
         return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
       case 'employee':
         return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
@@ -620,14 +620,14 @@ const filteredUsers = users.filter((user) => {
 
   <button
     type="button"
-    onClick={() => setRoleFilter('manager')}
+    onClick={() => setRoleFilter('client')}
     className={`px-4 py-2 rounded-xl ${
-      roleFilter === 'manager'
+      roleFilter === 'client'
         ? 'bg-navy text-white'
         : 'bg-gray-100'
     }`}
   >
-   {t("manager")}
+   {t("clients")}
   </button>
 
 </div>
@@ -673,8 +673,8 @@ const filteredUsers = users.filter((user) => {
                     
                     {user.role === "admin"
   ? t("admin")
-  : user.role === "manager"
-  ? t("manager")
+  : user.role === "client"
+  ? t("client")
   : t("employee")}
                     </span>
                   </td>
@@ -847,12 +847,12 @@ onClick={() => {
                   onChange={(value) => handleFormChange('role', value as Role)}
                  options={[
   { value: 'admin', label: t('admin') },
-  // "manager" is this UI's display alias for the backend CLIENT role — there
-  // is no MANAGER role. Creating a CLIENT is only possible through the public
-  // company signup flow, so the option is disabled when adding a new user.
+  // "client" is this UI's display alias for the backend CLIENT role. Creating
+  // a CLIENT is only possible through the public company signup flow, so the
+  // option is disabled when adding a new user.
   {
-    value: 'manager',
-    label: t('manager'),
+    value: 'client',
+    label: t('client'),
     disabled: !isEditMode
   }
 ]}
