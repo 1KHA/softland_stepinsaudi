@@ -164,6 +164,7 @@ model users {
   email                                            String           @unique(map: "sqlite_autoindex_users_1")
   password                                         String
   role                                             String
+  phone                                            String?
   company_id                                       Int?
   created_at                                       DateTime?        @default(now())
   status                                           String?          @default("ACTIVE")

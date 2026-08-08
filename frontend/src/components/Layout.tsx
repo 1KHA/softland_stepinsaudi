@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { StepInLogo, SpectrumBar } from './StepInLogo';
+import { getUser } from '../lib/session';
 import { TranslationKey } from '../translations';
 import {
   LayoutDashboardIcon,
@@ -13,7 +14,6 @@ import {
   ScaleIcon,
   BellIcon,
   SettingsIcon,
-  SearchIcon,
   SunIcon,
   MoonIcon,
   ClipboardListIcon,
@@ -31,6 +31,27 @@ export const Layout: React.FC = () => {
     { id: 4, isRead: true }
   ]);
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // The header used to render the `adminName` translation constant, the literal
+  // string "Admin" and the literal avatar "A" for every account. Read the real
+  // signed-in user instead. getUser() returns null for a missing//malformed
+  // session, so every access below has to tolerate that.
+  const user = getUser();
+  const userName: string = typeof user?.name === 'string' && user.name.trim() ? user.name.trim() : '';
+  const userEmail: string = typeof user?.email === 'string' ? user.email : '';
+  const displayName = userName || userEmail || '—';
+  const userInitial = displayName.charAt(0).toUpperCase();
+
+  // The backend only stores ADMIN / EMPLOYEE / CLIENT. "CLIENT" is surfaced as
+  // "Manager" everywhere in this UI (see Users.tsx), so keep that wording here.
+  const roleLabelKeys: Record<string, TranslationKey> = {
+    ADMIN: 'admin',
+    EMPLOYEE: 'employee',
+    CLIENT: 'manager'
+  };
+  const rawRole = typeof user?.role === 'string' ? user.role : '';
+  const roleLabel = roleLabelKeys[rawRole] ? t(roleLabelKeys[rawRole]) : rawRole;
+
   const menuItems = [
  {
   path: '/admin',
@@ -134,19 +155,14 @@ export const Layout: React.FC = () => {
   }`}
 >
           {/* Top Navbar */}
-        <header className="h-20 bg-white dark:bg-navy-card shadow-sm flex items-center justify-between px-8 z-10 transition-colors duration-300">
-          <div className="flex items-center bg-cream dark:bg-navy-dark rounded-xl px-4 py-2.5 w-96 border border-transparent focus-within:border-gold/50 transition-colors">
-            <SearchIcon size={18} className="text-gray-400" />
-<input
-  type="text"
-  placeholder={t("searchPlaceholder")}
-  className={`bg-transparent border-none outline-none px-3 w-full text-sm text-navy dark:text-cream-dark placeholder-gray-400 ${
-    language === "ar" ? "text-right" : "text-left"
-  }`}
-/>
-            
-          </div>
-
+        {/* The header used to carry a global search box. It was decorative —
+            no value/onChange, no global search index, and nothing consumed it.
+            There is no cross-entity search endpoint to wire it to, and making it
+            filter "the current page" would require every page to subscribe to a
+            shared search context (including pages outside this change). Rather
+            than ship a control that looks functional and is not, it is removed;
+            Users, Requests and Companies each have their own working search. */}
+        <header className="h-20 bg-white dark:bg-navy-card shadow-sm flex items-center justify-end px-8 z-10 transition-colors duration-300">
           <div className="flex items-center gap-6">
             <button
               onClick={toggleLanguage}
@@ -184,14 +200,14 @@ export const Layout: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className={language === "ar" ? "text-right" : "text-left"}>
                 <p className="text-sm font-semibold text-navy dark:text-cream-dark">
-                  {t('adminName')}
+                  {displayName}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Admin
+                  {roleLabel}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold border border-gold/30">
-                A
+                {userInitial}
               </div>
             </div>
           </div>

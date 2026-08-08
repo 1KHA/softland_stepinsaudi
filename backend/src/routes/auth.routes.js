@@ -29,6 +29,26 @@ require("../services/email.service");
 
 const PHONE_REGEX = /^\d{10}$/;
 
+// BUG 6/8: profile phone numbers arrive from a free-text field and may be
+// international, so the strict 10-digit registration rule is too narrow here.
+// Deliberately permissive — it only rejects obvious junk.
+const PROFILE_PHONE_REGEX = /^[+()\-.\s0-9]{6,20}$/;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// BUG 7/9: the same rule the signup form already enforces
+// (frontend/src/pages/LoginPage.tsx:311). Duplicated here — and only here —
+// so signup and change-password cannot drift apart.
+const STRONG_PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+
+const PASSWORD_POLICY_MESSAGE =
+  'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number and a special character (@$!%*?&)';
+
+// OTP `type` for the authenticated change-password flow. Reuses otp_requests
+// rather than inventing a second store.
+const CHANGE_PASSWORD_OTP_TYPE = 'CHANGE_PASSWORD';
+
 function generateOTP() {
 
 // R-08: Math.random() is not a cryptographic source — an attacker who sees a
@@ -85,6 +105,31 @@ function isDuplicateEmailError(err) {
 
 function isValidPhone(phone) {
   return PHONE_REGEX.test(String(phone || ''));
+}
+
+function isValidProfilePhone(phone) {
+  return PROFILE_PHONE_REGEX.test(String(phone || '').trim());
+}
+
+function isValidEmail(email) {
+  return EMAIL_REGEX.test(String(email || '').trim());
+}
+
+function isStrongPassword(password) {
+  return STRONG_PASSWORD_REGEX.test(String(password || ''));
+}
+
+// The single shape every profile-bearing response returns, so GET /me,
+// PUT /me and the frontend agree on one contract.
+function publicUser(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone ?? null,
+    role: user.role,
+    company_id: user.company_id ?? null
+  };
 }
 
 async function findUserByEmail(email) {
@@ -640,15 +685,214 @@ res,
 );
 // ================= CURRENT USER =================
 
+// BUG 6: this used to echo the JWT payload back verbatim — `{id, role,
+// company_id}` and nothing else — so the UI had no name or email to show and
+// fell back to hardcoded placeholders. Read the row instead.
 router.get(
   '/me',
   authMiddleware,
-  (req, res) => {
+  async (req, res) => {
 
-    res.json({
-      message: 'Current user',
-      user: req.user
-    });
+    try {
+
+      const user = await prisma.users.findUnique({
+        where: { id: Number(req.user.id) },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+          company_id: true
+        }
+      });
+
+      if (!user) {
+
+        return sendError(
+          res,
+          404,
+          'User not found'
+        );
+
+      }
+
+      return sendSuccess(
+        res,
+        'Current user',
+        {
+          user: publicUser(user)
+        }
+      );
+
+    } catch (error) {
+
+      console.error('GET /me error:', error);
+
+      return sendError(
+        res,
+        500,
+        'Server error'
+      );
+
+    }
+
+  }
+);
+
+// BUG 8: self-service profile update. `PUT /users/:id` is ADMIN-only, so a
+// CLIENT or EMPLOYEE previously had no way at all to edit their own record.
+// Only name/email/phone are writable here — role, status and company_id are
+// deliberately not accepted, whatever the body contains.
+router.put(
+  '/me',
+  authMiddleware,
+  async (req, res) => {
+
+    try {
+
+      const userId = Number(req.user.id);
+
+      const {
+        name,
+        email,
+        phone
+      } = req.body || {};
+
+      const data = {};
+
+      if (name !== undefined) {
+
+        const trimmedName =
+          String(name).trim();
+
+        if (!trimmedName) {
+
+          return sendError(
+            res,
+            400,
+            'Name cannot be empty'
+          );
+
+        }
+
+        data.name = trimmedName;
+
+      }
+
+      if (email !== undefined) {
+
+        const trimmedEmail =
+          String(email).trim();
+
+        if (!isValidEmail(trimmedEmail)) {
+
+          return sendError(
+            res,
+            400,
+            'Invalid email address'
+          );
+
+        }
+
+        data.email = trimmedEmail;
+
+      }
+
+      if (phone !== undefined) {
+
+        // An explicit empty value clears the number rather than failing.
+        if (
+          phone === null ||
+          String(phone).trim() === ''
+        ) {
+
+          data.phone = null;
+
+        } else if (!isValidProfilePhone(phone)) {
+
+          return sendError(
+            res,
+            400,
+            'Invalid phone number'
+          );
+
+        } else {
+
+          data.phone = String(phone).trim();
+
+        }
+
+      }
+
+      if (Object.keys(data).length === 0) {
+
+        return sendError(
+          res,
+          400,
+          'Nothing to update'
+        );
+
+      }
+
+      let updated;
+
+      try {
+
+        updated = await prisma.users.update({
+          where: { id: userId },
+          data,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            role: true,
+            company_id: true
+          }
+        });
+
+      } catch (err) {
+
+        if (isDuplicateEmailError(err)) {
+
+          return sendError(
+            res,
+            409,
+            'Email already in use'
+          );
+
+        }
+
+        console.error('PUT /me error:', err);
+
+        return sendError(
+          res,
+          500,
+          'Error updating profile'
+        );
+
+      }
+
+      return sendSuccess(
+        res,
+        'Profile updated successfully',
+        {
+          user: publicUser(updated)
+        }
+      );
+
+    } catch (error) {
+
+      console.error('PUT /me error:', error);
+
+      return sendError(
+        res,
+        500,
+        'Server error'
+      );
+
+    }
 
   }
 );
@@ -1420,7 +1664,158 @@ router.get(
 
 
 
+// ==== CHANGE PASSWORD: ISSUE VERIFICATION CODE ====
+//
+// BUG 7: no send-code endpoint existed anywhere in the backend, so the code
+// field on the Settings page was pure theatre. The caller is identified by
+// their token — the body is empty and the email is never taken from it.
+
+// otpRequestEmailLimiter keys off req.body.email and silently skips itself
+// when that is absent. The JWT carries only {id, role, company_id}, so look
+// the address up and seed the field before the limiter runs.
+async function loadCallerEmail(req, res, next) {
+
+  try {
+
+    const user = await prisma.users.findUnique({
+      where: { id: Number(req.user.id) },
+      select: {
+        id: true,
+        email: true
+      }
+    });
+
+    if (!user) {
+
+      return sendError(
+        res,
+        404,
+        'User not found'
+      );
+
+    }
+
+    req.callerEmail = user.email;
+
+    req.body = req.body || {};
+    req.body.email = user.email;
+
+    return next();
+
+  } catch (err) {
+
+    console.error('Password code lookup error:', err);
+
+    return sendError(
+      res,
+      500,
+      'Server error'
+    );
+
+  }
+
+}
+
+router.post(
+  '/password/code',
+  authMiddleware,
+
+  // Per-IP first (cheap, no DB), then the lookup that the per-email limiter
+  // depends on, then the per-email limiter itself.
+  otpRequestIpLimiter,
+  loadCallerEmail,
+  otpRequestEmailLimiter,
+
+  async (req, res) => {
+
+    try {
+
+      const email = req.callerEmail;
+
+      // Honour the resend cooldown that is written on every OTP row.
+      const cooldown =
+        await resendCooldownSeconds(email, CHANGE_PASSWORD_OTP_TYPE);
+
+      if (cooldown > 0) {
+
+        return sendError(
+          res,
+          429,
+          'A verification code was just sent. Please wait before requesting another.',
+          {
+            retryAfterSeconds: cooldown
+          }
+        );
+
+      }
+
+      const otp = generateOTP();
+
+      try {
+
+        // One live code per address: drop any earlier one first so a stale
+        // code can never be replayed after a resend.
+        await prisma.otp_requests.deleteMany({
+          where: {
+            email,
+            type: CHANGE_PASSWORD_OTP_TYPE
+          }
+        });
+
+        await prisma.otp_requests.create({
+          data: {
+            email,
+            otp,
+            type: CHANGE_PASSWORD_OTP_TYPE,
+            expires_at: new Date(getExpiry()),
+            resend_after: new Date(getResendTime())
+          }
+        });
+
+      } catch (err) {
+
+        console.error('Password code store error:', err);
+
+        return sendError(
+          res,
+          500,
+          'Server error'
+        );
+
+      }
+
+      await sendOTP(
+        email,
+        otp
+      );
+
+      return sendSuccess(
+        res,
+        'Code sent'
+      );
+
+    } catch (error) {
+
+      console.error('Password code error:', error);
+
+      return sendError(
+        res,
+        500,
+        'Server error'
+      );
+
+    }
+
+  }
+);
+
 // ==== EDIT PASSWORD ADMIN ====
+//
+// BUG 9: this used to accept currentPassword + newPassword only and never
+// looked at a verification code at all — the code the UI collected was never
+// even transmitted. It also accepted any new password, including the single
+// character "1". Both are fixed here; the bcrypt currentPassword check is
+// unchanged.
 router.put(
   "/change-password",
   authMiddleware,
@@ -1433,8 +1828,45 @@ router.put(
 
       const {
         currentPassword,
-        newPassword
-      } = req.body;
+        newPassword,
+        verificationCode
+      } = req.body || {};
+
+      if (!currentPassword || !newPassword) {
+
+        return sendError(
+          res,
+          400,
+          "Current password and new password are required"
+        );
+
+      }
+
+      if (
+        verificationCode === undefined ||
+        verificationCode === null ||
+        String(verificationCode).trim() === ''
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "Verification code is required"
+        );
+
+      }
+
+      // Checked before the code is consumed, so a rejected password does not
+      // burn a code the user then has to re-request.
+      if (!isStrongPassword(newPassword)) {
+
+        return sendError(
+          res,
+          400,
+          PASSWORD_POLICY_MESSAGE
+        );
+
+      }
 
       let user;
       try {
@@ -1475,6 +1907,59 @@ router.put(
 
       }
 
+      const email = user.email;
+
+      const locked =
+        otpLockoutResponse(res, email, CHANGE_PASSWORD_OTP_TYPE);
+
+      if (locked) {
+        return locked;
+      }
+
+      // The code must belong to this caller's own address: the row is looked
+      // up by the email on the authenticated user record, never by anything
+      // the client sent.
+      let record;
+      try {
+
+        record = await prisma.otp_requests.findFirst({
+          where: {
+            email,
+            type: CHANGE_PASSWORD_OTP_TYPE
+          },
+          orderBy: { id: 'desc' }
+        });
+
+      } catch (err) {
+        record = null;
+      }
+
+      const codeMatches =
+        record &&
+        record.otp === String(verificationCode).trim();
+
+      const codeLive =
+        record &&
+        new Date() <= new Date(record.expires_at);
+
+      // One message for missing / wrong / expired so a guesser learns nothing
+      // about which of the three it was.
+      if (!codeMatches || !codeLive) {
+
+        if (record && !codeMatches) {
+          recordFailedOtpAttempt(email, CHANGE_PASSWORD_OTP_TYPE);
+        }
+
+        return sendError(
+          res,
+          400,
+          "Invalid or expired code"
+        );
+
+      }
+
+      clearOtpAttempts(email, CHANGE_PASSWORD_OTP_TYPE);
+
       const hashedPassword = await bcrypt.hash(
         newPassword,
         10
@@ -1487,11 +1972,6 @@ router.put(
           data: { password: hashedPassword }
         });
 
-        res.json({
-          success: true,
-          message: "Password updated successfully"
-        });
-
       } catch (updateErr) {
 
         return res.status(500).json({
@@ -1500,6 +1980,25 @@ router.put(
         });
 
       }
+
+      // Single use: consumed whether or not the delete succeeds cleanly.
+      try {
+
+        await prisma.otp_requests.deleteMany({
+          where: {
+            email,
+            type: CHANGE_PASSWORD_OTP_TYPE
+          }
+        });
+
+      } catch (err) {
+        console.error('Password code cleanup error:', err);
+      }
+
+      return sendSuccess(
+        res,
+        "Password updated successfully"
+      );
 
     } catch (error) {
 

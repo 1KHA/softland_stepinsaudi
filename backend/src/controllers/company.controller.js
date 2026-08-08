@@ -3,6 +3,21 @@ const {
     generateWorkflow
 } = require('../services/workflow.service');
 
+// BUG 12: every status value the platform recognises. An admin may set any of
+// these explicitly; anything else is rejected rather than written blindly.
+// `active -> APPROVED`, `pending -> UNDER_REVIEW`, other -> `REJECTED` is the
+// mapping the UI sends (frontend/src/pages/Companies.tsx:395-400); the rest
+// are written by the workflow and the approve/reject/needs-completion routes.
+const COMPANY_STATUSES = [
+  "UNDER_REVIEW",
+  "PENDING",
+  "ACTIVE",
+  "APPROVED",
+  "REJECTED",
+  "NEEDS_COMPLETION",
+  "DISABLED"
+];
+
 // CREATE COMPANY
 exports.createCompany = async (req, res) => {
 
@@ -175,7 +190,8 @@ exports.updateCompany = async (req, res) => {
     phone,
     email,
     branches_count,
-    logo_url
+    logo_url,
+    status
   } = req.body;
 
   // ownership validation
@@ -192,6 +208,34 @@ exports.updateCompany = async (req, res) => {
   if (!name || !manager_name || !country || !sector_id) {
     return res.status(400).json({
       message: "Missing required fields"
+    });
+  }
+
+  // BUG 12: `status` used to be destructured nowhere and silently dropped, so
+  // an admin activating a company got 200 OK and no change. It is now honoured
+  // — but only for an ADMIN, and only against the allowlist. A non-admin who
+  // sends the field at all is rejected outright rather than quietly ignored.
+  const statusRequested =
+    status !== undefined &&
+    status !== null &&
+    String(status).trim() !== "";
+
+  if (statusRequested && req.user.role !== "ADMIN") {
+    return res.status(403).json({
+      message: "Only an administrator may change company status"
+    });
+  }
+
+  const requestedStatus = statusRequested
+    ? String(status).trim().toUpperCase()
+    : null;
+
+  if (
+    requestedStatus &&
+    !COMPANY_STATUSES.includes(requestedStatus)
+  ) {
+    return res.status(400).json({
+      message: "Invalid status"
     });
   }
 
@@ -229,9 +273,14 @@ exports.updateCompany = async (req, res) => {
     const sectorChanged =
       Number(currentCompany.sector_id) !== Number(sector_id);
 
-    const newStatus = sectorChanged
-      ? "UNDER_REVIEW"
-      : currentCompany.status;
+    // An explicit admin decision wins. Only when none was supplied does the
+    // old sector-change rule apply (a new sector regenerates the workflow, so
+    // the company goes back under review).
+    const newStatus = requestedStatus
+      ? requestedStatus
+      : sectorChanged
+        ? "UNDER_REVIEW"
+        : currentCompany.status;
 
     let updateResult;
     try {

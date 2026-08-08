@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import {
   UserIcon,
@@ -12,6 +12,7 @@ import {
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from "../config";
+import { authHeaders, getUser } from "../lib/session";
 type PasswordForm = {
   currentPassword: string;
   newPassword: string;
@@ -21,13 +22,21 @@ type PasswordForm = {
 
 export const Settings: React.FC = () => {
   const { t, language, theme, toggleLanguage, toggleTheme } = useAppContext();
-  const [platformEmail, setPlatformEmail] = useState('support@softlanding.com');
-  const [supportContact, setSupportContact] = useState('+971 50 123 4567');
+  // This section is the SIGNED-IN USER'S OWN profile, not platform-wide support
+  // settings. It used to be seeded with hardcoded constants and never fetched
+  // or saved anything; it is now bound to GET/PUT /auth/me.
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [profileLoadError, setProfileLoadError] = useState('');
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState('');
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [settingsSuccess, setSettingsSuccess] = useState('');
-  const [settingsErrors, setSettingsErrors] = useState({ email: '', phone: '' });
+  const [settingsErrors, setSettingsErrors] = useState({ name: '', email: '', phone: '' });
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [passwordForm, setPasswordForm] = useState<PasswordForm>({
     currentPassword: '',
@@ -38,10 +47,13 @@ export const Settings: React.FC = () => {
   const [passwordErrors, setPasswordErrors] = useState<Partial<PasswordForm>>({});
   const [isVerificationStep, setIsVerificationStep] = useState(false);
   const [passwordSuccessMessage, setPasswordSuccessMessage] = useState('');
+  const [passwordFormError, setPasswordFormError] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [codeNotice, setCodeNotice] = useState('');
+  const [codeError, setCodeError] = useState('');
 
   const localText = {
-    platformEmail: language === 'ar' ? 'البريد الإلكتروني للدعم' : 'Platform Email / Support Email',
-    supportContact: language === 'ar' ? 'رقم الاتصال بالدعم' : 'Support Contact Number',
     avatarSizeError: language === 'ar' ? 'يجب أن يكون حجم الصورة أقل من 2 ميغابايت' : 'Image must be smaller than 2MB',
     invalidImage: language === 'ar' ? 'يرجى اختيار ملف صورة بصيغة jpg أو png' : 'Please select a JPG or PNG image',
     changeAvatar: language === 'ar' ? 'تغيير الصورة' : 'Change Avatar',
@@ -53,8 +65,61 @@ export const Settings: React.FC = () => {
     currentPassword: language === 'ar' ? 'كلمة المرور الحالية' : 'Current Password',
     newPassword: language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password',
     confirmNewPassword: language === 'ar' ? 'تأكيد كلمة المرور الجديدة' : 'Confirm New Password',
-    verificationCode: language === 'ar' ? 'رمز التحقق' : 'Verification Code'
+    verificationCode: language === 'ar' ? 'رمز التحقق' : 'Verification Code',
+    // BUG 6: these used to read "Platform Email" / "Support Contact Number",
+    // which is why hardcoded support values looked plausible. They are the
+    // signed-in user's own details.
+    profileName: language === 'ar' ? 'الاسم' : 'Full Name',
+    profileEmail: language === 'ar' ? 'البريد الإلكتروني' : 'Email',
+    profilePhone: language === 'ar' ? 'رقم الجوال' : 'Phone Number',
+    profileLoading: language === 'ar' ? 'جارٍ تحميل البيانات…' : 'Loading your profile…',
+    codeInstructions: language === 'ar'
+      ? 'سنرسل رمز تحقق إلى بريدك الإلكتروني المسجل. أدخل الرمز أدناه لتأكيد تغيير كلمة المرور.'
+      : 'We will email a verification code to your registered address. Enter it below to confirm the password change.',
+    sendCode: language === 'ar' ? 'إرسال الرمز' : 'Send code',
+    sendingCode: language === 'ar' ? 'جارٍ الإرسال…' : 'Sending…',
+    sendCodeFailed: language === 'ar' ? 'تعذر إرسال الرمز' : 'Could not send the code',
+    codeSentToEmail: language === 'ar' ? 'تم إرسال الرمز إلى بريدك الإلكتروني' : 'Code sent to your email'
   };
+
+  const loadProfile = async () => {
+    setIsProfileLoading(true);
+    setProfileLoadError('');
+
+    try {
+      const response = await fetch(`${API_URL}/auth/me`, {
+        headers: authHeaders()
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data?.user) {
+        setProfileLoadError(data?.message || t('profileLoadFailed'));
+        return;
+      }
+
+      setProfileName(data.user.name ?? '');
+      setProfileEmail(data.user.email ?? '');
+      setProfilePhone(data.user.phone ?? '');
+    } catch (error) {
+      console.error(error);
+      setProfileLoadError(t('profileLoadFailed'));
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Falls back to the cached session user until GET /auth/me resolves, so the
+  // avatar is never a literal 'A' for everybody.
+  const sessionUser = getUser();
+  const avatarSource: string =
+    profileName || profileEmail || sessionUser?.name || sessionUser?.email || '';
+  const avatarInitial = avatarSource.trim().charAt(0).toUpperCase() || '?';
 
   const handleAvatarClick = () => {
     avatarInputRef.current?.click();
@@ -75,27 +140,69 @@ export const Settings: React.FC = () => {
     setAvatarPreview(URL.createObjectURL(file));
   };
 
-  const handleProfileSave = () => {
-  const errors = { email: '', phone: '' };
+  const handleProfileSave = async () => {
+  const errors = { name: '', email: '', phone: '' };
 
-  if (!platformEmail.trim()) {
+  if (!profileName.trim()) {
+    errors.name = t('fieldRequired');
+  }
+
+  if (!profileEmail.trim()) {
     errors.email = t('fieldRequired');
   }
 
-  if (!supportContact.trim()) {
+  if (!profilePhone.trim()) {
     errors.phone = t('fieldRequired');
   }
 
-  if (errors.email || errors.phone) {
+  if (errors.name || errors.email || errors.phone) {
     setSettingsErrors(errors);
     return;
   }
 
-  setSettingsErrors({ email: '', phone: '' });
+  setSettingsErrors({ name: '', email: '', phone: '' });
+  setProfileSaveError('');
+  setSettingsSuccess('');
+  setIsProfileSaving(true);
 
-  setSettingsSuccess(t('settingsSaved'));
+  // This handler used to show "saved successfully" without making any request
+  // at all. Success is now reported only for a confirmed 2xx.
+  try {
+    const response = await fetch(`${API_URL}/auth/me`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders()
+      },
+      body: JSON.stringify({
+        name: profileName.trim(),
+        email: profileEmail.trim(),
+        phone: profilePhone.trim()
+      })
+    });
 
-  window.setTimeout(() => setSettingsSuccess(''), 4000);
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      setProfileSaveError(data?.message || t('profileSaveFailed'));
+      return;
+    }
+
+    if (data?.user) {
+      setProfileName(data.user.name ?? profileName);
+      setProfileEmail(data.user.email ?? profileEmail);
+      setProfilePhone(data.user.phone ?? profilePhone);
+    }
+
+    setSettingsSuccess(t('profileSaved'));
+
+    window.setTimeout(() => setSettingsSuccess(''), 4000);
+  } catch (error) {
+    console.error(error);
+    setProfileSaveError(t('profileSaveFailed'));
+  } finally {
+    setIsProfileSaving(false);
+  }
 };
 
 const handlePasswordFieldChange = (
@@ -106,6 +213,39 @@ const handlePasswordFieldChange = (
 
   if (passwordErrors[field]) {
     setPasswordErrors((prev) => ({ ...prev, [field]: '' }));
+  }
+};
+
+// Asks the backend to generate and email a fresh verification code. Used both
+// when entering the verification step and by the "Resend code" button.
+const requestVerificationCode = async () => {
+  setIsSendingCode(true);
+  setCodeError('');
+  setCodeNotice('');
+
+  try {
+    const response = await fetch(`${API_URL}/auth/password/code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders()
+      },
+      body: JSON.stringify({})
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      setCodeError(data?.message || localText.sendCodeFailed);
+      return;
+    }
+
+    setCodeNotice(data?.message || localText.codeSentToEmail);
+  } catch (error) {
+    console.error(error);
+    setCodeError(localText.sendCodeFailed);
+  } finally {
+    setIsSendingCode(false);
   }
 };
 
@@ -143,6 +283,9 @@ const handlePasswordSave = () => {
 
 // Simulated API call for password change with verification step
 const handleVerificationSubmit = async () => {
+  setPasswordFormError('');
+  setIsChangingPassword(true);
+
   try {
     if (!passwordForm.verificationCode.trim()) {
       setPasswordErrors({
@@ -164,9 +307,13 @@ const handleVerificationSubmit = async () => {
           Authorization: `Bearer ${token}`
         },
 
+        // BUG 9: the typed code used to be validated for non-emptiness on the
+        // client and then thrown away — the server never saw it. It is now
+        // sent and verified server-side.
         body: JSON.stringify({
           currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword
+          newPassword: passwordForm.newPassword,
+          verificationCode: passwordForm.verificationCode
         })
       }
     );
@@ -204,7 +351,17 @@ const handleVerificationSubmit = async () => {
 
     console.error(error);
 
-    alert(t('errorChangingPassword'));
+    // Surface the server's actual reason (invalid/expired code, weak password)
+    // inline instead of a native alert.
+    setPasswordFormError(
+      error instanceof Error && error.message
+        ? error.message
+        : t('errorChangingPassword')
+    );
+
+  } finally {
+
+    setIsChangingPassword(false);
 
   }
 
@@ -259,7 +416,7 @@ const handleVerificationSubmit = async () => {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  'A'
+                  avatarInitial
                 )}
               </div>
               <div className="space-y-3">
@@ -282,16 +439,44 @@ const handleVerificationSubmit = async () => {
               </div>
             </div>
 
+            {isProfileLoading ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {localText.profileLoading}
+              </p>
+            ) : null}
+
+            {profileLoadError ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-200">
+                {profileLoadError}
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  {localText.platformEmail}
+                  {localText.profileName}
+                </label>
+                <input
+                  type="text"
+                  value={profileName}
+                  disabled={isProfileLoading}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-transparent text-navy dark:text-cream-dark focus:outline-none focus:ring-1 transition-colors disabled:opacity-60 ${settingsErrors.name ? 'border-red-300 text-red-700 focus:border-red-500 focus:ring-red-200 dark:border-red-500/50' : 'border-gray-200 dark:border-navy-light focus:border-gold focus:ring-gold'}`}
+                />
+                {settingsErrors.name ? (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">{settingsErrors.name}</p>
+                ) : null}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  {localText.profileEmail}
                 </label>
                 <input
                   type="email"
-                  value={platformEmail}
-                  onChange={(e) => setPlatformEmail(e.target.value)}
-                  className={`w-full px-4 py-2.5 rounded-xl border bg-transparent text-navy dark:text-cream-dark focus:outline-none focus:ring-1 transition-colors ${settingsErrors.email ? 'border-red-300 text-red-700 focus:border-red-500 focus:ring-red-200 dark:border-red-500/50' : 'border-gray-200 dark:border-navy-light focus:border-gold focus:ring-gold'}`}
+                  value={profileEmail}
+                  disabled={isProfileLoading}
+                  onChange={(e) => setProfileEmail(e.target.value)}
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-transparent text-navy dark:text-cream-dark focus:outline-none focus:ring-1 transition-colors disabled:opacity-60 ${settingsErrors.email ? 'border-red-300 text-red-700 focus:border-red-500 focus:ring-red-200 dark:border-red-500/50' : 'border-gray-200 dark:border-navy-light focus:border-gold focus:ring-gold'}`}
                 />
                 {settingsErrors.email ? (
                   <p className="text-xs text-red-600 dark:text-red-400 mt-1">{settingsErrors.email}</p>
@@ -299,19 +484,26 @@ const handleVerificationSubmit = async () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  {localText.supportContact}
+                  {localText.profilePhone}
                 </label>
                 <input
                   type="tel"
-                  value={supportContact}
-                  onChange={(e) => setSupportContact(e.target.value)}
-                  className={`w-full px-4 py-2.5 rounded-xl border bg-transparent text-navy dark:text-cream-dark focus:outline-none focus:ring-1 transition-colors ${settingsErrors.phone ? 'border-red-300 text-red-700 focus:border-red-500 focus:ring-red-200 dark:border-red-500/50' : 'border-gray-200 dark:border-navy-light focus:border-gold focus:ring-gold'}`}
+                  value={profilePhone}
+                  disabled={isProfileLoading}
+                  onChange={(e) => setProfilePhone(e.target.value)}
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-transparent text-navy dark:text-cream-dark focus:outline-none focus:ring-1 transition-colors disabled:opacity-60 ${settingsErrors.phone ? 'border-red-300 text-red-700 focus:border-red-500 focus:ring-red-200 dark:border-red-500/50' : 'border-gray-200 dark:border-navy-light focus:border-gold focus:ring-gold'}`}
                 />
                 {settingsErrors.phone ? (
                   <p className="text-xs text-red-600 dark:text-red-400 mt-1">{settingsErrors.phone}</p>
                 ) : null}
               </div>
             </div>
+
+            {profileSaveError ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-200">
+                {profileSaveError}
+              </div>
+            ) : null}
 
             {settingsSuccess ? (
               <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800/30 dark:bg-green-900/20 dark:text-green-200">
@@ -323,7 +515,8 @@ const handleVerificationSubmit = async () => {
               <button
                 type="button"
                 onClick={handleProfileSave}
-                className="px-6 py-2.5 bg-gold hover:bg-gold-dark text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 font-medium">
+                disabled={isProfileSaving || isProfileLoading}
+                className="px-6 py-2.5 bg-gold hover:bg-gold-dark text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-60">
                 {t('save')}
               </button>
             </div>
@@ -710,9 +903,32 @@ const handleVerificationSubmit = async () => {
                   </>
                 ) : (
                   <div className="space-y-4">
+                    {/* BUG 7: this box previously just repeated the field label
+                        and no code was ever issued. It now explains the step and
+                        offers a real send/resend action. */}
                     <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 text-sm text-gray-700 dark:border-navy-light dark:bg-navy-light/40 dark:text-gray-300">
-                      {t('verificationCode')}
+                      <p>{localText.codeInstructions}</p>
+                      <button
+                        type="button"
+                        onClick={requestVerificationCode}
+                        disabled={isSendingCode}
+                        className="mt-3 text-sm font-semibold text-brand-cyan hover:underline disabled:opacity-50">
+                        {isSendingCode ? localText.sendingCode : localText.sendCode}
+                      </button>
                     </div>
+
+                    {codeNotice ? (
+                      <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800/30 dark:bg-green-900/20 dark:text-green-200">
+                        {codeNotice}
+                      </div>
+                    ) : null}
+
+                    {codeError ? (
+                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-200">
+                        {codeError}
+                      </div>
+                    ) : null}
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                        { t('verificationCode')}
@@ -729,6 +945,12 @@ const handleVerificationSubmit = async () => {
                     </div>
                   </div>
                 )}
+
+                {passwordFormError ? (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-200">
+                    {passwordFormError}
+                  </div>
+                ) : null}
 
                 {passwordSuccessMessage ? (
                   <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800/30 dark:bg-green-900/20 dark:text-green-200">
@@ -747,6 +969,7 @@ const handleVerificationSubmit = async () => {
                 <button
                   type="button"
                   onClick={isVerificationStep ? handleVerificationSubmit : handlePasswordSave}
+                  disabled={isChangingPassword}
                   className="px-5 py-2.5 rounded-xl bg-gold text-sm font-medium text-white hover:bg-gold-dark transition-colors">
                   {t('save')}
                 </button>

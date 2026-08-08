@@ -3,7 +3,8 @@ import { useAppContext } from '../context/AppContext';
 import {
   PlusIcon,
   Edit2Icon,
-  Trash2Icon
+  Trash2Icon,
+  XCircleIcon
 } from 'lucide-react';
 
 import { API_URL } from "../config";
@@ -48,6 +49,12 @@ const { t, language } = useAppContext();
 
   const [loading, setLoading] = useState(true);
 const [successMessage, setSuccessMessage] = useState('');
+const [errorMessage, setErrorMessage] = useState('');
+
+const [formErrors, setFormErrors] = useState<{
+  title?: string;
+  stage_id?: string;
+}>({});
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -71,7 +78,9 @@ const [formData, setFormData] = useState<{
   description: '',
   description_ar: '',
   stage_id: '',
-  sector_id: 'all',
+  // Sector 5 ("All Sectors") is a real row and the backend's all-sectors
+  // sentinel. The previous 'all' value matched no <option> in the select.
+  sector_id: '5',
   task_type: 'file',
   is_global: 1,
   required: 1,
@@ -80,6 +89,36 @@ const [formData, setFormData] = useState<{
 
 const [newDocument, setNewDocument] =
   useState('');
+
+// Fallback text for server failures that come back without a message.
+const genericError =
+  language === 'ar'
+    ? 'تعذّر إتمام العملية. حاول مرة أخرى.'
+    : 'The operation could not be completed. Please try again.';
+
+const showError = (message: string) => {
+
+  setSuccessMessage('');
+  setErrorMessage(message);
+
+  setTimeout(() => {
+    setErrorMessage('');
+  }, 6000);
+
+};
+
+// Pull the server's own message off a failed response so the banner explains
+// what actually went wrong instead of claiming success.
+const readErrorMessage = async (res: Response) => {
+
+  try {
+    const body = await res.json();
+    return body?.message || body?.error || genericError;
+  } catch {
+    return genericError;
+  }
+
+};
 
   const loadData = async () => {
 
@@ -132,7 +171,7 @@ const [newDocument, setNewDocument] =
 
     try {
 
-      await fetch(
+      const res = await fetch(
         `${API_URL}/tasks/${id}`,
         {
           method: 'DELETE',
@@ -141,6 +180,11 @@ const [newDocument, setNewDocument] =
           }
         }
       );
+
+      if (!res.ok) {
+        showError(await readErrorMessage(res));
+        return;
+      }
 
       loadData();
 setSuccessMessage(t("taskDeleted"));
@@ -151,14 +195,48 @@ setTimeout(() => {
     } catch (error) {
 
       console.log(error);
+      showError(genericError);
 
     }
 
   };
 
+  const closeModal = () => {
+
+    setIsModalOpen(false);
+    setFormErrors({});
+    setErrorMessage('');
+    setNewDocument('');
+
+  };
+
+  // Esc closes the drawer — previously the only exits were Cancel and Save,
+  // both of which could render off-screen.
+  useEffect(() => {
+
+    if (!isModalOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+
+  }, [isModalOpen]);
+
   const openAddModal = () => {
 
     setEditingTask(null);
+    setFormErrors({});
+    setErrorMessage('');
 
 setFormData({
   title: '',
@@ -166,7 +244,7 @@ setFormData({
   description: '',
   description_ar: '',
   stage_id: '',
-  sector_id: 'all',
+  sector_id: '5',
   task_type: 'file',
   is_global: 1,
   required: 1,
@@ -180,6 +258,8 @@ setFormData({
   const openEditModal = (task: Task) => {
 
     setEditingTask(task);
+    setFormErrors({});
+    setErrorMessage('');
 
 setFormData({
   title: task.title,
@@ -189,7 +269,7 @@ setFormData({
   stage_id: String(task.stage_id),
   sector_id: task.sector_id
     ? String(task.sector_id)
-    : 'all',
+    : '5',
   task_type: task.task_type,
   is_global: task.is_global,
   required: task.required,
@@ -203,6 +283,25 @@ setFormData({
 
   const handleSave = async () => {
 
+  // Required fields. stage_id defaults to '' and the select has an empty
+  // placeholder option, so an empty stage was submittable and produced a
+  // foreign-key 500 on the server.
+  const errors: { title?: string; stage_id?: string } = {};
+
+  if (!formData.title.trim()) {
+    errors.title = t('fieldRequired');
+  }
+
+  if (!formData.stage_id) {
+    errors.stage_id = t('fieldRequired');
+  }
+
+  setFormErrors(errors);
+
+  if (Object.keys(errors).length > 0) {
+    return;
+  }
+
   try {
 
 const payload = {
@@ -212,13 +311,11 @@ const payload = {
   description_ar: formData.description_ar,
   stage_id: Number(formData.stage_id),
 
-  sector_id:
-    formData.sector_id === 'all'
-      ? 5
-      : Number(formData.sector_id),
+  sector_id: Number(formData.sector_id),
 
   task_type: formData.task_type, // ✅ أضفه هنا
 
+  // Sector 5 is "All Sectors".
   is_global:
     formData.sector_id === '5'
       ? 1
@@ -231,7 +328,7 @@ const payload = {
 
     if (editingTask) {
 
-      await fetch(
+      const res = await fetch(
         `${API_URL}/tasks/${editingTask.id}`,
         {
           method: 'PUT',
@@ -242,6 +339,12 @@ const payload = {
           body: JSON.stringify(payload)
         }
       );
+
+      if (!res.ok) {
+        showError(await readErrorMessage(res));
+        return;
+      }
+
 setSuccessMessage(t("taskUpdated"));
 
 setTimeout(() => {
@@ -249,7 +352,7 @@ setTimeout(() => {
 }, 3000);
     } else {
 
-      await fetch(
+      const res = await fetch(
         `${API_URL}/tasks`,
         {
           method: 'POST',
@@ -260,6 +363,12 @@ setTimeout(() => {
           body: JSON.stringify(payload)
         }
       );
+
+      if (!res.ok) {
+        showError(await readErrorMessage(res));
+        return;
+      }
+
 setSuccessMessage(t("taskAdded"));
 
 setTimeout(() => {
@@ -267,12 +376,13 @@ setTimeout(() => {
 }, 3000);
     }
 
-    setIsModalOpen(false);
+    closeModal();
 
     loadData();
   } catch (error) {
 
     console.log(error);
+    showError(genericError);
 
   }
 
@@ -296,6 +406,12 @@ setTimeout(() => {
 {successMessage && (
   <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
     {successMessage}
+  </div>
+)}
+
+{errorMessage && !isModalOpen && (
+  <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    {errorMessage}
   </div>
 )}
         </div>
@@ -465,30 +581,72 @@ setTimeout(() => {
 
       {isModalOpen && (
 
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={closeModal}>
 
-          <div className="bg-white rounded-2xl w-full max-w-2xl p-6">
+          {/* Flex column with a scrollable body and a pinned footer: the card
+              used to have no max-height inside an `h-screen overflow-hidden`
+              shell, so Save and Cancel rendered off-screen. */}
+          <div
+            className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}>
 
-            <h2 className="text-2xl font-bold mb-6">
+            <div className="flex items-start justify-between gap-4 p-6 pb-4">
 
-             {t(editingTask ? 'editTask' : 'addTask')}
+              <h2 className="text-2xl font-bold">
 
-            </h2>
+               {t(editingTask ? 'editTask' : 'addTask')}
 
-            <div className="space-y-4">
+              </h2>
 
-              <input
-                type="text"
-                placeholder={t('title')}
-                value={formData.title}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    title: e.target.value
-                  })
-                }
-                className="w-full border rounded-xl px-4 py-3"
-              />
+              <button
+                type="button"
+                onClick={closeModal}
+                aria-label={t('cancel')}
+                className="rounded-full p-2 text-gray-400 hover:text-navy dark:hover:text-cream-dark transition-colors">
+
+                <XCircleIcon size={20} />
+
+              </button>
+
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4">
+
+{errorMessage && (
+  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    {errorMessage}
+  </div>
+)}
+
+
+              <div>
+
+                <input
+                  type="text"
+                  placeholder={t('title')}
+                  value={formData.title}
+                  onChange={(e) => {
+                    setFormErrors((prev) => ({
+                      ...prev,
+                      title: undefined
+                    }));
+                    setFormData({
+                      ...formData,
+                      title: e.target.value
+                    });
+                  }}
+                  className={`w-full border rounded-xl px-4 py-3 ${formErrors.title ? 'border-red-400' : ''}`}
+                />
+
+                {formErrors.title && (
+                  <span className="mt-1 block text-xs text-red-600">
+                    {formErrors.title}
+                  </span>
+                )}
+
+              </div>
 
               <input
   type="text"
@@ -550,35 +708,49 @@ setTimeout(() => {
 
               </select>
 
-              <select
-                value={formData.stage_id}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    stage_id: e.target.value
-                  })
-                }
-                className="w-full border rounded-xl px-4 py-3">
+              <div>
 
-                <option value="">
-                  {t('selectStage')}
-                </option>
+                <select
+                  value={formData.stage_id}
+                  onChange={(e) => {
+                    setFormErrors((prev) => ({
+                      ...prev,
+                      stage_id: undefined
+                    }));
+                    setFormData({
+                      ...formData,
+                      stage_id: e.target.value
+                    });
+                  }}
+                  className={`w-full border rounded-xl px-4 py-3 ${formErrors.stage_id ? 'border-red-400' : ''}`}>
 
-                {stages.map((stage) => (
-
-                  <option
-                    key={stage.id}
-                    value={stage.id}>
-
-                    {language === 'ar'
-  ? (stage as any).name_ar
-  : stage.name}
-
+                  <option value="">
+                    {t('selectStage')}
                   </option>
 
-                ))}
+                  {stages.map((stage) => (
 
-              </select>
+                    <option
+                      key={stage.id}
+                      value={stage.id}>
+
+                      {language === 'ar'
+    ? (stage as any).name_ar
+    : stage.name}
+
+                    </option>
+
+                  ))}
+
+                </select>
+
+                {formErrors.stage_id && (
+                  <span className="mt-1 block text-xs text-red-600">
+                    {formErrors.stage_id}
+                  </span>
+                )}
+
+              </div>
 
               <select
   value={formData.sector_id}
@@ -717,12 +889,10 @@ placeholder={
 
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-end gap-3 p-6 pt-4 border-t">
 
               <button
-                onClick={() =>
-                  setIsModalOpen(false)
-                }
+                onClick={closeModal}
                 className="px-5 py-2 rounded-xl border">
 
 {t('cancel')}

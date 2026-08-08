@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { API_URL } from "../config";
+import { setSession } from "../lib/session";
 import { StepInLogo, SpectrumBar } from "../components/StepInLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 type Sector = { id: number; name_en: string | null; name_ar: string | null };
@@ -64,166 +65,78 @@ export function LoginPage() {
   const [companyLogo, setCompanyLogo] = useState<File | null>(null);
   const [companyProfile, setCompanyProfile] = useState<File | null>(null);
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Submit-time validation state. `fieldErrors` drives the inline messages
+  // under each control; `formError` is the banner above the submit button.
+  // Both replace the alert() dialogs this form used to rely on.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const isArabic = i18n.language.startsWith('ar');
   const BackIcon = isArabic ? ArrowRight : ArrowLeft;
 const navigate = useNavigate();
 const handleLogin = async () => {
+  try {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
 
-try {
+    const data = await res.json().catch(() => ({}));
 
-const res =
-await fetch(
-`${API_URL}/auth/login`,
-{
+    // دخول بـ OTP
+    if (res.ok && (data.requiresOTP || data.requireOTP)) {
+      navigate('/verify-otp', { state: { email, password, isLogin: true } });
+      return;
+    }
 
-method:
-"POST",
+    // دخول مباشر
+    if (res.ok) {
+      // session.ts is the single writer for the token/user pair.
+      setSession(data.token, data.user);
 
-headers: {
+      const role = data.user?.role;
 
-"Content-Type":
-"application/json"
+      if (role === 'ADMIN') {
+        navigate('/admin');
+      } else if (role === 'CLIENT') {
+        navigate('/company-dashboard');
+      } else {
+        navigate('/employee-dashboard');
+      }
 
-},
+      return;
+    }
 
-body:
-JSON.stringify({
-
-email,
-
-password
-
-})
-
-}
-);
-
-const data =
-await res.json();
-
-console.log(
-"LOGIN RESPONSE =",
-data
-);
-console.log("ROLE =", data.user?.role);
-// دخول بـ OTP
-if (
-res.ok
-&&
-(
-data.requiresOTP
-||
-data.requireOTP
-)
-) {
-
-navigate(
-"/verify-otp",
-{
-
-state: {
-
-email,
-
-password,
-
-isLogin:
-true
-
-}
-
-}
-
-);
-
-return;
-
-}
-
-// دخول مباشر
-if (
-res.ok
-) {
-
-localStorage.setItem(
-"token",
-data.token
-);
-
-localStorage.setItem(
-
-"user",
-
-JSON.stringify(
-data.user
-)
-
-);
-
-const role =
-data.user.role;
-
-if (
-role ===
-"ADMIN"
-) {
-
-navigate(
-"/admin"
-);
-
-}
-
-else if (
-
-role ===
-"CLIENT"
-
-) {
-
-navigate(
-"/company-dashboard"
-);
-
-}
-
-else {
-
-navigate(
-"/employee-dashboard"
-);
-
-}
-
-return;
-
-}
-
-alert(
-data.message
-||
-"فشل تسجيل الدخول"
-);
-
-}
-
-catch (
-err
-) {
-
-console.error(
-err
-);
-
-alert(
-"خطأ في الاتصال بالسيرفر"
-);
-
-}
-
+    setFormError(data.message || t('login.errors.loginFailed'));
+  } catch (err) {
+    console.error(err);
+    setFormError(t('login.errors.network'));
+  }
 };
 
+  // Switching between the sign-in and register tabs must not carry stale
+  // validation messages across.
+  const switchMode = (login: boolean) => {
+    setIsLogin(login);
+    setFieldErrors({});
+    setFormError('');
+  };
+
+  // Clears a field's inline error as soon as the user starts correcting it.
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
   const renderInput = ({
+    name: fieldName,
     label,
     placeholder,
     type = 'text',
@@ -231,9 +144,9 @@ alert(
     onChange,
     icon,
     dir,
-    required = false,
     min
   }: {
+    name: string;
     label: string;
     placeholder: string;
     type?: string;
@@ -241,196 +154,215 @@ alert(
     onChange: (value: string) => void;
     icon: React.ReactNode;
     dir?: 'ltr' | 'rtl';
-    required?: boolean;
     min?: number;
-  }) => (
-    <div>
-      <label className="mb-2 block text-sm font-medium text-gray-700">{label}</label>
-      <div className="relative">
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3.5 px-4 pl-12 text-brand-navy placeholder-gray-400 transition-all focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20"
-          dir={dir}
-          required={required}
-          min={min}
-        />
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">{icon}</span>
-      </div>
-    </div>
-  );
+  }) => {
+    const error = fieldErrors[fieldName];
 
+    return (
+      <div>
+        <label className="mb-2 block text-sm font-medium text-gray-700">{label}</label>
+        <div className="relative">
+          <input
+            type={type}
+            value={value}
+            onChange={(e) => {
+              onChange(e.target.value);
+              clearFieldError(fieldName);
+            }}
+            placeholder={placeholder}
+            className={`w-full rounded-xl border bg-gray-50 py-3.5 px-4 pl-12 text-brand-navy placeholder-gray-400 transition-all focus:outline-none focus:ring-2 ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : 'border-gray-200 focus:border-brand-gold focus:ring-brand-gold/20'}`}
+            dir={dir}
+            min={min}
+            aria-invalid={Boolean(error)}
+          />
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">{icon}</span>
+        </div>
+        {error ? <p className="mt-1.5 text-xs text-red-600">{error}</p> : null}
+      </div>
+    );
+  };
+
+  // NOTE: never put `required` on this input. It is `display:none`, and browsers
+  // refuse to focus a hidden invalid control — they abort the submit silently and
+  // handleSubmit never runs. The file is validated in JS instead (see validate()).
   const renderFileInput = ({
+    name: fieldName,
     label,
     hint,
     file,
-    onChange,
-    required = false
+    onChange
   }: {
+    name: string;
     label: string;
     hint: string;
     file: File | null;
     onChange: (file: File | null) => void;
-    required?: boolean;
-  }) => (
-    <div>
-      <label className="mb-2 block text-sm font-medium text-gray-700">{label}</label>
-      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3.5 text-gray-500 transition-all hover:border-brand-gold hover:bg-brand-cream/60">
-        <Upload className="h-5 w-5 text-brand-gold" />
-        <span>{file ? file.name : hint}</span>
-        <input
-          type="file"
-          className="hidden"
-          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
-          required={required}
-        />
-      </label>
-    </div>
-  );
+  }) => {
+    const error = fieldErrors[fieldName];
+
+    return (
+      <div>
+        <label className="mb-2 block text-sm font-medium text-gray-700">{label}</label>
+        <label
+          className={`flex cursor-pointer items-center gap-3 rounded-xl border border-dashed bg-gray-50 px-4 py-3.5 text-gray-500 transition-all hover:border-brand-gold hover:bg-brand-cream/60 ${error ? 'border-red-400' : 'border-gray-300'}`}>
+          <Upload className="h-5 w-5 text-brand-gold" />
+          <span>{file ? file.name : hint}</span>
+          <input
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              onChange(e.target.files?.[0] ?? null);
+              clearFieldError(fieldName);
+            }}
+          />
+        </label>
+        {error ? <p className="mt-1.5 text-xs text-red-600">{error}</p> : null}
+      </div>
+    );
+  };
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+
+// Every required field is validated here rather than by the browser: the form
+// is rendered with `noValidate` so that one hidden control can never abort the
+// submit without telling the user why (see renderFileInput).
+const validate = (): Record<string, string> => {
+  const errors: Record<string, string> = {};
+  const required = t('login.errors.required');
+
+  if (!email.trim()) {
+    errors.email = required;
+  } else if (!EMAIL_RE.test(email.trim())) {
+    errors.email = t('login.errors.invalidEmail');
+  }
+
+  if (!password) {
+    errors.password = required;
+  }
+
+  if (isLogin) {
+    return errors;
+  }
+
+  if (!name.trim()) errors.name = required;
+  if (!companyName.trim()) errors.companyName = required;
+  if (!companyManager.trim()) errors.companyManager = required;
+  if (!country) errors.country = t('login.errors.selectCountry');
+  if (!sector) errors.sector = t('login.errors.selectSector');
+  if (!founders.trim()) errors.founders = required;
+
+  if (!branchesCount.trim()) {
+    errors.branchesCount = required;
+  } else if (!Number.isFinite(Number(branchesCount)) || Number(branchesCount) < 1) {
+    errors.branchesCount = t('login.errors.minBranches');
+  }
+
+  if (!contactNumber.trim()) errors.contactNumber = required;
+
+  if (!companyEmail.trim()) {
+    errors.companyEmail = required;
+  } else if (!EMAIL_RE.test(companyEmail.trim())) {
+    errors.companyEmail = t('login.errors.invalidEmail');
+  }
+
+  if (!companyDescription.trim()) errors.companyDescription = required;
+  if (!companyLogo) errors.companyLogo = t('login.errors.fileRequired');
+  if (!companyProfile) errors.companyProfile = t('login.errors.fileRequired');
+
+  if (password && !STRONG_PASSWORD_RE.test(password)) {
+    errors.password = t('login.errors.weakPassword');
+  }
+
+  if (!confirmPassword) {
+    errors.confirmPassword = required;
+  } else if (password !== confirmPassword) {
+    errors.confirmPassword = t('login.errors.passwordMismatch');
+  }
+
+  return errors;
+};
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
-  console.log("SUBMIT CLICKED", isLogin);
-  // تسجيل دخول
-if (isLogin) {
-  console.log("LOGIN FUNCTION CALLED");
-  await handleLogin(); 
-  return;
-}
-// تحقق كلمة المرور
+  if (isSubmitting) return;
 
-if (password !== confirmPassword) {
+  setFormError('');
 
-alert("كلمتا المرور غير متطابقتين");
+  const errors = validate();
 
-return;
+  if (Object.keys(errors).length > 0) {
+    setFieldErrors(errors);
+    setFormError(t('login.errors.fixFields'));
+    return;
+  }
 
-}
+  setFieldErrors({});
+  setIsSubmitting(true);
 
-const strongPassword =
-/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+  try {
+    if (isLogin) {
+      await handleLogin();
+      return;
+    }
 
-if (!strongPassword.test(password)) {
+    // إنشاء حساب
+    const res = await fetch(`${API_URL}/auth/register-with-company`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        company_name: companyName,
+        manager_name: companyManager,
+        sector_id: Number(sector),
+        phone: contactNumber,
+        description: companyDescription,
+        country,
+        founders: founders
+          .split(',')
+          .map((f) => f.trim())
+          .filter((f) => f.length > 0)
+      })
+    });
 
-alert(
-"كلمة المرور يجب أن تحتوي على:\n• 8 أحرف على الأقل\n• حرف كبير\n• رقم\n• رمز خاص"
-);
+    const data = await res.json().catch(() => ({}));
 
-return;
+    if (res.ok && data.requiresOTP) {
+      navigate('/verify-otp', {
+        state: {
+          email,
+          formData: {
+            name,
+            email,
+            password,
+            company_name: companyName,
+            manager_name: companyManager,
+            sector_id: Number(sector),
+            phone: contactNumber,
+            description: companyDescription,
+            country,
+            founders: founders
+              .split(',')
+              .map((f) => f.trim())
+              .filter((f) => f.length > 0)
+          },
+          isLogin: false
+        }
+      });
 
-}
- // إنشاء حساب
-try {
+      return;
+    }
 
-  const res = await fetch(`${API_URL}/auth/register-with-company`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-
-body: JSON.stringify({
-  name,
-  email,
-  password,
-  company_name: companyName,
-  sector_id: Number(sector),
-  phone: contactNumber,
-  description: companyDescription,
-  country,
-founders: founders
-  .split(',')
-  .map((f) => f.trim())
-  .filter((f) => f.length > 0)})
-
-  });
-
-  const data = await res.json();
-
-  console.log("RESPONSE:", data);
-console.log(
-"OTP CHECK",
-res.ok,
-data
-);
-
-if (
-res.ok
-&&
-data.requiresOTP
-) {
-
-navigate(
-"/verify-otp",
-{
-
-state: {
-
-email,
-
-formData: {
-
-name,
-
-email,
-
-password,
-
-company_name:
-companyName,
-
-manager_name:
-companyManager,
-
-sector_id:
-Number(
-sector
-),
-
-phone:
-contactNumber,
-
-description:
-companyDescription,
-
-country,
-
-founders:
-founders
-.split(",")
-.map(
-(f)=>
-f.trim()
-)
-.filter(
-(f)=>
-f.length > 0)
-
-},
-isLogin: false
-}
-
-}
-);
-
-return;
-
-}
-
-alert(
-data.message
-||
-"صار خطأ"
-);
-
-} catch (err) {
-
-  console.error("ERROR:", err);
-  alert('خطأ في الاتصال بالسيرفر');
-
-}
+    setFormError(data.message || t('login.errors.registerFailed'));
+  } catch (err) {
+    console.error(err);
+    setFormError(t('login.errors.network'));
+  } finally {
+    setIsSubmitting(false);
+  }
 };
   return (
     <div className="min-h-screen bg-brand-cream flex flex-col">
@@ -482,18 +414,18 @@ data.message
 
             <div className="flex bg-gray-100 rounded-xl p-1 mb-8">
               <button
-                onClick={() => setIsLogin(true)}
+                onClick={() => switchMode(true)}
                 className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all duration-300 ${isLogin ? 'bg-brand-navy text-white shadow-md' : 'text-gray-500 hover:text-brand-navy'}`}>
                   {t('login.tabLogin')}
               </button>
               <button
-                onClick={() => setIsLogin(false)}
+                onClick={() => switchMode(false)}
                 className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all duration-300 ${!isLogin ? 'bg-brand-navy text-white shadow-md' : 'text-gray-500 hover:text-brand-navy'}`}>
                   {t('login.tabRegister')}
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               {!isLogin &&
               <motion.div
                 initial={{
@@ -511,36 +443,40 @@ data.message
                 
                   <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                     {renderInput({
+                      name: 'name',
                       label: t('login.fullName'),
                       placeholder: t('login.fullNamePlaceholder'),
                       value: name,
                       onChange: setName,
-                      icon: <Users className="h-5 w-5" />,
-                      required: true
+                      icon: <Users className="h-5 w-5" />
                     })}
                     {renderInput({
+                      name: 'companyName',
                       label: t('login.companyName'),
                       placeholder: t('login.companyNamePlaceholder'),
                       value: companyName,
                       onChange: setCompanyName,
-                      icon: <Building2 className="h-5 w-5" />,
-                      required: true
+                      icon: <Building2 className="h-5 w-5" />
                     })}
                     {renderInput({
+                      name: 'companyManager',
                       label: t('login.companyManager'),
                       placeholder: t('login.companyManagerPlaceholder'),
                       value: companyManager,
                       onChange: setCompanyManager,
-                      icon: <UserCog className="h-5 w-5" />,
-                      required: true
+                      icon: <UserCog className="h-5 w-5" />
                     })}
 <div className="space-y-2">
-  <label>{t('login.country')}</label>
+  <label className="mb-2 block text-sm font-medium text-gray-700">{t('login.country')}</label>
 
   <select
     value={country}
-    onChange={(e) => setCountry(e.target.value)}
-    className="w-full p-3 border rounded"
+    onChange={(e) => {
+      setCountry(e.target.value);
+      clearFieldError('country');
+    }}
+    aria-invalid={Boolean(fieldErrors.country)}
+    className={`w-full p-3 border rounded ${fieldErrors.country ? 'border-red-400' : ''}`}
   >
     <option value="">{t('login.selectCountry')}</option>
 
@@ -550,14 +486,19 @@ data.message
       </option>
     ))}
   </select>
+  {fieldErrors.country ? <p className="text-xs text-red-600">{fieldErrors.country}</p> : null}
 </div>
 <div className="space-y-2">
-  <label>{t('login.sector')}</label>
+  <label className="mb-2 block text-sm font-medium text-gray-700">{t('login.sector')}</label>
 
   <select
     value={sector}
-    onChange={(e) => setSector(e.target.value)}
-    className="w-full p-3 border rounded"
+    onChange={(e) => {
+      setSector(e.target.value);
+      clearFieldError('sector');
+    }}
+    aria-invalid={Boolean(fieldErrors.sector)}
+    className={`w-full p-3 border rounded ${fieldErrors.sector ? 'border-red-400' : ''}`}
   >
     <option value="">{t('login.selectSector')}</option>
 
@@ -567,71 +508,78 @@ data.message
       </option>
     ))}
   </select>
+  {fieldErrors.sector ? <p className="text-xs text-red-600">{fieldErrors.sector}</p> : null}
 </div>
                     {renderInput({
+                      name: 'founders',
                       label: t('login.founders'),
                       placeholder: t('login.foundersPlaceholder'),
                       value: founders,
                       onChange: setFounders,
-                      icon: <Users className="h-5 w-5" />,
-                      required: true
+                      icon: <Users className="h-5 w-5" />
                     })}
                     {renderInput({
+                      name: 'branchesCount',
                       label: t('login.branchesCount'),
                       placeholder: t('login.branchesCountPlaceholder'),
                       type: 'number',
                       value: branchesCount,
                       onChange: setBranchesCount,
                       icon: <GitBranch className="h-5 w-5" />,
-                      required: true,
                       min: 1
                     })}
                     {renderInput({
+                      name: 'contactNumber',
                       label: t('login.contactNumber'),
                       placeholder: t('login.contactNumberPlaceholder'),
                       type: 'tel',
                       value: contactNumber,
                       onChange: setContactNumber,
                       icon: <Phone className="h-5 w-5" />,
-                      dir: 'ltr',
-                      required: true
+                      dir: 'ltr'
                     })}
                     {renderInput({
+                      name: 'companyEmail',
                       label: t('login.companyEmail'),
                       placeholder: t('login.emailPlaceholder'),
                       type: 'email',
                       value: companyEmail,
                       onChange: setCompanyEmail,
                       icon: <Mail className="h-5 w-5" />,
-                      dir: 'ltr',
-                      required: true
+                      dir: 'ltr'
                     })}
                     <div className="md:col-span-2">
                       <label className="mb-2 block text-sm font-medium text-gray-700">{t('login.companyDescription')}</label>
                       <div className="relative">
                         <textarea
                           value={companyDescription}
-                          onChange={(e) => setCompanyDescription(e.target.value)}
+                          onChange={(e) => {
+                            setCompanyDescription(e.target.value);
+                            clearFieldError('companyDescription');
+                          }}
                           placeholder={t('login.companyDescriptionPlaceholder')}
-                          className="min-h-[120px] w-full rounded-xl border border-gray-200 bg-gray-50 py-3.5 px-4 pl-12 text-brand-navy placeholder-gray-400 transition-all focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20"
-                          required
+                          aria-invalid={Boolean(fieldErrors.companyDescription)}
+                          className={`min-h-[120px] w-full rounded-xl border bg-gray-50 py-3.5 px-4 pl-12 text-brand-navy placeholder-gray-400 transition-all focus:outline-none focus:ring-2 ${fieldErrors.companyDescription ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : 'border-gray-200 focus:border-brand-gold focus:ring-brand-gold/20'}`}
                         />
                         <FileText className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
                       </div>
+                      {fieldErrors.companyDescription ? (
+                        <p className="mt-1.5 text-xs text-red-600">{fieldErrors.companyDescription}</p>
+                      ) : null}
                     </div>
                     {renderFileInput({
+                      name: 'companyLogo',
                       label: t('login.companyLogo'),
                       hint: t('login.companyLogoHint'),
                       file: companyLogo,
-                      onChange: setCompanyLogo,
-                      required: true
+                      onChange: setCompanyLogo
                     })}
                     {renderFileInput({
+                      name: 'companyProfile',
                       label: t('login.companyProfile'),
                       hint: t('login.companyProfileHint'),
                       file: companyProfile,
-                      onChange: setCompanyProfile,
-                      required: true
+                      onChange: setCompanyProfile
                     })}
                   </div>
                 </motion.div>
@@ -643,13 +591,17 @@ data.message
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      clearFieldError('email');
+                    }}
                     placeholder={t('login.emailPlaceholder')}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 px-4 pl-12 text-brand-navy placeholder-gray-400 focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 transition-all"
-                    dir="ltr"
-                    required />
+                    aria-invalid={Boolean(fieldErrors.email)}
+                    className={`w-full bg-gray-50 border rounded-xl py-3.5 px-4 pl-12 text-brand-navy placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${fieldErrors.email ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : 'border-gray-200 focus:border-brand-gold focus:ring-brand-gold/20'}`}
+                    dir="ltr" />
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 </div>
+                {fieldErrors.email ? <p className="mt-1.5 text-xs text-red-600">{fieldErrors.email}</p> : null}
               </div>
 
               <div>
@@ -658,11 +610,14 @@ data.message
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      clearFieldError('password');
+                    }}
                     placeholder="••••••••"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 px-4 pl-20 text-brand-navy placeholder-gray-400 focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 transition-all"
-                    dir="ltr"
-                    required />
+                    aria-invalid={Boolean(fieldErrors.password)}
+                    className={`w-full bg-gray-50 border rounded-xl py-3.5 px-4 pl-20 text-brand-navy placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${fieldErrors.password ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : 'border-gray-200 focus:border-brand-gold focus:ring-brand-gold/20'}`}
+                    dir="ltr" />
                   <Lock className="absolute left-12 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <button
                     type="button"
@@ -697,13 +652,19 @@ data.message
                     <input
                     type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      clearFieldError('confirmPassword');
+                    }}
                     placeholder="••••••••"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 px-4 pl-12 text-brand-navy placeholder-gray-400 focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 transition-all"
-                    dir="ltr"
-                    required />
+                    aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                    className={`w-full bg-gray-50 border rounded-xl py-3.5 px-4 pl-12 text-brand-navy placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${fieldErrors.confirmPassword ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : 'border-gray-200 focus:border-brand-gold focus:ring-brand-gold/20'}`}
+                    dir="ltr" />
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   </div>
+                  {fieldErrors.confirmPassword ? (
+                    <p className="mt-1.5 text-xs text-red-600">{fieldErrors.confirmPassword}</p>
+                  ) : null}
                 </motion.div>
               }
 
@@ -734,11 +695,24 @@ transition-colors
                 </div>
               }
 
+{formError ? (
+  <div
+    role="alert"
+    className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    {formError}
+  </div>
+) : null}
+
 <button
   type="submit"
-  className="w-full bg-brand-gold text-brand-navy hover:bg-yellow-500 font-bold py-4 rounded-xl"
+  disabled={isSubmitting}
+  className="w-full bg-brand-gold text-brand-navy hover:bg-yellow-500 font-bold py-4 rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-brand-gold"
 >
-  {isLogin ? t('login.submitLogin') : t('login.submitRegister')}
+  {isSubmitting
+    ? t('login.submitting')
+    : isLogin
+    ? t('login.submitLogin')
+    : t('login.submitRegister')}
 </button>
             </form>
 
@@ -749,7 +723,7 @@ transition-colors
             </div>
 
             <button
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => switchMode(!isLogin)}
               className="w-full border-2 border-brand-navy text-brand-navy hover:bg-brand-navy hover:text-white font-bold py-3.5 rounded-xl transition-all duration-300 text-center">
               {isLogin ? t('login.switchToRegister') : t('login.switchToLogin')}
             </button>

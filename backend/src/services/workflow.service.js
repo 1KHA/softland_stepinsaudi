@@ -88,7 +88,36 @@ const generateWorkflow = async (companyId, sectorId) => {
   // resolves once every stage has been processed (matches original Promise resolve semantics)
 };
 
+// BUG 12 (secondary): this recomputes company status from stage completion and
+// used to write it unconditionally, so the next document approval silently
+// reverted whatever an admin had just set — the activation bug reappearing
+// later and looking intermittent. These states are decisions, not derived
+// values, and are never overwritten from here; the approve / reject /
+// needs-completion routes and PUT /companies/:id own them.
+const TERMINAL_COMPANY_STATUSES = [
+  "APPROVED",
+  "REJECTED",
+  "NEEDS_COMPLETION",
+  "DISABLED"
+];
+
 const updateCompanyStatus = async (companyId) => {
+
+  const company = await prisma.companies.findUnique({
+    where: { id: companyId },
+    select: { status: true }
+  });
+
+  if (
+    company &&
+    TERMINAL_COMPANY_STATUSES.includes(company.status)
+  ) {
+    console.log(
+      `Company ${companyId} is ${company.status} — leaving status untouched`
+    );
+
+    return company.status;
+  }
 
   const stages = await prisma.company_stages.findMany({
     where: { company_id: companyId },

@@ -77,9 +77,10 @@ const SelectField: React.FC<{
   label: string;
   value: string;
   onChange: (value: string) => void;
-  options: Array<{ value: string; label: string }>;
+  options: Array<{ value: string; label: string; disabled?: boolean }>;
   error?: string;
-}> = ({ label, value, onChange, options, error }) => (
+  hint?: string;
+}> = ({ label, value, onChange, options, error, hint }) => (
   <label className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
     <span className="font-medium">{label}</span>
     <select
@@ -87,19 +88,33 @@ const SelectField: React.FC<{
       onChange={(event) => onChange(event.target.value)}
       className={`w-full rounded-2xl border px-4 py-3 text-sm text-navy dark:bg-navy-card dark:text-cream-dark outline-none transition-colors focus:ring-2 ${error ? 'border-red-300 bg-red-50/40 text-red-700 focus:border-red-500 focus:ring-red-200 dark:border-red-500/50' : 'border-gray-200 bg-white focus:border-gold focus:ring-gold/20 dark:border-navy-light'}`}>
       {options.map((option) => (
-        <option key={option.value} value={option.value}>
+        <option
+          key={option.value}
+          value={option.value}
+          disabled={option.disabled}>
           {option.label}
         </option>
       ))}
     </select>
     {error ? (
       <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
+    ) : hint ? (
+      <span className="text-xs text-gray-500 dark:text-gray-400">{hint}</span>
     ) : null}
   </label>
 );
 
 export const Users: React.FC = () => {
-  const { t } = useAppContext();
+  const { t, language } = useAppContext();
+
+  // Clients are only ever created by the public company signup + OTP flow
+  // (auth.routes.js:1745). There is no admin endpoint that creates a CLIENT,
+  // so the option is offered but disabled rather than silently doing nothing.
+  const clientSignupOnlyNote =
+    language === 'ar'
+      ? 'تُنشأ حسابات العملاء من خلال تسجيل الشركة فقط، ولا يمكن إنشاؤها من هنا.'
+      : 'Client accounts are created through company signup only and cannot be created here.';
+
   const currentUser = JSON.parse(
   localStorage.getItem('user') || '{}'
 );
@@ -109,7 +124,8 @@ export const Users: React.FC = () => {
   const [formState, setFormState] = useState<UserForm>(defaultFormState);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof UserForm, string>>>({});
   const [successMessage, setSuccessMessage] = useState('');
-  const [users, setUsers] = useState<User[]>([]); 
+  const [errorMessage, setErrorMessage] = useState('');
+  const [users, setUsers] = useState<User[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [roleFilter, setRoleFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -121,6 +137,19 @@ useEffect(() => {
   fetchCompanies();
 
 }, []);
+
+// In-page error banner, mirroring the setSuccessMessage pattern above.
+// Replaces the bare alert() calls this page used to rely on.
+const showError = (message: string) => {
+
+  setSuccessMessage('');
+  setErrorMessage(message);
+
+  window.setTimeout(() => {
+    setErrorMessage('');
+  }, 6000);
+
+};
 
 const fetchUsers = async () => {
 
@@ -220,12 +249,20 @@ const toggleStatus = async (
     );
 
     if (!response.ok) {
-      throw new Error('Failed to update status');
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || 'Failed to update status');
     }
 
     await fetchUsers();
   } catch (error) {
     console.error(error);
+    showError(
+      `${t('errorSavingUser')}${
+        error instanceof Error && error.message
+          ? `: ${error.message}`
+          : ''
+      }`
+    );
   }
 };
 
@@ -234,6 +271,7 @@ const toggleStatus = async (
     setSelectedUserId(null);
     setFormState(defaultFormState);
     setFormErrors({});
+    setErrorMessage('');
     setIsModalOpen(true);
   };
 
@@ -255,6 +293,7 @@ const toggleStatus = async (
       managerPhoneNumber: user.managerPhoneNumber ?? ''
     });
     setFormErrors({});
+    setErrorMessage('');
     setIsModalOpen(true);
   };
 
@@ -345,7 +384,14 @@ body: JSON.stringify({
   name: formState.name,
   email: formState.email,
   password: formState.password,
-  company_id: Number(formState.companyId),
+
+  // An ADMIN has no company, so companyId is ''. Number('') is 0, and there
+  // is no company with id 0 — that produced a foreign-key violation and a
+  // 500 on every admin edit. Send null when there is no company.
+  company_id: formState.companyId
+    ? Number(formState.companyId)
+    : null,
+
   status: formState.status.toUpperCase()
 })
           }
@@ -378,31 +424,35 @@ let backendRole = 'ADMIN';
         backendRole = 'CLIENT';
       }
 
-      let data: any;
-
-      if (backendRole === 'ADMIN') {
-        const response = await fetch(
-          `${API_URL}/auth/create-admin`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...authHeaders()
-            },
-            body: JSON.stringify({
-              name: formState.name,
-              email: formState.email,
-              password: formState.password
-            })
-          }
-        );
-
-        data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to create admin');
-        }
+      // Only ADMIN can be created from here. The previous code silently skipped
+      // the request for every other role and still reported success — fail
+      // loudly instead of pretending the user was created.
+      if (backendRole !== 'ADMIN') {
+        throw new Error(clientSignupOnlyNote);
       }
+
+      const response = await fetch(
+        `${API_URL}/auth/create-admin`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders()
+          },
+          body: JSON.stringify({
+            name: formState.name,
+            email: formState.email,
+            password: formState.password
+          })
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create admin');
+      }
+
       await fetchUsers();
 
       setSuccessMessage(t('userCreatedSuccess'));
@@ -413,7 +463,13 @@ let backendRole = 'ADMIN';
       }, 4000);
     } catch (error) {
       console.error(error);
-    alert(t('errorSavingUser'));
+      showError(
+        `${t('errorSavingUser')}${
+          error instanceof Error && error.message
+            ? `: ${error.message}`
+            : ''
+        }`
+      );
     }
   };
 
@@ -424,7 +480,7 @@ let backendRole = 'ADMIN';
 
     const token = localStorage.getItem('token');
 
-    await fetch(
+    const response = await fetch(
       `${API_URL}/auth/users/${id}`,
       {
         method: 'DELETE',
@@ -434,6 +490,11 @@ let backendRole = 'ADMIN';
         }
       }
     );
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || 'Failed to delete user');
+    }
 
     setUsers((prev) =>
       prev.filter((user) => user.id !== id)
@@ -449,6 +510,16 @@ setTimeout(() => {
   } catch (error) {
 
     console.error(error);
+
+    setDeleteUserId(null);
+
+    showError(
+      `${t('errorSavingUser')}${
+        error instanceof Error && error.message
+          ? `: ${error.message}`
+          : ''
+      }`
+    );
 
   }
 
@@ -494,6 +565,11 @@ const filteredUsers = users.filter((user) => {
           {successMessage ? (
             <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800/30 dark:bg-green-900/20 dark:text-green-200">
               {successMessage}
+            </div>
+          ) : null}
+          {errorMessage && !isModalOpen ? (
+            <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-200">
+              {errorMessage}
             </div>
           ) : null}
         </div>
@@ -633,7 +709,7 @@ const filteredUsers = users.filter((user) => {
 onChange={() => {
 
   if (user.id === currentUser.id) {
-alert(t("cannotDisableSelf"));
+    showError(t("cannotDisableSelf"));
     return;
   }
 
@@ -658,12 +734,12 @@ alert(t("cannotDisableSelf"));
                         type="button"
 onClick={() => {
   if (user.id === currentUser.id) {
-    alert(t("cannotDeleteSelf"));
+    showError(t("cannotDeleteSelf"));
     return;
   }
 
   setDeleteUserId(user.id);
-}}      
+}}
                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-100 rounded-md transition-colors"
                         title="Delete User">
                         <Trash2Icon size={16} />
@@ -728,6 +804,11 @@ onClick={() => {
               </button>
             </div>
             <form onSubmit={handleUserSubmit} className="space-y-6 p-6">
+              {errorMessage ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/30 dark:bg-red-900/20 dark:text-red-200">
+                  {errorMessage}
+                </div>
+              ) : null}
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
                   label={t('name')}
@@ -765,9 +846,18 @@ onClick={() => {
                   value={formState.role}
                   onChange={(value) => handleFormChange('role', value as Role)}
                  options={[
-  { value: 'admin', label: t('admin') }
+  { value: 'admin', label: t('admin') },
+  // "manager" is this UI's display alias for the backend CLIENT role — there
+  // is no MANAGER role. Creating a CLIENT is only possible through the public
+  // company signup flow, so the option is disabled when adding a new user.
+  {
+    value: 'manager',
+    label: t('manager'),
+    disabled: !isEditMode
+  }
 ]}
                   error={formErrors.role}
+                  hint={!isEditMode ? clientSignupOnlyNote : undefined}
                 />
 
                 <SelectField

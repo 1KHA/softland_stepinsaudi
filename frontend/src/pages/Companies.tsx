@@ -12,6 +12,7 @@ import {
 import { motion } from 'framer-motion';
 
 import { API_URL } from "../config";
+import { authHeaders } from "../lib/session";
 interface Company {
   id: string;
   name: string;
@@ -65,6 +66,8 @@ export const Companies: React.FC = () => {
     'all' | 'active' | 'pending' | 'suspended'
   >('all');
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [viewCompany, setViewCompany] = useState<Company | null>(null);
 
   const [editCompany, setEditCompany] = useState<Company | null>(null);
@@ -83,6 +86,11 @@ export const Companies: React.FC = () => {
   const [companies, setCompanies] =
     useState<Company[]>([]);
 
+  // Result of the last PUT /companies/:id. The modal stays open on failure.
+  const [saveError, setSaveError] = useState('');
+
+  const [isSaving, setIsSaving] = useState(false);
+
   // ================= FETCH COMPANIES =================
 
   useEffect(() => {
@@ -95,20 +103,19 @@ export const Companies: React.FC = () => {
 
     try {
 
-      const token = localStorage.getItem('token');
-console.log('TOKEN =', token);
-
       const response = await fetch(
         `${API_URL}/auth/companies`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          headers: authHeaders()
         }
       );
 
-      const data = await response.json();
-      console.log(data.companies[0]);
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        console.error('Failed to load companies:', data?.message);
+        return;
+      }
 
       setCompanies(
         (data.companies || []).map((company: any) => ({
@@ -217,11 +224,30 @@ const sectorOptions = [
     { value: 'suspended' as const, label: 'statusDisabled' }
   ];
 
-  const filteredCompanies = companies.filter((company) =>
-    filter === 'all'
-      ? true
-      : company.status === filter
-  );
+  // The status tabs and the search box are independent filters: both must hold
+  // for a company to stay in the list (same shape as Requests.tsx).
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredCompanies = companies.filter((company) => {
+    if (filter !== 'all' && company.status !== filter) {
+      return false;
+    }
+
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    return [
+      company.name,
+      company.email,
+      company.representativeName,
+      company.location,
+      company.sector,
+      company.phoneNumber
+    ].some((field) =>
+      String(field ?? '').toLowerCase().includes(normalizedQuery)
+    );
+  });
 
   const openCompanyProfile = (company: Company) => {
 
@@ -263,6 +289,8 @@ setFormState({
     setEditCompany(null);
 
     setFormErrors({});
+
+    setSaveError('');
 
   };
 
@@ -362,6 +390,8 @@ const handleFormChange = (
 
     event.preventDefault();
 
+    setSaveError('');
+
     const errors = validateForm();
 
     if (Object.keys(errors).length) {
@@ -374,68 +404,66 @@ const handleFormChange = (
 
     if (!editCompany) return;
 
+    setIsSaving(true);
+
     try {
-      console.log('SAVE CLICKED');
-const token = localStorage.getItem('token');
-console.log("TOKEN =", token);
-const response = await fetch(
-  `${API_URL}/companies/${editCompany.id}`,
-  {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
-body: JSON.stringify({
-  name: formState.name,
-  manager_name: formState.representativeName,
-  country: formState.address,
-  sector_id: formState.sector_id,
+      const response = await fetch(
+        `${API_URL}/companies/${editCompany.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders()
+          },
+          body: JSON.stringify({
+            name: formState.name,
+            manager_name: formState.representativeName,
+            country: formState.address,
+            sector_id: formState.sector_id,
 
-  status:
-    formState.status === 'active'
-      ? 'APPROVED'
-      : formState.status === 'pending'
-      ? 'UNDER_REVIEW'
-      : 'REJECTED',
+            status:
+              formState.status === 'active'
+                ? 'APPROVED'
+                : formState.status === 'pending'
+                ? 'UNDER_REVIEW'
+                : 'REJECTED',
 
-  phone: formState.phoneNumber,
-  email: formState.email,
+            phone: formState.phoneNumber,
+            email: formState.email,
 
-  branches_count: formState.branches_count,
-  description: formState.description,
-  founders: formState.founders
-})
-  }
-);
-const result = await response.json();
-console.log('STATUS =', response.status);
-console.log('RESULT =', result);
-      const selectedSector = sectorOptions.find(
-  s => s.value === formState.sector_id
-);
-
-const updatedCompany = {
-  ...editCompany,
-  ...formState,
-  sector: selectedSector
-    ? t(selectedSector.label as any)
-    : editCompany.sector
-};
-
-      setCompanies((prev) =>
-        prev.map((company) =>
-          company.id === editCompany.id
-            ? updatedCompany
-            : company
-        )
+            branches_count: formState.branches_count,
+            description: formState.description,
+            founders: formState.founders
+          })
+        }
       );
+
+      const result = await response.json().catch(() => ({}));
+
+      // The save used to be trusted unconditionally: the response body was only
+      // console.logged, local state was updated optimistically and the modal
+      // closed. A rejected status change then "reverted" on the next refresh.
+      // Keep the modal open and surface the server's message instead.
+      if (!response.ok) {
+        setSaveError(result?.message || t('updateFailed'));
+        return;
+      }
+
+      // Re-read from the server so what is displayed is what was persisted,
+      // rather than the values we hoped were written.
+      await fetchCompanies();
 
       closeEditModal();
 
     } catch (error) {
 
       console.error(error);
+
+      setSaveError(t('networkError'));
+
+    } finally {
+
+      setIsSaving(false);
 
     }
 
@@ -458,9 +486,12 @@ const updatedCompany = {
             <SearchIcon size={18} className="text-gray-400" />
             <input
               type="text"
-              placeholder={t('searchPlaceholder')}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={t('searchCompanies')}
+              aria-label={t('searchCompanies')}
               className="bg-transparent border-none outline-none px-3 w-full text-sm text-navy dark:text-cream-dark placeholder-gray-400" />
-            
+
           </div>
         </div>
       </div>
@@ -475,6 +506,20 @@ const updatedCompany = {
           </button>
         ))}
       </div>
+
+      {filteredCompanies.length === 0 && (
+        <div className="bg-white dark:bg-navy-card rounded-2xl border border-dashed border-gray-200 dark:border-navy-light py-16 px-6 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-navy/5 dark:bg-cream/5 text-gray-400">
+            <SearchIcon size={22} />
+          </div>
+          <p className="text-lg font-semibold text-navy dark:text-cream-dark">
+            {t('noResultsFound')}
+          </p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {t('noResultsHint')}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredCompanies.map((company, index) =>
@@ -862,6 +907,14 @@ placeholder={t("foundersPlaceholder")}
                   {formErrors.status && <p className="text-xs text-red-500">{formErrors.status}</p>}
                 </label>
               </div>
+              {saveError ? (
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-900/20 dark:text-red-200">
+                  {saveError}
+                </div>
+              ) : null}
+
               <div className="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-navy-light">
                 <button
                   type="button"
@@ -871,7 +924,8 @@ placeholder={t("foundersPlaceholder")}
                 </button>
                 <button
                   type="submit"
-                  className="rounded-2xl bg-gold px-5 py-3 text-sm font-medium text-white hover:bg-gold-dark transition-colors">
+                  disabled={isSaving}
+                  className="rounded-2xl bg-gold px-5 py-3 text-sm font-medium text-white hover:bg-gold-dark transition-colors disabled:cursor-not-allowed disabled:opacity-60">
                   {t('saveChanges' as any)}
                 </button>
               </div>
