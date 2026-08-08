@@ -7,9 +7,10 @@ import VerifyOTP from "./pages/VerifyOTP";
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import NewPassword from "./pages/NewPassword";
-// Old landing page hidden — replaced by StepInLanding (see pages/StepInLanding.tsx)
+// Older landing pages hidden — current one is StepInLandingV5 (pages/StepInLandingV5.tsx)
 // import { HomePage } from './pages/HomePage';
-import { StepInLanding } from './pages/StepInLanding';
+// import { StepInLanding } from './pages/StepInLanding';
+import { StepInLandingV5 } from './pages/StepInLandingV5';
 import { LoginPage } from './pages/LoginPage';
 
 import CompanyDashboard from './pages/CompanyDashboard';
@@ -94,10 +95,10 @@ element={<VerifyOTP />}
 path="/new-password"
 element={<NewPassword />}
 />
-          {/* Home — new StepIn landing page (old HomePage hidden) */}
+          {/* Home — StepIn landing v5 (older HomePage / StepInLanding hidden) */}
           <Route
             path="/"
-            element={<StepInLanding />}
+            element={<StepInLandingV5 />}
           />
 
           {/* Login */}
