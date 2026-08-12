@@ -96,6 +96,12 @@ app.use('/sectors', sectorsRoutes);
 const employeeRoutes = require('./routes/employee.routes');
 app.use('/employee', employeeRoutes);
 
+// Landing-page application wizard. POST here is public (rate-limited); every
+// read/write against stored submissions is ADMIN-only — the rows are prospect
+// PII.
+const applicationsRoutes = require('./routes/applications.routes');
+app.use('/applications', applicationsRoutes);
+
 app.get('/', (req, res) => {
   res.send('API is running 🚀');
 });

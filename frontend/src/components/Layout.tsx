@@ -12,6 +12,7 @@ import {
   GitBranchIcon,
   ShieldCheckIcon,
   ScaleIcon,
+  InboxIcon,
   BellIcon,
   SettingsIcon,
   SunIcon,
@@ -72,6 +73,11 @@ export const Layout: React.FC = () => {
   path: '/admin/requests',
   icon: FileTextIcon,
   label: 'requests'
+},
+{
+  path: '/admin/applications',
+  icon: InboxIcon,
+  label: 'applications'
 },
 {
   path: '/admin/stages',

@@ -7,6 +7,44 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Landing-page application wizard submissions (frontend StepInLandingV5).
+// Deliberately standalone: an application is a lead, not yet a company or a
+// user. Converting one into a real account is separate, later work.
+model applications {
+  id          Int       @id @default(autoincrement())
+  // step 0-2 — business
+  profile     String?
+  home_market String?
+  company     String
+  website     String?
+  linkedin    String?
+  size        String?
+  activity    String?
+  stage       String?
+  capital     String?
+  saudi       String?
+  timeline    String?
+  file_url    String?
+  // step 3 — contact
+  first_name  String
+  last_name   String
+  email       String
+  dial        String?
+  phone       String
+  role        String?
+  consent     Boolean   @default(false)
+  // workflow
+  status      String    @default("NEW")
+  admin_note  String?
+  reviewed_by Int?
+  reviewed_at DateTime?
+  created_at  DateTime  @default(now())
+  users       users?    @relation(fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status, created_at])
+  @@index([email])
+}
+
 model companies {
   id                   Int              @id @default(autoincrement())
   name                 String
@@ -168,6 +206,7 @@ model users {
   company_id                                       Int?
   created_at                                       DateTime?        @default(now())
   status                                           String?          @default("ACTIVE")
+  applications                                     applications[]
   company_tasks                                    company_tasks[]
   notifications                                    notifications[]
   task_documents_task_documents_reviewed_byTousers task_documents[] @relation("task_documents_reviewed_byTousers")

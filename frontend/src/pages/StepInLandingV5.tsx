@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
+import { API_URL } from '../config';
+
 /**
  * StepIn Saudi landing page v5 — React port of last-land/StepIn Landing v5.dc.html.
  * Editorial dark-navy design with numbered sections and a 4-step application
@@ -57,6 +59,9 @@ const EN = {
   choose: 'Choose', back: 'Previous', next: 'Next', submit: 'Submit application',
   save: 'Save and continue later', savedMsg: 'Saved on this device. Reopen this page to continue.',
   errRequired: 'Please complete the required fields on this step.',
+  sending: 'Sending…',
+  errSubmit: 'We could not submit your application. Your answers are kept on this device — please try again.',
+  errNetwork: 'Could not reach the server. Your answers are kept on this device — please try again.',
   capHero: 'Startup Hub, Diriyah — Riyadh',
   placeTitle: 'A real address, not a mailbox',
   placeSub: 'Your membership includes an address and workspace inside the Wadi Makkah complex in Riyadh and Makkah — desks, private offices and meeting rooms, with the ecosystem around them.',
@@ -116,6 +121,9 @@ const AR: typeof EN = {
   choose: 'اختر', back: 'السابق', next: 'التالي', submit: 'إرسال الطلب',
   save: 'حفظ ومتابعة لاحقًا', savedMsg: 'حُفظ على هذا الجهاز. افتح الصفحة مجددًا لإكمال الطلب.',
   errRequired: 'يرجى إكمال الحقول المطلوبة في هذه الخطوة.',
+  sending: 'جارٍ الإرسال…',
+  errSubmit: 'تعذّر إرسال طلبك. بياناتك محفوظة على هذا الجهاز — يرجى المحاولة مرة أخرى.',
+  errNetwork: 'تعذّر الاتصال بالخادم. بياناتك محفوظة على هذا الجهاز — يرجى المحاولة مرة أخرى.',
   capHero: 'مجمع الشركات الناشئة، الدرعية — الرياض',
   placeTitle: 'عنوان حقيقي، لا صندوق بريد',
   placeSub: 'عضويتك تشمل عنوانًا ومساحة عمل داخل مجمع وادي مكة في الرياض ومكة المكرمة — مكاتب مشتركة وخاصة وقاعات اجتماعات، والمنظومة من حولها.',
@@ -362,6 +370,8 @@ export function StepInLandingV5() {
   const [step, setStep] = useState(0);
   const [err, setErr] = useState(false);
   const [savedFlag, setSavedFlag] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendErr, setSendErr] = useState('');
   const [f, setF] = useState<FormState>({ ...BLANK });
 
   useEffect(() => {
@@ -374,17 +384,58 @@ export function StepInLandingV5() {
     } catch (e) { /* corrupt draft — start clean */ }
   }, []);
 
-  const edit = (patch: Partial<FormState>) => { setF((prev) => ({ ...prev, ...patch })); setErr(false); setSavedFlag(false); };
-  const go = (n: number) => { setStep(n); setErr(false); setSavedFlag(false); };
+  const edit = (patch: Partial<FormState>) => { setF((prev) => ({ ...prev, ...patch })); setErr(false); setSavedFlag(false); setSendErr(''); };
+  const go = (n: number) => { setStep(n); setErr(false); setSavedFlag(false); setSendErr(''); };
   const advance = () => { if (!VALID[step](f)) { setErr(true); return; } go(Math.min(step + 1, 3)); };
   const persist = () => {
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ f, step })); } catch (e) { /* private mode */ }
     setSavedFlag(true); setErr(false);
   };
-  const send = () => {
+  // Submits to the public POST /applications endpoint.
+  //
+  // The draft is deliberately written BEFORE the request and only removed once
+  // the server has confirmed a 2xx. The previous version deleted the draft up
+  // front and flipped straight to the success screen without sending anything,
+  // so a failed submission destroyed everything the applicant had typed.
+  const send = async () => {
+    if (sending) return;
     if (!VALID[3](f)) { setErr(true); return; }
-    try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ }
-    setSent(true);
+    setErr(false);
+    setSendErr('');
+    setSending(true);
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ f, step })); } catch (e) { /* private mode */ }
+
+    try {
+      // Public endpoint — no Authorization header.
+      const res = await fetch(`${API_URL}/applications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: f.profile, homeMarket: f.homeMarket, company: f.company.trim(),
+          website: f.website.trim(), linkedin: f.linkedin.trim(), size: f.size.trim(),
+          activity: f.activity.trim(), stage: f.stage, capital: f.capital,
+          saudi: f.saudi, timeline: f.timeline, file: f.file,
+          first: f.first.trim(), last: f.last.trim(), email: f.email.trim(),
+          dial: f.dial, phone: f.phone.trim(), role: f.role.trim(), consent: f.consent
+        })
+      });
+
+      const data = await res.json().catch(() => ({} as { success?: boolean; message?: string }));
+
+      if (!res.ok || data.success === false) {
+        setSendErr(data.message || t.errSubmit);
+        return;
+      }
+
+      // Confirmed by the server — now it is safe to drop the draft.
+      try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ }
+      setSavedFlag(false);
+      setSent(true);
+    } catch (e) {
+      setSendErr(t.errNetwork);
+    } finally {
+      setSending(false);
+    }
   };
   const toggleLang = () => i18n.changeLanguage(ar ? 'en' : 'ar');
 
@@ -896,11 +947,21 @@ export function StepInLandingV5() {
                     <button onClick={() => go(Math.max(step - 1, 0))} style={{ fontFamily: 'inherit', cursor: 'pointer', background: '#FFFFFF', color: '#2B3E8F', border: '1px solid #DDE5F0', borderRadius: 2, padding: '14px 28px', fontSize: 15, fontWeight: 600 }}>{t.back}</button>
                   )}
                   {step < 3 && <button className="btn-dark" onClick={advance}>{t.next}</button>}
-                  {step === 3 && <button className="btn-dark" onClick={send}>{t.submit}</button>}
+                  {step === 3 && (
+                    <button
+                      className="btn-dark"
+                      onClick={send}
+                      disabled={sending}
+                      style={sending ? { opacity: 0.6, cursor: 'progress' } : undefined}
+                    >
+                      {sending ? t.sending : t.submit}
+                    </button>
+                  )}
                   <div style={{ flex: 1, minWidth: 8 }} />
                   <button onClick={persist} style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'none', border: 'none', padding: '8px 0', fontSize: 14.5, fontWeight: 600, color: '#0D5DA6', textDecoration: 'underline', textUnderlineOffset: 3 }}>{t.save}</button>
                 </div>
                 {err && <div style={{ marginTop: 14, background: '#FDECEC', padding: '12px 16px', fontSize: 14, fontWeight: 600, color: '#B93030' }}>{t.errRequired}</div>}
+                {sendErr && <div role="alert" style={{ marginTop: 14, background: '#FDECEC', padding: '12px 16px', fontSize: 14, fontWeight: 600, color: '#B93030', lineHeight: 1.6 }}>{sendErr}</div>}
                 {savedFlag && <div style={{ marginTop: 14, fontSize: 14, fontWeight: 700, color: '#008A84' }}>{t.savedMsg}</div>}
               </div>
             )}

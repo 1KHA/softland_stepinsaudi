@@ -193,6 +193,26 @@ const otpRequestLimiters = [
   otpRequestEmailLimiter
 ];
 
+// ── /applications (public landing-page submissions) ──────────────────────────
+// The only unauthenticated write endpoint on the API, so this limiter is the
+// feature's security boundary against spam and database-fill. Keyed by IP
+// only: the applicant is anonymous and the email field is attacker-chosen, so
+// an email key would be trivially bypassed by varying it per request.
+
+const APPLICATION_WINDOW_MS =
+  envWindowMs('RATE_LIMIT_APPLICATION_WINDOW_MINUTES', 60);
+
+const applicationIpLimiter = makeLimiter({
+  windowMs: APPLICATION_WINDOW_MS,
+  limit: envInt('RATE_LIMIT_APPLICATION_MAX_PER_IP', 10),
+  message: 'Too many applications submitted. Please try again later.',
+  by: 'ip'
+});
+
+const applicationLimiters = [
+  applicationIpLimiter
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // OTP attempt counter with lockout (R-08).
 //
@@ -291,6 +311,8 @@ module.exports = {
   otpRequestLimiters,
   otpRequestIpLimiter,
   otpRequestEmailLimiter,
+  applicationLimiters,
+  applicationIpLimiter,
   otpLockoutRemainingMs,
   recordFailedOtpAttempt,
   clearOtpAttempts,

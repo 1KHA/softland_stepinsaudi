@@ -34,6 +34,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Users } from './pages/Users'
 import { Companies } from './pages/Companies'
 import { Requests } from './pages/Requests'
+import { Applications } from './pages/Applications'
 import { Stages } from './pages/Stages'
 import { TasksLicenses } from './pages/TasksLicenses'
 import { Notifications } from './pages/Notifications'
@@ -218,6 +219,8 @@ element={<ForgotPassword />}
     path="requests/:id"
     element={<RequestDetails />}
   />
+
+  <Route path="applications" element={<Applications />} />
 
   <Route path="stages" element={<Stages />} />
 <Route path="tasks-licenses" element={<TasksLicenses />} />
