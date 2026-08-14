@@ -32,7 +32,6 @@
 // before the user lost access does not outlive that access.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const fs = require('fs');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 
@@ -42,7 +41,8 @@ const {
   requireCompanyAccess,
   fromTaskDocument
 } = require('../middleware/ownership');
-const { toDiskPath, toRelative } = require('../lib/fileUrl');
+const { toRelative } = require('../lib/fileUrl');
+const storage = require('../lib/storage');
 
 const router = express.Router();
 
@@ -217,30 +217,23 @@ router.get(
       });
     }
 
-    // toDiskPath() runs the value through toRelative(), which is what makes the
+    // storage.getStream() normalises via toRelative(), which is what makes the
     // legacy `http://localhost:3000/uploads/...` rows resolve without a
-    // migration.
-    const absolutePath = toDiskPath(row.file_url);
-
-    if (!absolutePath) {
-      return res.status(404).json({
-        success: false,
-        message: 'Not found'
-      });
-    }
-
-    let stat;
+    // migration, and then reads from whichever backend is configured (S3
+    // bucket in production, local uploads/ in development).
+    let stored;
 
     try {
-      stat = fs.statSync(absolutePath);
-    } catch {
-      stat = null;
+      stored = await storage.getStream(row.file_url);
+    } catch (err) {
+      console.error(`[files] storage read failed for document ${documentId}`, err);
+      return next(err);
     }
 
-    if (!stat || !stat.isFile()) {
+    if (!stored) {
 
       console.log(
-        `[files] document ${documentId} has no file on disk: ${absolutePath}`
+        `[files] document ${documentId} has no stored object: ${row.file_url}`
       );
 
       return res.status(404).json({
@@ -257,10 +250,17 @@ router.get(
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('Content-Disposition', contentDisposition(downloadName));
-    res.setHeader('Content-Length', String(stat.size));
+
+    // S3 reports ContentLength; the disk backend reports stat.size. When a
+    // backend does not report one, omit the header rather than send a wrong
+    // value — the response is then simply chunked.
+    if (typeof stored.size === 'number') {
+      res.setHeader('Content-Length', String(stored.size));
+    }
+
     res.setHeader('Cache-Control', 'private, no-store');
 
-    const stream = fs.createReadStream(absolutePath);
+    const stream = stored.stream;
 
     stream.on('error', (err) => {
 

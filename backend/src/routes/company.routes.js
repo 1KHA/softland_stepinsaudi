@@ -581,6 +581,20 @@ console.log("BODY:", req.body);
     const companyTaskId =
       req.body.company_task_id;
 
+    // `required_document_name` arrives as undefined (field omitted), a string
+    // (one file) or an array (several). Indexing it directly threw a TypeError
+    // on the first two, and the empty catch below swallowed it — so every row
+    // silently failed to insert while the response still said "uploaded
+    // successfully" and the bytes sat in storage unreferenced. Normalised the
+    // same way as the /tasks/:taskId/upload route above.
+    const requiredNames = Array.isArray(req.body.required_document_name)
+      ? req.body.required_document_name
+      : req.body.required_document_name
+        ? [req.body.required_document_name]
+        : [];
+
+    let storedCount = 0;
+
     for (let index = 0; index < req.files.length; index++) {
       const file = req.files[index];
 
@@ -597,19 +611,32 @@ try {
       // R-12: relative path only — see lib/fileUrl.js
       file_url: file.filename,
 
-      required_document_name:
-        req.body.required_document_name[index]
+      required_document_name: requiredNames[index] || null
     }
   });
+
+  storedCount++;
+
       } catch (err) {
-        // matches original fire-and-forget behavior
+        // Still non-fatal for the remaining files, but no longer invisible:
+        // a swallowed failure here is an upload the user believes succeeded.
+        console.error(
+          `[upload] task_documents insert failed for company_task ${companyTaskId}:`,
+          err && err.message
+        );
       }
+    }
+
+    if (storedCount === 0) {
+      return res.status(500).json({
+        message: "Upload could not be recorded",
+      });
     }
 
     res.json({
       message:
         "Files uploaded successfully",
-      filesCount: req.files.length,
+      filesCount: storedCount,
     });
 
   }
