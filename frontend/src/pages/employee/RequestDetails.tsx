@@ -60,7 +60,7 @@ const isAdmin = user.role === 'ADMIN';
   const [selectedDocumentId, setSelectedDocumentId] =
   useState<number | null>(null);
   const [licenseFiles, setLicenseFiles] = useState<{
-  [taskId: number]: File | null;
+  [taskId: number]: File[];
 }>({});
 const [processingDocId, setProcessingDocId] = useState<number | null>(null);
 const [isProcessing, setIsProcessing] = useState(false);
@@ -230,9 +230,24 @@ documentReject: t(
 ),
 };
 
-const canManageRequest =
-  isAdmin &&
-  !["APPROVED", "REJECTED", "COMPLETED"].includes(company.status);
+// Closing a request must not freeze the whole page. Approving a company set
+// its status to APPROVED, which used to hide EVERY admin control — including
+// the licence upload — so a licence task created after approval (it arrives as
+// PENDING) could never be actioned and the admin was left with no explanation.
+//
+// Two separate permissions now:
+//   canManageRequest — the request-level Actions card. Still closed once the
+//                      request is APPROVED/REJECTED/COMPLETED; re-approving a
+//                      closed request is meaningless.
+//   canManageTasks   — per-task work: licence upload, task status, document
+//                      approve/reject. An admin keeps these regardless, because
+//                      issuing a licence or reviewing a late document is normal
+//                      work after approval.
+const requestClosed =
+  ["APPROVED", "REJECTED", "COMPLETED"].includes(company.status);
+
+const canManageRequest = isAdmin && !requestClosed;
+const canManageTasks = isAdmin;
 
   return (
     <div className="min-h-screen bg-brand-bg" dir={dir}>
@@ -388,6 +403,20 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
             </div>
           </div>
 
+          {/* A closed request keeps its per-task controls (licences can still be
+              issued), so say plainly why the Actions card is gone rather than
+              leaving the admin hunting for a button that will never appear. */}
+          {isAdmin && requestClosed && (
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <p className="text-sm font-semibold text-[#2B3E8F]">
+                {t('employee.requestDetails.closedTitle', { status: statusLabel(company.status) })}
+              </p>
+              <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
+                {t('employee.requestDetails.closedHint')}
+              </p>
+            </div>
+          )}
+
           {/* ── Request-level actions ──
               These three endpoints existed in handleAction() and in the
               confirmation modal from the start, but nothing ever rendered a
@@ -478,7 +507,7 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
         {statusLabel(task.status)}
       </span>
 
-{canManageRequest &&
+{canManageTasks &&
  task.task_type !== "license" && (
   <select
     value={task.status}
@@ -507,20 +536,22 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
 )}
 
 {
-canManageRequest &&
-task.task_type === "license" &&
-task.status !== "COMPLETED"&& (  <>
+canManageTasks &&
+task.task_type === "license" && (  <>
+    {/* Multiple files per licence: a licence often ships with annexes, and
+        the task stays open afterwards so more can be added later. */}
     <input
       type="file"
+      multiple
       accept=".pdf,.jpg,.jpeg,.png"
       onChange={(e) => {
-        const file = e.target.files?.[0];
+        const files = Array.from(e.target.files || []);
 
-        if (!file) return;
+        if (!files.length) return;
 
         setLicenseFiles((prev) => ({
           ...prev,
-          [task.id]: file,
+          [task.id]: files,
         }));
       }}
       className="text-xs"
@@ -530,30 +561,35 @@ task.status !== "COMPLETED"&& (  <>
   className="bg-blue-600 text-white px-3 py-1 rounded text-xs"
   onClick={async () => {
 
-    const file = licenseFiles[task.id];
+    const files = licenseFiles[task.id] || [];
 
-if (!file) {
+if (!files.length) {
 showToast(t("employee.notifications.selectFileFirst"), "error");
   return;
 }
 
-    const formData = new FormData();
-
-    formData.append("file", file);
-
     try {
-      await axios.post(
-        `${API}/employee/tasks/${task.id}/final-license`,
-        formData,
-        {
-          headers: {
-            ...headers,
-            "Content-Type": "multipart/form-data"
+      // The endpoint takes one file per call, so several selected files are
+      // sent in sequence rather than as one multipart body.
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        await axios.post(
+          `${API}/employee/tasks/${task.id}/final-license`,
+          formData,
+          {
+            headers: {
+              ...headers,
+              "Content-Type": "multipart/form-data"
+            }
           }
-        }
-      );
+        );
+      }
 
 showToast(t("employee.notifications.finalLicenseUploaded"), "success");
+
+setLicenseFiles((prev) => ({ ...prev, [task.id]: [] }));
 
 await fetchDetails();
     } catch (err) {
@@ -631,7 +667,7 @@ showToast(t("employee.notifications.uploadFailed"), "error");
                         <button type="button" onClick={() => openDocument(doc.id, "download")} className="p-2 hover:bg-gray-100 rounded-lg transition">
                           <Download className="w-4 h-4 text-[#2B3E8F]" />
                         </button>
-{canManageRequest &&
+{canManageTasks &&
  doc.status !== "APPROVED" &&
  doc.status !== "NEEDS_RESUBMISSION" && (
   <button
@@ -666,7 +702,7 @@ showToast(t("employee.notifications.documentApproveFailed"), "error");
     </button>
 )}
 
-{canManageRequest &&
+{canManageTasks &&
  doc.status !== "APPROVED" &&
  doc.status !== "NEEDS_RESUBMISSION" && (
   <button

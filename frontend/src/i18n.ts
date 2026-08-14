@@ -407,6 +407,8 @@ status: {
           notePlaceholder: 'Write a note...',
           rejectionReason: 'Rejection reason',
           adminNote: 'Admin Note',
+          closedTitle: 'This request is closed ({{status}})',
+          closedHint: 'Request-level actions are unavailable, but you can still issue licences and review documents on the tasks below.',
           actions: {
             title: 'Actions',
             approve: 'Approve Request',
@@ -939,6 +941,8 @@ documentApproved: "تم اعتماد المستند بنجاح",
           notePlaceholder: '\u0627\u0643\u062a\u0628 \u0645\u0644\u0627\u062d\u0638\u0629...',
           rejectionReason: '\u0633\u0628\u0628 \u0627\u0644\u0631\u0641\u0636',
           adminNote: '\u0645\u0644\u0627\u062d\u0638\u0629 \u0625\u062f\u0627\u0631\u064a\u0629',
+          closedTitle: '\u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628 \u0645\u063a\u0644\u0642 ({{status}})',
+          closedHint: '\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0627\u0644\u0637\u0644\u0628 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d\u0629\u060c \u0644\u0643\u0646 \u064a\u0645\u0643\u0646\u0643 \u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u062a\u0631\u0627\u062e\u064a\u0635 \u0648\u0645\u0631\u0627\u062c\u0639\u0629 \u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a \u0641\u064a \u0627\u0644\u0645\u0647\u0627\u0645 \u0623\u062f\u0646\u0627\u0647.',
           actions: {
             title: '\u0627\u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a',
             approve: '\u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u0649 \u0627\u0644\u0637\u0644\u0628',
