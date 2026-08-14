@@ -18,6 +18,7 @@ import {
   SunIcon,
   MoonIcon,
   ClipboardListIcon,
+  FileCheckIcon,
   GlobeIcon } from
 'lucide-react';
 import { motion } from 'framer-motion';
@@ -88,6 +89,13 @@ export const Layout: React.FC = () => {
   path: '/admin/tasks-licenses',
   icon: ClipboardListIcon,
   label: 'tasksLicenses'
+},
+{
+  // The employees' document-review screen, reachable from the admin shell so
+  // an admin can approve documents without switching to the employee module.
+  path: '/admin/documents',
+  icon: FileCheckIcon,
+  label: 'documentReview'
 },
 
 {

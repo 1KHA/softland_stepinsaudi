@@ -222,6 +222,11 @@ element={<ForgotPassword />}
 
   <Route path="applications" element={<Applications />} />
 
+  {/* Document review inside the admin shell: the same screen employees use,
+      so an admin can approve documents and move the workflow on without
+      switching to the employee module. */}
+  <Route path="documents" element={<DocumentsReview />} />
+
   <Route path="stages" element={<Stages />} />
 <Route path="tasks-licenses" element={<TasksLicenses />} />
   <Route path="notifications" element={<Notifications />} />

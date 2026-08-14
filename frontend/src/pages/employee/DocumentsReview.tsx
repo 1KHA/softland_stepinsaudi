@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Footer } from '../../components/Footer';
 import axios from 'axios';
@@ -23,7 +23,14 @@ interface Document {
 
 export default function DocumentsReview() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
+
+  // Mounted under /admin the page sits inside the admin Layout, which already
+  // supplies the sidebar, top bar and page chrome. Rendering the employee
+  // header/footer there would duplicate the logo, language switch and sign-out
+  // and offer employee-only navigation an admin has no use for.
+  const embedded = location.pathname.startsWith('/admin');
   const isArabic = i18n.language.startsWith('ar');
   const dir = isArabic ? 'rtl' : 'ltr';
 
@@ -140,8 +147,8 @@ export default function DocumentsReview() {
   const ArrowBack = isArabic ? ArrowRight : ArrowLeft;
 
   return (
-    <div className="min-h-screen bg-brand-bg" dir={dir}>
-      <SpectrumBar />
+    <div className={embedded ? '' : 'min-h-screen bg-brand-bg'} dir={dir}>
+      {!embedded && <SpectrumBar />}
 
       {/* Toast */}
       {toast && (
@@ -193,6 +200,7 @@ export default function DocumentsReview() {
       )}
 
       {/* ── HEADER ── */}
+      {!embedded && (
       <div className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <StepInLogo size="md" />
@@ -223,9 +231,19 @@ export default function DocumentsReview() {
           <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 text-sm transition">{t('employee.logout')}</button>
         </div>
       </div>
+      )}
+
+      {/* Embedded: the admin Layout has no page title of its own for this
+          route, so keep a heading here. */}
+      {embedded && (
+        <div className="px-1 pt-1 pb-2">
+          <h1 className="text-2xl font-bold text-[#2B3E8F]">{t('employee.documents.title')}</h1>
+          <p className="text-gray-500 text-sm mt-0.5">{t('employee.documents.subtitle')}</p>
+        </div>
+      )}
 
       {/* ── MAIN ── */}
-      <div className="p-8">
+      <div className={embedded ? 'py-4' : 'p-8'}>
 
         {/* Tabs */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
@@ -304,15 +322,22 @@ export default function DocumentsReview() {
                 <tbody>
                   {filtered.map(doc => (
                     <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
-                      <td className="py-4 px-5">
+                      {/* Legacy uploads have very long escaped Arabic filenames.
+                          Left unbounded they stretched the table far past the
+                          viewport and pushed the Approve/Reject buttons out of
+                          sight — the full name stays available on hover. */}
+                      <td className="py-4 px-5 max-w-[22rem]">
                         <div className="flex items-center gap-3">
                           <FileText className="w-5 h-5 text-[#1DBAEA] flex-shrink-0" />
-                          <span className="font-medium text-[#2B3E8F] text-sm">{doc.file_name}</span>
+                          <span className="font-medium text-[#2B3E8F] text-sm truncate" title={doc.file_name}>
+                            {doc.file_name}
+                          </span>
                         </div>
                       </td>
                       <td className="py-4 px-5">
-                        <button onClick={() => navigate(`/employee-requests/${doc.company_id}`)}
-                          className="text-sm text-[#1DBAEA] hover:underline font-medium">
+                        <button
+                          onClick={() => navigate(embedded ? `/admin/requests/${doc.company_id}` : `/employee-requests/${doc.company_id}`)}
+                          className="text-sm text-[#1DBAEA] hover:underline font-medium whitespace-nowrap">
                           {doc.company_name}
                         </button>
                       </td>
@@ -373,7 +398,7 @@ export default function DocumentsReview() {
         </div>
       </div>
 
-      <Footer />
+      {!embedded && <Footer />}
     </div>
   );
 }
