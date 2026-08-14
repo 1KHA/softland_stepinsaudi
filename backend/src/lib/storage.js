@@ -32,7 +32,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { UPLOADS_DIR, toRelative } = require('./fileUrl');
+const { UPLOADS_DIR, toRelative, toDiskPath } = require('./fileUrl');
 
 const S3_PREFIX = 'uploads/';
 
@@ -104,6 +104,42 @@ function normalise(stored) {
   return toRelative(stored);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// readCandidates(stored)
+//
+// Some legacy rows hold a percent-ENCODED filename while the bytes on disk (and
+// the object in the bucket) use the raw one — the old write sites concatenated
+// names without encoding, and a few rows were later stored encoded. toDiskPath()
+// has always retried a decoded form for the disk backend; reads here must do the
+// same for BOTH backends, or those rows 404 even though the file exists.
+//
+// Order matters: the raw value first, so a filename that legitimately contains
+// '%' is never corrupted by an unnecessary decode.
+// ─────────────────────────────────────────────────────────────────────────────
+function readCandidates(stored) {
+
+  const rel = normalise(stored);
+
+  if (!rel) {
+    return [];
+  }
+
+  const candidates = [rel];
+
+  if (/%[0-9a-f]{2}/i.test(rel)) {
+    try {
+      const decoded = normalise(decodeURIComponent(rel));
+      if (decoded && decoded !== rel) {
+        candidates.push(decoded);
+      }
+    } catch {
+      // Malformed escape sequence: the raw candidate is all there is.
+    }
+  }
+
+  return candidates;
+}
+
 function diskPathFor(relative) {
 
   const absolute = path.resolve(UPLOADS_DIR, relative);
@@ -172,9 +208,9 @@ async function put(relative, buffer, contentType) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function getStream(stored) {
 
-  const rel = normalise(stored);
+  const candidates = readCandidates(stored);
 
-  if (!rel) {
+  if (!candidates.length) {
     return null;
   }
 
@@ -182,31 +218,42 @@ async function getStream(stored) {
 
     const { GetObjectCommand } = getSdk();
 
-    try {
+    for (const rel of candidates) {
 
-      const out = await getClient().send(new GetObjectCommand({
-        Bucket: s3Config().bucket,
-        Key: objectKey(rel)
-      }));
+      try {
 
-      return {
-        stream: out.Body,
-        size: typeof out.ContentLength === 'number' ? out.ContentLength : null
-      };
+        const out = await getClient().send(new GetObjectCommand({
+          Bucket: s3Config().bucket,
+          Key: objectKey(rel)
+        }));
 
-    } catch (err) {
+        return {
+          stream: out.Body,
+          size: typeof out.ContentLength === 'number' ? out.ContentLength : null
+        };
 
-      const code = err && (err.name || err.Code);
+      } catch (err) {
 
-      if (code === 'NoSuchKey' || code === 'NotFound' || err?.$metadata?.httpStatusCode === 404) {
-        return null;
+        const code = err && (err.name || err.Code);
+        const missing =
+          code === 'NoSuchKey' ||
+          code === 'NotFound' ||
+          err?.$metadata?.httpStatusCode === 404;
+
+        // Only a genuine miss should fall through to the next candidate; a
+        // credentials or network failure must surface as a 500, not a 404.
+        if (!missing) {
+          throw err;
+        }
       }
-
-      throw err;
     }
+
+    return null;
   }
 
-  const absolute = diskPathFor(rel);
+  // Disk: toDiskPath() already applies the same candidate logic, so legacy
+  // percent-encoded rows resolve exactly as they did before this module existed.
+  const absolute = toDiskPath(stored);
 
   if (!absolute) {
     return null;
@@ -232,9 +279,9 @@ async function getStream(stored) {
 
 async function exists(stored) {
 
-  const rel = normalise(stored);
+  const candidates = readCandidates(stored);
 
-  if (!rel) {
+  if (!candidates.length) {
     return false;
   }
 
@@ -242,18 +289,22 @@ async function exists(stored) {
 
     const { HeadObjectCommand } = getSdk();
 
-    try {
-      await getClient().send(new HeadObjectCommand({
-        Bucket: s3Config().bucket,
-        Key: objectKey(rel)
-      }));
-      return true;
-    } catch {
-      return false;
+    for (const rel of candidates) {
+      try {
+        await getClient().send(new HeadObjectCommand({
+          Bucket: s3Config().bucket,
+          Key: objectKey(rel)
+        }));
+        return true;
+      } catch {
+        // try the next candidate
+      }
     }
+
+    return false;
   }
 
-  const absolute = diskPathFor(rel);
+  const absolute = toDiskPath(stored);
 
   if (!absolute) {
     return false;

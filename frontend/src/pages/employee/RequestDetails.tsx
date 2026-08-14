@@ -387,6 +387,45 @@ className={`flex-1 py-3 rounded-xl text-white transition text-sm font-medium dis
               </div>
             </div>
           </div>
+
+          {/* ── Request-level actions ──
+              These three endpoints existed in handleAction() and in the
+              confirmation modal from the start, but nothing ever rendered a
+              control that set showConfirm to them, so the whole request-level
+              approval path was unreachable from the UI. */}
+          {canManageRequest && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <h2 className="text-xl font-bold text-[#2B3E8F] mb-4">
+                {t('employee.requestDetails.actions.title')}
+              </h2>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => setShowConfirm('approve')}
+                  className="w-full rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700">
+                  {t('employee.requestDetails.actions.approve')}
+                </button>
+
+                <button
+                  onClick={() => setShowConfirm('resubmit')}
+                  className="w-full rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-100">
+                  {t('employee.requestDetails.actions.requestEdit')}
+                </button>
+
+                <button
+                  onClick={() => setShowConfirm('reject')}
+                  className="w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50">
+                  {t('employee.requestDetails.actions.reject')}
+                </button>
+              </div>
+
+              {/* Approving here completes every stage and task at once, so the
+                  scope is stated rather than left to be discovered. */}
+              <p className="mt-4 text-xs leading-relaxed text-gray-500">
+                {t('employee.requestDetails.actions.hint')}
+              </p>
+            </div>
+          )}
 </div>
 
         {/* ── RIGHT ── */}

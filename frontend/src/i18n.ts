@@ -411,7 +411,8 @@ status: {
             title: 'Actions',
             approve: 'Approve Request',
             requestEdit: 'Request Resubmission',
-            reject: 'Reject Request'
+            reject: 'Reject Request',
+            hint: 'Approving completes every stage and task for this company at once. To advance one step at a time, approve the individual documents instead.'
           },
           confirmation: {
             title: 'Confirm Action',
@@ -951,7 +952,8 @@ documentUpdateFailed: "فشل تحديث المستند",
             title: '\u0627\u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a',
             approve: '\u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u0649 \u0627\u0644\u0637\u0644\u0628',
             requestEdit: '\u0637\u0644\u0628 \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u062a\u0642\u062f\u064a\u0645',
-            reject: '\u0631\u0641\u0636 \u0627\u0644\u0637\u0644\u0628'
+            reject: '\u0631\u0641\u0636 \u0627\u0644\u0637\u0644\u0628',
+            hint: '\u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629 \u062a\u064f\u0643\u0645\u0644 \u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0631\u0627\u062d\u0644 \u0648\u0627\u0644\u0645\u0647\u0627\u0645 \u0644\u0647\u0630\u0647 \u0627\u0644\u0634\u0631\u0643\u0629 \u062f\u0641\u0639\u0629 \u0648\u0627\u062d\u062f\u0629. \u0644\u0644\u062a\u0642\u062f\u0645 \u062e\u0637\u0648\u0629 \u0628\u062e\u0637\u0648\u0629\u060c \u0627\u0639\u062a\u0645\u062f \u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a \u0628\u0634\u0643\u0644 \u0645\u0646\u0641\u0631\u062f.'
           },
           confirmation: {
             title: '\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u0625\u062c\u0631\u0627\u0621',

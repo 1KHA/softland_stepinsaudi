@@ -1185,12 +1185,19 @@ router.put('/tasks/:id/status', authMiddleware, async (req, res) => {
     console.log('CURRENT STAGE =', currentStage);
     console.log('NEXT STAGE FOUND =', nextStage2);
 
-    // NOTE: original code has a redundant `if (!nextStage) { if (nextStage) {...} }`
-    // construct — the inner branch is unreachable because nextStage is falsy in
-    // that scope. Preserved exactly: this handler only ever returns the success
-    // response below and never actually calls UPDATE company_stages here,
-    // matching the original's effective behavior.
+    // The original had a redundant `if (!nextStage) { if (nextStage) {...} }`
+    // whose inner branch was unreachable, so completing the last task of a
+    // stage marked that stage COMPLETED and then left the following stage
+    // LOCKED — the workflow stalled at every stage boundary and could only be
+    // moved on by approving a document instead.
+    //
+    // Now mirrors PUT /employee/documents/:id/approve: unlock the next stage
+    // and recompute the company status.
     if (!nextStage2) {
+
+      // Last stage completed — nothing to unlock, but the company status still
+      // has to reflect that the workflow is finished.
+      await updateCompanyStatus(currentStage.company_id);
 
       return res.json({
         success: true,
@@ -1198,6 +1205,13 @@ router.put('/tasks/:id/status', authMiddleware, async (req, res) => {
       });
 
     }
+
+    await prisma.company_stages.update({
+      where: { id: nextStage2.id },
+      data: { status: 'IN_PROGRESS' }
+    });
+
+    await updateCompanyStatus(currentStage.company_id);
 
     return res.json({
       success: true,
