@@ -849,16 +849,7 @@ notifications: 'الإشعارات',
     }
   }
       },
-
-uploadFinalLicense: "رفع الترخيص النهائي",
-selectFileFirst: "يرجى اختيار ملف أولاً",
-finalLicenseUploaded: "تم رفع الترخيص النهائي بنجاح",
-uploadFailed: "فشل في رفع الملف",
 documentApproved: "تم اعتماد المستند بنجاح",
-documentApproveFailed: "فشل اعتماد المستند",
-documentNeedsResubmission: "تم طلب إعادة رفع المستند",
-documentUpdateFailed: "فشل تحديث المستند",
-
       employee: {
         welcome: '\u0645\u0631\u062d\u0628\u0627\u064b',
         dashboard: '\u0644\u0648\u062d\u0629 \u062a\u062d\u0643\u0645 \u0627\u0644\u0645\u0648\u0638\u0641',
@@ -1022,6 +1013,13 @@ documentUpdateFailed: "فشل تحديث المستند",
           }
         },
         notifications: {
+          documentApproveFailed: "فشل اعتماد المستند",
+          documentNeedsResubmission: "تم طلب إعادة رفع المستند",
+          documentUpdateFailed: "فشل تحديث المستند",
+          finalLicenseUploaded: "تم رفع الترخيص النهائي بنجاح",
+          selectFileFirst: "يرجى اختيار ملف أولاً",
+          uploadFailed: "فشل في رفع الملف",
+          uploadFinalLicense: "رفع الترخيص النهائي",
           title: '\u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a',
           subtitle: '\u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0627\u0644\u0646\u0638\u0627\u0645 \u0648\u062a\u062d\u062f\u064a\u062b\u0627\u062a \u0627\u0644\u0637\u0644\u0628\u0627\u062a',
           markAllRead: '\u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0643\u0644 \u0643\u0645\u0642\u0631\u0648\u0621',

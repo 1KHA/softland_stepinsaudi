@@ -112,7 +112,7 @@ const [isProcessing, setIsProcessing] = useState(false);
       { headers }
     );
 
-showToast(t("documentNeedsResubmission"), "success");
+showToast(t("employee.notifications.documentNeedsResubmission"), "success");
 
 
     setShowConfirm(null);
@@ -123,7 +123,7 @@ showToast(t("documentNeedsResubmission"), "success");
   } catch (err) {
     console.error(err);
 
-showToast(t("documentUpdateFailed"), "error");
+showToast(t("employee.notifications.documentUpdateFailed"), "error");
   }
 
   return;
@@ -533,7 +533,7 @@ task.status !== "COMPLETED"&& (  <>
     const file = licenseFiles[task.id];
 
 if (!file) {
-showToast(t("selectFileFirst"), "error");
+showToast(t("employee.notifications.selectFileFirst"), "error");
   return;
 }
 
@@ -553,19 +553,19 @@ showToast(t("selectFileFirst"), "error");
         }
       );
 
-showToast(t("finalLicenseUploaded"), "success");
+showToast(t("employee.notifications.finalLicenseUploaded"), "success");
 
 await fetchDetails();
     } catch (err) {
 
       console.error(err);
 
-showToast(t("uploadFailed"), "error");
+showToast(t("employee.notifications.uploadFailed"), "error");
     }
 
   }}
 >
-  {t("uploadFinalLicense")}
+  {t("employee.notifications.uploadFinalLicense")}
 </button>
   </>
 )}
@@ -646,13 +646,13 @@ showToast(t("uploadFailed"), "error");
           { headers }
         );
 
-showToast(t("documentApproved"), "success");
+showToast(t("notificationsPage.documentApproved"), "success");
 
         await fetchDetails();
       } catch (err) {
         console.error(err);
 
-showToast(t("documentApproveFailed"), "error");
+showToast(t("employee.notifications.documentApproveFailed"), "error");
 
       } finally {
         setProcessingDocId(null);
